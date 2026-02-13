@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          Role      @default(CUSTOMER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        Order[]
+  addresses     Address[]
+  reviews       Review[]
+  wishlist      Product[] @relation("Wishlist")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  CUSTOMER
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Decimal
+  discount    Decimal?
+  stock       Int      @default(0)
+  images      String[]
+  brandId     String
+  brand       Brand    @relation(fields: [brandId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  attributes  Json?    // For tech specs, sizes, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orderItems  OrderItem[]
+  reviews     Review[]
+  wishlistedBy User[]  @relation("Wishlist")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  parentId    String?
+  parent      Category? @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToCategory")
+  products    Product[]
+  image       String?
+}
+
+model Brand {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  logo     String?
+  products Product[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  status      OrderStatus @default(PENDING)
+  totalAmount Decimal
+  addressId   String
+  address     Address     @relation(fields: [addressId], references: [id])
+  paymentId   String?
+  paymentMode String      // COD, CARD, INSTALLMENTS
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal
+}
+
+model Address {
+  id          String  @id @default(cuid())
+  userId      String
+  user        User    @relation(fields: [userId], references: [id])
+  type        String  // HOME, WORK
+  fullName    String
+  phone       String
+  street      String
+  city        String
+  state       String
+  country     String
+  isDefault   Boolean @default(false)
+  orders      Order[]
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Coupon {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  discount  Decimal
+  type      String   // PERCENTAGE, FIXED
+  expiresAt DateTime
+  isActive  Boolean  @default(true)
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  image     String
+  link      String?
+  position  String   // HOME_TOP, HOME_SIDE
+  isActive  Boolean  @default(true)
+}
