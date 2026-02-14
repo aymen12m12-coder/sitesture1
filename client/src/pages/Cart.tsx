@@ -15,8 +15,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 
-// Helper for distance calculation - Removed, now using backend API
-
 export default function Cart() {
   const [, setLocation] = useLocation();
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
@@ -152,7 +150,6 @@ export default function Cart() {
     placeOrderMutation.mutate(orderData);
   };
 
-
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-8">
@@ -230,240 +227,240 @@ export default function Cart() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Customer Information Form */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold text-gray-800 mb-4">معلومات العميل</h3>
-            <div className="space-y-4">
-              <Input
-                placeholder="الاسم *"
-                value={orderForm.customerName}
-                onChange={(e) => setOrderForm(prev => ({ ...prev, customerName: e.target.value }))}
-                data-testid="input-customer-name"
-              />
-              <Input
-                placeholder="رقم الهاتف *"
-                value={orderForm.customerPhone}
-                onChange={(e) => setOrderForm(prev => ({ ...prev, customerPhone: e.target.value }))}
-                data-testid="input-customer-phone"
-              />
-              <Input
-                placeholder="البريد الإلكتروني"
-                value={orderForm.customerEmail}
-                onChange={(e) => setOrderForm(prev => ({ ...prev, customerEmail: e.target.value }))}
-                data-testid="input-customer-email"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Address Section with Location Picker */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="h-5 w-5 text-black" />
-              <h3 className="font-semibold text-gray-800">عنوان التوصيل</h3>
-            </div>
-            
-            {/* Location Picker Component */}
-            <div className="mb-4">
-              <LocationPicker 
-                onLocationSelect={handleLocationSelect}
-                placeholder="اختر موقع التوصيل من الخريطة"
-              />
-            </div>
-
-            {/* Manual Address Input */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">أو أدخل العنوان يدوياً:</label>
-              <Textarea
-                placeholder="أدخل عنوان التوصيل بالتفصيل *"
-                value={orderForm.deliveryAddress}
-                onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryAddress: e.target.value }))}
-                rows={3}
-                data-testid="input-delivery-address"
-                className="border-gray-300 focus:border-black focus:ring-black"
-              />
-            </div>
-
-            {/* Location Coordinates Display */}
-            {orderForm.locationData && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-green-600" />
-                  <span className="text-sm font-medium text-green-800">تم تحديد الموقع بدقة</span>
-                </div>
-                <p className="text-xs text-green-700 mt-1">
-                  📍 الإحداثيات: {orderForm.locationData.lat.toFixed(6)}, {orderForm.locationData.lng.toFixed(6)}
-                </p>
-                <p className="text-xs text-green-700">
-                  سيتم توصيل طلبك بدقة للموقع المحدد
-                </p>
-              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className="text-gray-500">
+                    <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-lg font-semibold mb-2">السلة فارغة</h3>
+                    <p className="text-sm">أضف بعض العناصر لبدء الطلب</p>
+                    <Button 
+                      className="mt-4 bg-black hover:bg-red-600 text-white"
+                      onClick={() => setLocation('/')}
+                      data-testid="button-continue-shopping"
+                    >
+                      العودة للتسوق
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Order Notes */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-5 w-5 text-black" />
-              <h3 className="font-semibold text-gray-800">ملاحظات الطلب</h3>
-            </div>
-            <Textarea
-              placeholder="أضف ملاحظات للطلب (اختياري)"
-              value={orderForm.notes}
-              onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
-              rows={2}
-              data-testid="input-order-notes"
-            />
-          </CardContent>
-        </Card>
+          {/* Order Form - الجانب الأيمن */}
+          <div className="space-y-4">
+            {/* Customer Information Form */}
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-semibold text-gray-800 mb-4">معلومات العميل</h3>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="الاسم *"
+                    value={orderForm.customerName}
+                    onChange={(e) => setOrderForm(prev => ({ ...prev, customerName: e.target.value }))}
+                    data-testid="input-customer-name"
+                  />
+                  <Input
+                    placeholder="رقم الهاتف *"
+                    value={orderForm.customerPhone}
+                    onChange={(e) => setOrderForm(prev => ({ ...prev, customerPhone: e.target.value }))}
+                    data-testid="input-customer-phone"
+                  />
+                  <Input
+                    placeholder="البريد الإلكتروني"
+                    value={orderForm.customerEmail}
+                    onChange={(e) => setOrderForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                    data-testid="input-customer-email"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Delivery Time */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Clock className="h-5 w-5 text-black" />
-              <h3 className="font-semibold text-gray-800">تحديد وقت الطلب</h3>
-            </div>
-            <div className="text-sm text-gray-600 mb-3">وقت لتنفيذ الطلب</div>
-            
-            <div className="flex gap-3">
-              <Button 
-                variant={orderForm.deliveryTime === 'now' ? "default" : "outline"}
-                className={`flex-1 ${orderForm.deliveryTime === 'now' ? 'bg-black hover:bg-red-600 text-white' : 'border-gray-300'}`}
-                onClick={() => setOrderForm(prev => ({ ...prev, deliveryTime: 'now' }))}
-              >
-                ✓ الآن
-              </Button>
-              <Button 
-                variant={orderForm.deliveryTime === 'later' ? "default" : "outline"}
-                className={`flex-1 ${orderForm.deliveryTime === 'later' ? 'bg-black hover:bg-red-600 text-white' : 'border-gray-300'}`}
-                onClick={() => setOrderForm(prev => ({ ...prev, deliveryTime: 'later' }))}
-              >
-                في وقت لاحق
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Address Section with Location Picker */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-black" />
+                  <h3 className="font-semibold text-gray-800">عنوان التوصيل</h3>
+                </div>
+                
+                {/* Location Picker Component */}
+                <div className="mb-4">
+                  <LocationPicker 
+                    onLocationSelect={handleLocationSelect}
+                    placeholder="اختر موقع التوصيل من الخريطة"
+                  />
+                </div>
 
-        {/* Payment Methods */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <DollarSign className="h-5 w-5 text-black" />
-              <h3 className="font-semibold text-gray-800">الدفع ( الدفع عند الاستلام )</h3>
-            </div>
+                {/* Manual Address Input */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">أو أدخل العنوان يدوياً:</label>
+                  <Textarea
+                    placeholder="أدخل عنوان التوصيل بالتفصيل *"
+                    value={orderForm.deliveryAddress}
+                    onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryAddress: e.target.value }))}
+                    rows={3}
+                    data-testid="input-delivery-address"
+                    className="border-gray-300 focus:border-black focus:ring-black"
+                  />
+                </div>
 
-            <RadioGroup 
-              value={orderForm.paymentMethod} 
-              onValueChange={(value) => setOrderForm(prev => ({ ...prev, paymentMethod: value }))}
-              className="space-y-3"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="cash" id="cash" />
-                <Label htmlFor="cash" className="flex-1 cursor-pointer">
-                  الدفع عند الاستلام
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="wallet" id="wallet" />
-                <Label htmlFor="wallet" className="flex-1 cursor-pointer">
-                  الدفع من رصيد
-                </Label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="digital" id="digital" />
-                <Label htmlFor="digital" className="flex-1 cursor-pointer">
-                  الدفع باستخدام المحفظة الإلكترونية
-                </Label>
-              </div>
-            </RadioGroup>
+                {/* Location Coordinates Display */}
+                {orderForm.locationData && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-800">تم تحديد الموقع بدقة</span>
+                    </div>
+                    <p className="text-xs text-green-700 mt-1">
+                      📍 الإحداثيات: {orderForm.locationData.lat.toFixed(6)}, {orderForm.locationData.lng.toFixed(6)}
+                    </p>
+                    <p className="text-xs text-green-700">
+                      سيتم توصيل طلبك بدقة للموقع المحدد
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-            <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3">
-              إضافة رصيد
-            </Button>
-          </CardContent>
-        </Card>
+            {/* Order Notes */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="h-5 w-5 text-black" />
+                  <h3 className="font-semibold text-gray-800">ملاحظات الطلب</h3>
+                </div>
+                <Textarea
+                  placeholder="أضف ملاحظات للطلب (اختياري)"
+                  value={orderForm.notes}
+                  onChange={(e) => setOrderForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  data-testid="input-order-notes"
+                />
+              </CardContent>
+            </Card>
 
-        {/* Final Order Summary */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">المجموع الفرعي</span>
-                <span className="text-xl font-bold text-gray-900" data-testid="text-subtotal">
-                  {formatCurrency(subtotal)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">التوصيل</span>
-                <span className="text-gray-900" data-testid="text-delivery-fee">
-                  {formatCurrency(deliveryFee)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center pt-2 border-t">
-                <span className="text-gray-800 font-semibold">الإجمالي</span>
-                <span className="text-xl font-bold text-black" data-testid="text-total">
-                  {formatCurrency(subtotal + deliveryFee)}
-                </span>
-              </div>
-              
-              <div className="text-sm text-gray-500 text-center">
-                يرجى الاتصال بالإنترنت وتحديد عنوان التوصيل (لاحتساب
-                سعر التوصيل والدعم المتوفر)
-                <Button variant="link" className="text-blue-500 p-0 h-auto text-sm">
-                  إعادة المحاولة (اضغط هنا)
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Delivery Time */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-5 w-5 text-black" />
+                  <h3 className="font-semibold text-gray-800">تحديد وقت الطلب</h3>
+                </div>
+                <div className="text-sm text-gray-600 mb-3">وقت تنفيذ الطلب</div>
+                
+                <div className="flex gap-3">
+                  <Button 
+                    variant={orderForm.deliveryTime === 'now' ? "default" : "outline"}
+                    className={`flex-1 ${orderForm.deliveryTime === 'now' ? 'bg-black hover:bg-red-600 text-white' : 'border-gray-300'}`}
+                    onClick={() => setOrderForm(prev => ({ ...prev, deliveryTime: 'now' }))}
+                  >
+                    ✓ الآن
+                  </Button>
+                  <Button 
+                    variant={orderForm.deliveryTime === 'later' ? "default" : "outline"}
+                    className={`flex-1 ${orderForm.deliveryTime === 'later' ? 'bg-black hover:bg-red-600 text-white' : 'border-gray-300'}`}
+                    onClick={() => setOrderForm(prev => ({ ...prev, deliveryTime: 'later' }))}
+                  >
+                    في وقت لاحق
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Order Confirmation Button */}
-        {items.length > 0 && (
-          <Card>
-            <CardContent className="p-4">
-              <Button 
-                className="w-full bg-black hover:bg-red-600 text-white font-semibold py-3 text-lg"
-                onClick={handlePlaceOrder}
-                disabled={placeOrderMutation.isPending}
-                data-testid="button-place-order"
-              >
-                {placeOrderMutation.isPending ? 'جاري تأكيد الطلب...' : `تأكيد الطلب - ${formatCurrency(total)}`}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-        
-        {items.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="text-gray-500">
-                <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-semibold mb-2">السلة فارغة</h3>
-                <p className="text-sm">أضف بعض العناصر لبدء الطلب</p>
-                <Button 
-                  className="mt-4 bg-black hover:bg-red-600 text-white"
-                  onClick={() => setLocation('/')}
-                  data-testid="button-continue-shopping"
+            {/* Payment Methods */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <DollarSign className="h-5 w-5 text-black" />
+                  <h3 className="font-semibold text-gray-800">الدفع ( الدفع عند الاستلام )</h3>
+                </div>
+
+                <RadioGroup 
+                  value={orderForm.paymentMethod} 
+                  onValueChange={(value) => setOrderForm(prev => ({ ...prev, paymentMethod: value }))}
+                  className="space-y-3"
                 >
-                  العودة للتسوق
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="cash" id="cash" />
+                    <Label htmlFor="cash" className="flex-1 cursor-pointer">
+                      الدفع عند الاستلام
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="wallet" id="wallet" />
+                    <Label htmlFor="wallet" className="flex-1 cursor-pointer">
+                      الدفع من رصيد
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="digital" id="digital" />
+                    <Label htmlFor="digital" className="flex-1 cursor-pointer">
+                      الدفع باستخدام المحفظة الإلكترونية
+                    </Label>
+                  </div>
+                </RadioGroup>
+
+                <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3">
+                  إضافة رصيد
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+
+            {/* Final Order Summary */}
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">المجموع الفرعي</span>
+                    <span className="text-xl font-bold text-gray-900" data-testid="text-subtotal">
+                      {formatCurrency(subtotal)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">التوصيل</span>
+                    <span className="text-gray-900" data-testid="text-delivery-fee">
+                      {formatCurrency(deliveryFee)}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <span className="text-gray-800 font-semibold">الإجمالي</span>
+                    <span className="text-xl font-bold text-black" data-testid="text-total">
+                      {formatCurrency(subtotal + deliveryFee)}
+                    </span>
+                  </div>
+                  
+                  <div className="text-sm text-gray-500 text-center">
+                    يرجى تحديد عنوان التوصيل لاحتساب سعر التوصيل
+                    <Button variant="link" className="text-blue-500 p-0 h-auto text-sm">
+                      إعادة المحاولة
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Order Confirmation Button */}
+            {items.length > 0 && (
+              <Card>
+                <CardContent className="p-4">
+                  <Button 
+                    className="w-full bg-black hover:bg-red-600 text-white font-semibold py-3 text-lg"
+                    onClick={handlePlaceOrder}
+                    disabled={placeOrderMutation.isPending}
+                    data-testid="button-place-order"
+                  >
+                    {placeOrderMutation.isPending ? 'جاري تأكيد الطلب...' : `تأكيد الطلب - ${formatCurrency(total)}`}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
