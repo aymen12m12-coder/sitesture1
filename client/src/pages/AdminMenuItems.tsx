@@ -76,25 +76,25 @@ export default function AdminMenuItems() {
     mutationFn: async (data: typeof formData) => {
       // التحقق من الحقول المطلوبة
       if (!data.name.trim()) {
-        throw new Error('اسم الوجبة مطلوب');
+        throw new Error('اسم المنتج مطلوب');
       }
       if (!data.price.trim()) {
-        throw new Error('سعر الوجبة مطلوب');
+        throw new Error('سعر المنتج مطلوب');
       }
       if (!data.image.trim()) {
-        throw new Error('صورة الوجبة مطلوبة');
+        throw new Error('صورة المنتج مطلوبة');
       }
       if (!data.category.trim()) {
-        throw new Error('تصنيف الوجبة مطلوب');
+        throw new Error('تصنيف المنتج مطلوب');
       }
       if (!data.restaurantId) {
-        throw new Error('يجب اختيار مطعم');
+        throw new Error('يجب اختيار متجر');
       }
 
       // تحقق من الأرقام
       const price = parseFloat(data.price);
       if (isNaN(price) || price <= 0) {
-        throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
+        throw new Error('سعر المنتج يجب أن يكون رقم صحيح أكبر من صفر');
       }
 
       let originalPrice = null;
@@ -128,8 +128,8 @@ export default function AdminMenuItems() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
-        title: "تم إضافة الوجبة",
-        description: "تم إضافة الوجبة الجديدة بنجاح",
+        title: "تم إضافة المنتج",
+        description: "تم إضافة المنتج الجديد بنجاح",
       });
       resetForm();
       setIsDialogOpen(false);
@@ -137,7 +137,7 @@ export default function AdminMenuItems() {
     onError: (error: Error) => {
       toast({
         variant: "destructive",
-        title: "خطأ في إضافة الوجبة",
+        title: "خطأ في إضافة المنتج",
         description: error.message,
       });
     },
@@ -147,25 +147,25 @@ export default function AdminMenuItems() {
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
       // التحقق من الحقول المطلوبة
       if (!data.name.trim()) {
-        throw new Error('اسم الوجبة مطلوب');
+        throw new Error('اسم المنتج مطلوب');
       }
       if (!data.price.trim()) {
-        throw new Error('سعر الوجبة مطلوب');
+        throw new Error('سعر المنتج مطلوب');
       }
       if (!data.image.trim()) {
-        throw new Error('صورة الوجبة مطلوبة');
+        throw new Error('صورة المنتج مطلوبة');
       }
       if (!data.category.trim()) {
-        throw new Error('تصنيف الوجبة مطلوب');
+        throw new Error('تصنيف المنتج مطلوب');
       }
       if (!data.restaurantId) {
-        throw new Error('يجب اختيار مطعم');
+        throw new Error('يجب اختيار متجر');
       }
 
       // تحقق من الأرقام
       const price = parseFloat(data.price);
       if (isNaN(price) || price <= 0) {
-        throw new Error('سعر الوجبة يجب أن يكون رقم صحيح أكبر من صفر');
+        throw new Error('سعر المنتج يجب أن يكون رقم صحيح أكبر من صفر');
       }
 
       let originalPrice = null;
@@ -199,8 +199,8 @@ export default function AdminMenuItems() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
-        title: "تم تحديث الوجبة",
-        description: "تم تحديث الوجبة بنجاح",
+        title: "تم تحديث المنتج",
+        description: "تم تحديث المنتج بنجاح",
       });
       resetForm();
       setEditingItem(null);
@@ -209,7 +209,7 @@ export default function AdminMenuItems() {
     onError: (error: Error) => {
       toast({
         variant: "destructive",
-        title: "خطأ في تحديث الوجبة",
+        title: "خطأ في تحديث المنتج",
         description: error.message,
       });
     },
@@ -223,8 +223,8 @@ export default function AdminMenuItems() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'] });
       toast({
-        title: "تم حذف الوجبة",
-        description: "تم حذف الوجبة بنجاح",
+        title: "تم حذف المنتج",
+        description: "تم حذف المنتج بنجاح",
       });
     },
   });
@@ -291,7 +291,7 @@ export default function AdminMenuItems() {
     if (isNaN(price) || price <= 0) {
       toast({
         title: "خطأ",
-        description: "يرجى إدخال سعر صحيح للوجبة",
+        description: "يرجى إدخال سعر صحيح للمنتج",
         variant: "destructive",
       });
       return;
@@ -383,7 +383,7 @@ export default function AdminMenuItems() {
         <div className="flex items-center gap-3">
           <Package className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة قوائم المنتجات</h1>
+            <h1 className="text-2xl font-bold text-foreground">إدارة المنتجات</h1>
             <p className="text-muted-foreground">إدارة المنتجات والأصناف</p>
           </div>
         </div>
@@ -632,7 +632,7 @@ export default function AdminMenuItems() {
             <div className="relative">
               <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="البحث في الوجبات..."
+                placeholder="البحث في المنتجات..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pr-10"
@@ -648,8 +648,8 @@ export default function AdminMenuItems() {
         <Card>
           <CardContent className="p-8 text-center">
             <Package className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">اختر مطعم</h3>
-            <p className="text-muted-foreground">يرجى اختيار مطعم من القائمة أعلاه لعرض وإدارة قائمة الطعام</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">اختر متجر</h3>
+            <p className="text-muted-foreground">يرجى اختيار متجر من القائمة أعلاه لعرض وإدارة المنتجات</p>
           </CardContent>
         </Card>
       )}
@@ -789,8 +789,8 @@ export default function AdminMenuItems() {
                         <AlertDialogHeader>
                           <AlertDialogTitle>تأكيد الحذف</AlertDialogTitle>
                           <AlertDialogDescription>
-                            هل أنت متأكد من حذف الوجبة "{item.name}"؟ 
-                            لن تظهر في قائمة المطعم بعد الحذف.
+                            هل أنت متأكد من حذف المنتج "{item.name}"؟ 
+                            لن تظهر في قائمة المتجر بعد الحذف.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -811,10 +811,10 @@ export default function AdminMenuItems() {
           ) : selectedRestaurant && !searchTerm ? (
             <div className="col-span-full text-center py-12">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد وجبات</h3>
-              <p className="text-muted-foreground mb-4">ابدأ بإضافة وجبات لهذا المطعم</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">لا توجد منتجات</h3>
+              <p className="text-muted-foreground mb-4">ابدأ بإضافة منتجات لهذا المتجر</p>
               <Button onClick={() => setIsDialogOpen(true)} data-testid="button-add-first-menu-item">
-                إضافة الوجبة الأولى
+                إضافة المنتج الأول
               </Button>
             </div>
           ) : searchTerm ? (

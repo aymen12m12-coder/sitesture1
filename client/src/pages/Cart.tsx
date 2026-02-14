@@ -154,41 +154,28 @@ export default function Cart() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header with black/white theme */}
-      <header className="bg-black text-white p-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto w-full">
+    <div className="min-h-screen bg-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8 border-b pb-4">
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation('/')}
-              className="text-white hover:bg-white/20"
-              data-testid="button-cart-back"
-            >
-              <ArrowRight className="h-5 w-5" />
-            </Button>
-            <h1 className="text-xl font-bold">حقيبة التسوق</h1>
+            <h1 className="text-3xl font-black uppercase tracking-tighter">حقيبة التسوق</h1>
           </div>
           <Button 
             variant="ghost" 
-            size="icon" 
-            className="text-white hover:bg-white/20"
+            size="sm" 
+            className="text-gray-400 hover:text-black font-bold gap-2"
             onClick={clearCart}
             data-testid="button-clear-cart"
           >
-            <Trash2 className="h-5 w-5" />
+            <Trash2 className="h-5 w-5" /> مسح الحقيبة
           </Button>
         </div>
-      </header>
 
-      <div className="p-4 space-y-4">
-        {/* Cart Items */}
-        {items.length > 0 && (
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-gray-800 mb-4">عناصر السلة</h3>
-              <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Cart Items */}
+          <div className="lg:col-span-2 space-y-8">
+            {items.length > 0 ? (
+              <div className="space-y-6">
                 {items.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
                     <div className="relative">

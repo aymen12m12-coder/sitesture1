@@ -158,25 +158,14 @@ export default function Profile() {
   ];
 
   return (
-    <div>
-      {/* Header */}
-      <header className="bg-card border-b border-border p-4">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setLocation('/')}
-            data-testid="button-profile-back"
-          >
-            <ArrowRight className="h-5 w-5" />
-          </Button>
-          <h2 className="text-xl font-bold text-foreground">الملف الشخصي</h2>
-        </div>
-      </header>
-
-      <section className="p-4 space-y-6">
-        {/* Profile Info Card */}
-        <Card>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <h1 className="text-3xl font-black uppercase tracking-tighter border-b pb-4 mb-8">حسابي</h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Profile Info Card */}
+          <div className="lg:col-span-2 space-y-6">
+            <Card className="rounded-none border-2">
           <CardHeader className="text-center">
             <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
               <User className="h-10 w-10 text-primary-foreground" />

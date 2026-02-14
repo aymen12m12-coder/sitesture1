@@ -36,13 +36,19 @@ export default function Home() {
   const { data: featuredProducts } = useQuery<MenuItem[]>({
     queryKey: ['/api/products/featured'],
     queryFn: async () => {
-      const response = await fetch('/api/restaurants'); // Fallback for now
+      const response = await fetch('/api/restaurants');
       const stores = await response.json();
-      if (stores.length > 0) {
-        const productsRes = await fetch(`/api/restaurants/${stores[0].id}/menu`);
-        return productsRes.json();
-      }
-      return [];
+      
+      // Fetch menus from all stores to find featured products
+      const allPromises = stores.map((s: Restaurant) => 
+        fetch(`/api/restaurants/${s.id}/menu`).then(r => r.json())
+      );
+      const results = await Promise.all(allPromises);
+      const flattened = results.flat();
+      
+      // Filter for items that are marked as featured or just take the latest ones
+      const featured = flattened.filter((item: MenuItem) => item.isFeatured);
+      return featured.length > 0 ? featured : flattened.slice(0, 12);
     }
   });
 
@@ -63,11 +69,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* 1. Hero Section (Banner) */}
-      <section className="relative h-[400px] md:h-[500px] overflow-hidden bg-gray-100">
+      <section className="relative h-[500px] md:h-[700px] overflow-hidden">
         {activeOffers.length > 0 ? (
           <div className="h-full relative">
             <div 
-              className="flex h-full transition-transform duration-500 ease-in-out"
+              className="flex h-full transition-transform duration-1000 ease-in-out"
               style={{ transform: `translateX(${currentOfferIndex * 100}%)` }}
             >
               {activeOffers.map((offer) => (
@@ -77,16 +83,27 @@ export default function Home() {
                     alt={offer.title}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/20 flex flex-col justify-center items-center text-white p-4">
-                    <h2 className="text-4xl md:text-6xl font-black mb-4 drop-shadow-lg">{offer.title}</h2>
-                    <p className="text-xl md:text-2xl mb-8 drop-shadow-md">{offer.description}</p>
-                    <Button 
-                      size="lg" 
-                      className="rounded-none px-12 bg-white text-black hover:bg-black hover:text-white transition-all text-xl font-bold"
-                      onClick={() => setLocation(`/category/sale`)}
-                    >
-                      تسوق الآن
-                    </Button>
+                  <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex flex-col justify-center items-end text-white p-12 md:p-24 text-right">
+                    <div className="space-y-6 max-w-2xl">
+                      <Badge className="bg-primary text-white rounded-none px-6 py-2 font-black text-xs uppercase tracking-[0.2em] animate-fade-in">
+                        عرض حصري
+                      </Badge>
+                      <h2 className="text-5xl md:text-8xl font-black leading-tight uppercase tracking-tighter animate-fade-in delay-100">
+                        {offer.title}
+                      </h2>
+                      <p className="text-lg md:text-2xl font-light opacity-90 max-w-lg leading-relaxed animate-fade-in delay-200">
+                        {offer.description}
+                      </p>
+                      <div className="pt-8 animate-fade-in delay-300">
+                        <Button 
+                          size="lg" 
+                          className="rounded-none px-12 h-16 bg-white text-black hover:bg-primary hover:text-white transition-all text-xl font-black uppercase tracking-widest shadow-2xl group"
+                          onClick={() => setLocation(`/category/sale`)}
+                        >
+                          تسوق الآن <ChevronLeft className="mr-3 h-6 w-6 group-hover:-translate-x-2 transition-transform" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -94,27 +111,53 @@ export default function Home() {
             
             {activeOffers.length > 1 && (
               <>
-                <button 
-                  onClick={prevOffer}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/50 rounded-full flex items-center justify-center hover:bg-white transition-colors"
-                >
-                  <ChevronLeft className="h-8 w-8" />
-                </button>
-                <button 
-                  onClick={nextOffer}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/50 rounded-full flex items-center justify-center hover:bg-white transition-colors"
-                >
-                  <ChevronRight className="h-8 w-8" />
-                </button>
+                <div className="absolute top-1/2 -translate-y-1/2 left-8 right-8 flex justify-between items-center z-20 pointer-events-none">
+                  <button 
+                    onClick={prevOffer}
+                    className="w-14 h-14 bg-white/20 backdrop-blur-xl border border-white/30 text-white rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all group pointer-events-auto"
+                  >
+                    <ChevronLeft className="h-8 w-8 group-hover:-translate-x-1 transition-transform" />
+                  </button>
+                  <button 
+                    onClick={nextOffer}
+                    className="w-14 h-14 bg-white/20 backdrop-blur-xl border border-white/30 text-white rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all group pointer-events-auto"
+                  >
+                    <ChevronRight className="h-8 w-8 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+                
+                {/* Indicators */}
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-4 z-20">
+                  {activeOffers.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentOfferIndex(i)}
+                      className={`h-1 transition-all duration-700 ${i === currentOfferIndex ? 'w-16 bg-primary' : 'w-8 bg-white/30 hover:bg-white/50'}`}
+                    />
+                  ))}
+                </div>
               </>
             )}
           </div>
         ) : (
-          <div className="h-full bg-gradient-to-r from-gray-200 to-gray-300 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-5xl font-black text-gray-800 mb-4">أزياء عالمية بين يديك</h2>
-              <p className="text-xl text-gray-600 mb-8">اكتشف أحدث الصيحات لهذا الموسم</p>
-              <Button size="lg" className="rounded-none px-12 text-xl font-bold">ابدأ التسوق</Button>
+          <div className="h-full relative flex items-center justify-center bg-gray-900">
+            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000')] bg-cover bg-center opacity-40" />
+            <div className="relative text-center text-white space-y-8 px-4 max-w-4xl">
+              <h2 className="text-7xl md:text-9xl font-black uppercase tracking-tighter drop-shadow-2xl animate-fade-in">
+                طمطوم أزياء
+              </h2>
+              <p className="text-xl md:text-3xl font-light tracking-[0.3em] opacity-80 uppercase animate-fade-in delay-150">
+                اكتشف أحدث الصيحات العالمية
+              </p>
+              <div className="pt-6 animate-fade-in delay-300">
+                <Button 
+                  size="lg" 
+                  className="rounded-none px-16 h-16 bg-primary text-white hover:bg-white hover:text-black transition-all text-2xl font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,100,0,0.3)]"
+                  onClick={() => setLocation('/category/new')}
+                >
+                  ابدأ التسوق
+                </Button>
+              </div>
             </div>
           </div>
         )}

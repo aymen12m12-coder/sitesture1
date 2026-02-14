@@ -33,11 +33,14 @@ export default function Restaurant() {
     ? Array.from(new Set(menuItems.map(item => item.category))) 
     : [];
   
+  // Removed automatic category selection to show all products by default
+  /* 
   useEffect(() => {
     if (menuItems && menuCategories.length > 0 && !selectedMenuCategory) {
       setSelectedMenuCategory(menuCategories[0]);
     }
   }, [menuItems, menuCategories, selectedMenuCategory]);
+  */
   
   const filteredMenuItems = menuItems?.filter(item => {
     if (selectedMenuCategory && item.category !== selectedMenuCategory) return false;
@@ -56,27 +59,28 @@ export default function Restaurant() {
 
   return (
     <div className="bg-white min-h-screen pb-20">
-      {/* 1. Breadcrumbs */}
-      <div className="container mx-auto px-4 py-4 flex items-center gap-2 text-sm text-gray-500">
-        <button onClick={() => setLocation('/')} className="hover:text-black transition-colors">الصفحة الرئيسية</button>
-        <ChevronLeft className="h-4 w-4" />
-        <span className="text-black font-bold">{restaurant.name}</span>
+      {/* 1. Breadcrumbs - Minimal */}
+      <div className="container mx-auto px-4 py-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+        <button onClick={() => setLocation('/')} className="hover:text-black transition-colors">HOME</button>
+        <span>/</span>
+        <span className="text-black">{restaurant.name}</span>
       </div>
 
-      {/* 2. Store Header (Hero) */}
-      <div className="relative h-48 md:h-64 overflow-hidden mb-8">
-        <img src={restaurant.image} alt={restaurant.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-white px-4 text-center">
-          <h1 className="text-3xl md:text-5xl font-black mb-2 uppercase tracking-tighter">{restaurant.name}</h1>
-          <p className="text-sm md:text-lg max-w-2xl opacity-90">{restaurant.description}</p>
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex items-center gap-1 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30">
-              <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              <span className="font-bold">{restaurant.rating}</span>
+      {/* 2. Store Header (Hero) - Integrated Design */}
+      <div className="relative h-64 md:h-[400px] overflow-hidden group mb-12">
+        <img src={restaurant.image} alt={restaurant.name} className="w-full h-full object-cover transition-transform duration-[2s] group-hover:scale-110" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end items-center text-white px-4 pb-12 text-center">
+          <Badge className="mb-4 bg-primary text-white rounded-none px-4 py-1 font-black text-xs uppercase tracking-widest">متجر رسمي</Badge>
+          <h1 className="text-4xl md:text-7xl font-black mb-4 uppercase tracking-tighter drop-shadow-2xl">{restaurant.name}</h1>
+          <p className="text-sm md:text-xl max-w-2xl opacity-80 font-light leading-relaxed mb-6">{restaurant.description}</p>
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 bg-white text-black px-4 py-2 font-black text-sm">
+              <Star className="h-4 w-4 fill-current text-yellow-400" />
+              <span>{restaurant.rating}</span>
             </div>
-            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-xs border border-white/30">
-              {restaurant.deliveryTime} توصيل
-            </span>
+            <div className="bg-black/50 backdrop-blur-md border border-white/20 px-4 py-2 text-xs font-bold">
+              توصيل: {restaurant.deliveryTime}
+            </div>
           </div>
         </div>
       </div>
@@ -86,23 +90,23 @@ export default function Restaurant() {
           {/* 3. Sidebar Filters */}
           <aside className="w-full lg:w-64 shrink-0 space-y-10">
             <div>
-              <h3 className="font-black text-xl mb-6 flex items-center gap-2 border-b-2 border-black pb-2 uppercase tracking-wider">
-                <Filter className="h-5 w-5" /> الفئات
+              <h3 className="font-black text-sm mb-6 flex items-center gap-2 border-b-2 border-black pb-2 uppercase tracking-widest">
+                <Filter className="h-4 w-4" /> التصنيفات
               </h3>
               <ul className="space-y-1">
                 <li>
                   <button 
                     onClick={() => setSelectedMenuCategory(null)}
-                    className={`w-full text-right py-3 px-4 transition-all font-bold ${!selectedMenuCategory ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}
+                    className={`w-full text-right py-3 px-4 transition-all font-bold text-sm uppercase tracking-wider ${!selectedMenuCategory ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}
                   >
-                    كل المنتجات
+                    عرض الكل
                   </button>
                 </li>
                 {menuCategories.map(cat => (
                   <li key={cat}>
                     <button 
                       onClick={() => setSelectedMenuCategory(cat)}
-                      className={`w-full text-right py-3 px-4 transition-all font-bold ${selectedMenuCategory === cat ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}
+                      className={`w-full text-right py-3 px-4 transition-all font-bold text-sm uppercase tracking-wider ${selectedMenuCategory === cat ? 'bg-black text-white' : 'hover:bg-gray-100 text-gray-600'}`}
                     >
                       {cat}
                     </button>

@@ -81,7 +81,7 @@ export default function Privacy() {
                 نحن نحترم خصوصيتك
               </h3>
               <p className="text-muted-foreground">
-                تطبيق السريع ون ملتزم بحماية خصوصيتك وأمان معلوماتك الشخصية. 
+                تطبيق طمطوم ملتزم بحماية خصوصيتك وأمان معلوماتك الشخصية. 
                 هذه السياسة توضح كيفية جمع واستخدام وحماية بياناتك.
               </p>
             </div>
@@ -185,7 +185,7 @@ export default function Privacy() {
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              باستخدام تطبيق السريع ون، فإنك توافق على سياسة الخصوصية هذه 
+              باستخدام تطبيق طمطوم، فإنك توافق على سياسة الخصوصية هذه 
               وعلى جمع واستخدام معلوماتك وفقاً للممارسات الموضحة أعلاه.
             </p>
             <Button 

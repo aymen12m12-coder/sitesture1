@@ -214,7 +214,7 @@ export default function DriverLoginPage() {
         {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-gray-500 text-sm">
-            © 2024 السريع ون - جميع الحقوق محفوظة
+            © 2024 طمطوم - جميع الحقوق محفوظة
           </p>
         </div>
       </div>

@@ -10,8 +10,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MenuItemCard from '../components/MenuItemCard';
-import TopBar from '@/components/TopBar';
-import Navbar from '@/components/Navbar';
 import type { MenuItem, Category, Restaurant } from '@shared/schema';
 
 export default function CategoryPage() {
@@ -19,28 +17,64 @@ export default function CategoryPage() {
   const [, setLocation] = useLocation();
   const [sortBy, setSortBy] = useState('recommend');
 
-  // Fetch all restaurants to get their names for cards
+  // Fetch all stores to get their names for cards
   const { data: stores } = useQuery<Restaurant[]>({
     queryKey: ['/api/restaurants'],
   });
 
   // Fetch products for this category
-  // Since our API is store-based, we'll fetch from all stores or use a search endpoint
-  // For now, we'll fetch all restaurants and then their menus
   const { data: allProducts, isLoading } = useQuery<MenuItem[]>({
     queryKey: ['/api/category/products', slug],
     queryFn: async () => {
-      const storesRes = await fetch('/api/restaurants');
-      const storesData: Restaurant[] = await storesRes.json();
-      
-      const allPromises = storesData.map(s => fetch(`/api/restaurants/${s.id}/menu`).then(r => r.json()));
-      const results = await Promise.all(allPromises);
-      const flattened = results.flat();
-      
-      // Filter by category slug (this is a bit simplified)
-      return flattened.filter((item: MenuItem) => 
-        item.category.toLowerCase().includes(slug?.toLowerCase() || '')
-      );
+      try {
+        const storesRes = await fetch('/api/restaurants');
+        if (!storesRes.ok) throw new Error('Failed to fetch stores');
+        const storesData: Restaurant[] = await storesRes.json();
+        
+        const allPromises = storesData.map(s => 
+          fetch(`/api/restaurants/${s.id}/menu`)
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => [])
+        );
+        const results = await Promise.all(allPromises);
+        const flattened = results.flat();
+        
+        // Map slug to Arabic category name if needed
+        const slugMap: Record<string, string> = {
+          'women': 'نساء',
+          'woman': 'نساء',
+          'men': 'رجال',
+          'man': 'رجال',
+          'kids': 'أطفال',
+          'children': 'أطفال',
+          'plus-size': 'مقاسات كبيرة',
+          'lingerie': 'ملابس داخلية',
+          'home': 'المنزل والمطبخ',
+          'beauty': 'الصحة والجمال',
+          'accessories': 'الإكسسوارات',
+          'jewelry': 'مجوهرات',
+          'bags': 'الحقائب',
+          'shoes': 'أحذية',
+          'sale': 'تخفيضات',
+          'new': 'جديد'
+        };
+
+        const targetCategory = slugMap[slug || ''] || slug;
+
+        // Filter by category name
+        return flattened.filter((item: MenuItem) => {
+          if (!item.category) return false;
+          const itemCat = item.category.trim().toLowerCase();
+          const targetCat = targetCategory?.trim().toLowerCase() || '';
+          
+          return itemCat === targetCat || 
+                 itemCat.includes(targetCat) || 
+                 targetCat.includes(itemCat);
+        });
+      } catch (error) {
+        console.error('Error fetching category products:', error);
+        return [];
+      }
     }
   });
 
@@ -50,18 +84,28 @@ export default function CategoryPage() {
     return 0;
   });
 
+  const getCategoryTitle = () => {
+    const titles: Record<string, string> = {
+      'women': 'تشكيلة النسائية',
+      'men': 'تشكيلة الرجالية',
+      'kids': 'ملابس الأطفال',
+      'plus-size': 'المقاسات الكبيرة',
+      'sale': 'التخفيضات الكبرى',
+      'new': 'وصل حديثاً'
+    };
+    return titles[slug || ''] || `قسم ${slug}`;
+  };
+
   return (
     <div className="bg-white min-h-screen pb-20">
-      <TopBar />
-      <Navbar />
-      {/* Breadcrumbs */}
-      <div className="container mx-auto px-4 py-4 flex items-center gap-2 text-sm text-gray-500">
-        <button onClick={() => setLocation('/')} className="hover:text-black transition-colors">الصفحة الرئيسية</button>
-        <ChevronLeft className="h-4 w-4" />
-        <span className="text-black font-bold uppercase">{slug}</span>
+      {/* Breadcrumbs - Minimal */}
+      <div className="container mx-auto px-4 py-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+        <button onClick={() => setLocation('/')} className="hover:text-black transition-colors">HOME</button>
+        <span>/</span>
+        <span className="text-black">{slug}</span>
       </div>
 
-      <div className="container mx-auto px-4 mt-8">
+      <div className="container mx-auto px-4">
         <div className="flex flex-col lg:flex-row gap-12">
           {/* Sidebar Filters */}
           <aside className="w-full lg:w-64 shrink-0 space-y-10">
@@ -101,7 +145,7 @@ export default function CategoryPage() {
 
           {/* Main Product Area */}
           <div className="flex-1">
-            <h1 className="text-4xl font-black mb-8 uppercase tracking-tighter">قسم {slug}</h1>
+            <h1 className="text-5xl font-black mb-12 uppercase tracking-tighter italic border-r-8 border-primary pr-6">{getCategoryTitle()}</h1>
 
             {/* Sorting Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 border-b pb-6">

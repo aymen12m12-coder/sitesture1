@@ -59,22 +59,21 @@ export default function SearchPage() {
   const filteredMenuItems = selectedTab === 'all' || selectedTab === 'menuItems' ? searchResults.menuItems : [];
 
   return (
-    <div className="max-w-md mx-auto bg-background min-h-screen">
-      {/* Header */}
-      <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4">
-        <h1 className="text-lg font-semibold text-center mb-4">البحث</h1>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="ابحث عن مطاعم، أطباق أو فئات..."
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-          />
-        </div>
-      </div>
-
+    <div className="container mx-auto px-4 py-8 min-h-screen">
       {/* Content */}
-      <div className="p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-black mb-6 uppercase tracking-tighter">نتائج البحث</h1>
+          <div className="relative group">
+            <input
+              type="text"
+              placeholder="ابحث عن منتجات، فئات أو ماركات..."
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full px-6 py-4 border-2 border-black rounded-none focus:outline-none focus:ring-0 text-lg font-medium"
+            />
+          </div>
+        </div>
+
         {hasSearched && (
           <>
             {/* Tabs */}

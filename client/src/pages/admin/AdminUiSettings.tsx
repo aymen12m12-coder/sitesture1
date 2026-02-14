@@ -259,7 +259,7 @@ export default function AdminUiSettings() {
             <div>
               <h4 className="font-medium mb-2">إعدادات التطبيق</h4>
               <ul className="space-y-1 text-muted-foreground">
-                <li>اسم التطبيق: {getCurrentValue('app_name') || 'السريع ون'}</li>
+                <li>اسم التطبيق: {getCurrentValue('app_name') || 'طمطوم'}</li>
                 <li>لون الموضوع: {getCurrentValue('app_theme') || '#007bff'}</li>
                 <li>رسوم التوصيل: {getCurrentValue('delivery_fee_default') || '5'} ريال</li>
                 <li>الحد الأدنى للطلب: {getCurrentValue('minimum_order_default') || '25'} ريال</li>

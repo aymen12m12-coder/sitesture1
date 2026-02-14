@@ -127,6 +127,7 @@ function MainApp() {
 
 import CategoryPage from "./pages/CategoryPage";
 import ProductDetails from "./pages/ProductDetails";
+import CustomerAuthPage from "./pages/CustomerAuthPage";
 
 function Router() {
   // Check UiSettings for page visibility
@@ -143,6 +144,7 @@ function Router() {
       <Route path="/restaurant/:id" component={Restaurant} />
       <Route path="/cart" component={Cart} />
       <Route path="/profile" component={Profile} />
+      <Route path="/auth" component={CustomerAuthPage} />
       <Route path="/addresses" component={Location} />
       {showOrdersPage && <Route path="/orders" component={OrdersPage} />}
       <Route path="/orders/:orderId" component={OrderTracking} />

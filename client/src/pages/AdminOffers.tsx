@@ -224,7 +224,7 @@ export default function AdminOffers() {
                   id="title"
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="مثال: خصم 30% على جميع الوجبات"
+                  placeholder="مثال: خصم 30% على جميع المنتجات"
                   required
                   data-testid="input-offer-title"
                 />
@@ -244,16 +244,16 @@ export default function AdminOffers() {
               </div>
 
               <div>
-                <Label htmlFor="restaurantId">المطعم المرتبط (اختياري)</Label>
+                <Label htmlFor="restaurantId">المتجر المرتبط (اختياري)</Label>
                 <Select
                   value={formData.restaurantId || "none"}
                   onValueChange={(value) => setFormData(prev => ({ ...prev, restaurantId: value === "none" ? "" : value }))}
                 >
                   <SelectTrigger id="restaurantId">
-                    <SelectValue placeholder="اختر مطعماً" />
+                    <SelectValue placeholder="اختر متجراً" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">عرض عام (لكل المطاعم)</SelectItem>
+                    <SelectItem value="none">عرض عام (لكل المتاجر)</SelectItem>
                     {restaurants.map((restaurant) => (
                       <SelectItem key={restaurant.id} value={restaurant.id}>
                         {restaurant.name}

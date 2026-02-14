@@ -231,7 +231,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                   <ShoppingBag className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold">السريع ون</h3>
+                <h3 className="text-xl font-bold">طمطوم</h3>
               </div>
               <p className="text-gray-400">
                 أفضل تطبيق توصيل طعام في اليمن. نوصل لك طعامك المفضل بسرعة وأمان.
@@ -259,7 +259,7 @@ export default function HomePage() {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 السريع ون. جميع الحقوق محفوظة.</p>
+            <p>&copy; 2024 طمطوم. جميع الحقوق محفوظة.</p>
           </div>
         </div>
       </footer>
