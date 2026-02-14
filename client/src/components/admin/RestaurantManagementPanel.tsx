@@ -79,7 +79,7 @@ export const RestaurantManagementPanel: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">إدارة المطاعم</h1>
+        <h1 className="text-3xl font-bold">إدارة المتاجر</h1>
         <Input
           placeholder="ابحث بالاسم أو الهاتف..."
           value={searchTerm}
@@ -92,7 +92,7 @@ export const RestaurantManagementPanel: React.FC = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي المطاعم</CardTitle>
+            <CardTitle className="text-sm font-medium">إجمالي المتاجر</CardTitle>
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -137,7 +137,7 @@ export const RestaurantManagementPanel: React.FC = () => {
       {/* Restaurants Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة المطاعم</CardTitle>
+          <CardTitle>قائمة المتاجر</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -207,7 +207,7 @@ export const RestaurantManagementPanel: React.FC = () => {
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>تفاصيل المطعم - {selectedRestaurant?.name}</DialogTitle>
+            <DialogTitle>تفاصيل المتجر - {selectedRestaurant?.name}</DialogTitle>
           </DialogHeader>
 
           {selectedRestaurant && (
@@ -215,7 +215,7 @@ export const RestaurantManagementPanel: React.FC = () => {
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-muted-foreground">اسم المطعم</p>
+                  <p className="text-sm text-muted-foreground">اسم المتجر</p>
                   <p className="font-semibold">{selectedRestaurant.name}</p>
                 </div>
                 <div>

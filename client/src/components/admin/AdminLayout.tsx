@@ -55,7 +55,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     },
     { 
       icon: Package, 
-      label: 'قوائم المنتجات', 
+      label: 'المنتجات', 
       path: '/admin/menu-items',
       description: 'إدارة المنتجات والأصناف'
     },
@@ -144,14 +144,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-blue-100">
+      <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-orange-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
             <BarChart3 className="h-6 w-6 text-white" />
           </div>
           <div>
             <h2 className="text-lg font-bold text-gray-900">لوحة التحكم</h2>
-            <p className="text-sm text-gray-600">السريع ون</p>
+            <p className="text-sm text-gray-600">طمطوم</p>
           </div>
         </div>
       </div>
@@ -159,7 +159,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       {/* User Info */}
       <div className="p-4 border-b bg-gray-50">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
             <span className="text-white text-sm font-medium">A</span>
           </div>
           <div>
@@ -181,16 +181,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               onClick={() => handleNavigation(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-right transition-all duration-200 group ${
                 isActive
-                  ? 'bg-blue-500 text-white shadow-lg'
-                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-600'
+                  ? 'bg-primary text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-orange-50 hover:text-primary'
               }`}
             >
-              <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-blue-600'}`} />
+              <Icon className={`h-5 w-5 ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-primary'}`} />
               <div className="flex-1">
                 <p className={`font-medium ${isActive ? 'text-white' : 'text-gray-900'}`}>
                   {item.label}
                 </p>
-                <p className={`text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                <p className={`text-xs ${isActive ? 'text-orange-100' : 'text-gray-500'}`}>
                   {item.description}
                 </p>
               </div>
@@ -232,12 +232,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
               <BarChart3 className="h-5 w-5 text-white" />
             </div>
             <div>
               <h1 className="font-bold text-gray-900">لوحة التحكم</h1>
-              <p className="text-xs text-gray-500">السريع ون</p>
+              <p className="text-xs text-gray-500">طمطوم</p>
             </div>
           </div>
           

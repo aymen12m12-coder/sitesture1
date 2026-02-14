@@ -21,15 +21,15 @@ export const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap scrollbar-hide sticky top-[105px] z-40">
-      <div className="container mx-auto px-4 flex items-center justify-between">
-        <ul className="flex items-center gap-6 py-3">
+    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap scrollbar-hide sticky top-[135px] z-40">
+      <div className="container mx-auto px-4">
+        <ul className="flex items-center justify-center gap-10 py-4">
           {categories.map((cat) => (
             <li key={cat.path}>
               <button
                 onClick={() => setLocation(cat.path)}
-                className={`text-[15px] hover:text-primary transition-colors pb-1 border-b-2 border-transparent hover:border-primary ${
-                  location === cat.path ? 'text-primary border-primary' : 'text-gray-800'
+                className={`text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
+                  location === cat.path ? 'text-primary border-primary' : 'text-black'
                 } ${cat.className || ''}`}
               >
                 {cat.name}
