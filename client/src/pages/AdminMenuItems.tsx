@@ -43,21 +43,22 @@ export default function AdminMenuItems() {
     isNew: true,
   });
 
-  // جلب جميع المطاعم
+  // جلب جميع المتاجر
   const { data: restaurantsData } = useQuery<{restaurants: Restaurant[]}>({
     queryKey: ['/api/admin/restaurants'],
   });
 
   const restaurants = restaurantsData?.restaurants || [];
 
-  // تعيين أول مطعم كافتراضي عند تحميل المطاعم
+  // تعيين أول متجر كافتراضي
   useEffect(() => {
     if (restaurants && restaurants.length > 0 && !selectedRestaurant) {
       setSelectedRestaurant(restaurants[0].id);
+      setFormData(prev => ({ ...prev, restaurantId: restaurants[0].id }));
     }
   }, [restaurants, selectedRestaurant]);
 
-  // جلب الوجبات الخاصة بالمطعم المحدد
+  // جلب المنتجات الخاصة بالمتجر المحدد
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
     queryKey: ['/api/admin/restaurants', selectedRestaurant, 'menu'],
     queryFn: async () => {
@@ -65,7 +66,7 @@ export default function AdminMenuItems() {
       
       const response = await apiRequest('GET', `/api/admin/restaurants/${selectedRestaurant}/menu`);
       if (!response.ok) {
-        throw new Error('فشل في جلب الوجبات');
+        throw new Error('فشل في جلب المنتجات');
       }
       return response.json();
     },
@@ -347,22 +348,14 @@ export default function AdminMenuItems() {
     });
   };
 
-  const menuCategories = [
-    'نساء',
-    'رجال',
-    'أطفال',
-    'مقاسات كبيرة',
-    'ملابس داخلية',
-    'المنزل والمطبخ',
-    'الصحة والجمال',
-    'الإكسسوارات',
-    'المجوهرات',
-    'الحقائب',
-    'أحذية',
-    'تخفيضات',
-    'جديد',
-    'أخرى'
-  ];
+  // جلب التصنيفات من قاعدة البيانات
+  const { data: categoriesData = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+
+  const menuCategories = categoriesData.length > 0 
+    ? categoriesData.map(c => c.name) 
+    : ['فواكه', 'خضروات', 'تمور', 'عصائر', 'عروض'];
 
   const parseDecimal = (value: string | null): number => {
     if (!value) return 0;

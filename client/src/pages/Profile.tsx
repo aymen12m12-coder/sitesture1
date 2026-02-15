@@ -75,9 +75,36 @@ export default function Profile() {
     }
   }, [user]);
 
-  // Load profile from localStorage for guest users
+  const handleSave = () => {
+    if (isGuestMode) {
+      handleGuestSave();
+    } else {
+      updateProfileMutation.mutate({
+        username: profile.username,
+        name: profile.name,
+        phone: profile.phone,
+        email: profile.email,
+        address: profile.address,
+      });
+    }
+  };
+
+  // Show loading if auth is loading or data is loading
+  if (authLoading || isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Use local storage for guest users
   const isGuestMode = !isAuthenticated || !userId;
 
+  // Load profile from localStorage for guest users
   useEffect(() => {
     if (isGuestMode) {
       const guestProfile = localStorage.getItem('guest_profile');
@@ -116,32 +143,6 @@ export default function Profile() {
     }
   };
 
-  const handleSave = () => {
-    if (isGuestMode) {
-      handleGuestSave();
-    } else {
-      updateProfileMutation.mutate({
-        username: profile.username,
-        name: profile.name,
-        phone: profile.phone,
-        email: profile.email,
-        address: profile.address,
-      });
-    }
-  };
-
-  // Show loading if auth is loading or data is loading
-  if (authLoading || isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري تحميل البيانات...</p>
-        </div>
-      </div>
-    );
-  }
-
   const profileStats = [
     { icon: Receipt, label: 'إجمالي الطلبات', value: '42', color: 'text-primary' },
     { icon: Star, label: 'التقييم', value: '4.8', color: 'text-yellow-500' },
@@ -165,164 +166,164 @@ export default function Profile() {
           {/* Profile Info Card */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="rounded-none border-2">
-              <CardHeader className="text-center">
-                <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="h-10 w-10 text-primary-foreground" />
+          <CardHeader className="text-center">
+            <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <User className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <CardTitle className="text-xl text-foreground">
+              {profile.name || (isGuestMode ? 'مستخدم ضيف' : 'المستخدم')}
+            </CardTitle>
+            <Badge variant={isGuestMode ? "outline" : "secondary"} className="mx-auto">
+              {isGuestMode ? 'مستخدم ضيف' : 'عضو مميز'}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isEditing ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name" className="text-foreground">الاسم</Label>
+                  <Input
+                    id="name"
+                    value={profile.name}
+                    onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                    data-testid="input-profile-name"
+                  />
                 </div>
-                <CardTitle className="text-xl text-foreground">
-                  {profile.name || (isGuestMode ? 'مستخدم ضيف' : 'المستخدم')}
-                </CardTitle>
-                <Badge variant={isGuestMode ? "outline" : "secondary"} className="mx-auto">
-                  {isGuestMode ? 'مستخدم ضيف' : 'عضو مميز'}
-                </Badge>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isEditing ? (
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="name" className="text-foreground">الاسم</Label>
-                      <Input
-                        id="name"
-                        value={profile.name}
-                        onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-                        data-testid="input-profile-name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="username" className="text-foreground">اسم المستخدم</Label>
-                      <Input
-                        id="username"
-                        value={profile.username}
-                        onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
-                        data-testid="input-profile-username"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone" className="text-foreground">رقم الهاتف</Label>
-                      <Input
-                        id="phone"
-                        value={profile.phone}
-                        onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-                        data-testid="input-profile-phone"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="text-foreground">البريد الإلكتروني</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={profile.email}
-                        onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-                        data-testid="input-profile-email"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="address" className="text-foreground">العنوان</Label>
-                      <Input
-                        id="address"
-                        value={profile.address}
-                        onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
-                        data-testid="input-profile-address"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={handleSave} 
-                        className="flex-1" 
-                        disabled={!isGuestMode && updateProfileMutation.isPending}
-                        data-testid="button-save-profile"
-                      >
-                        {!isGuestMode && updateProfileMutation.isPending 
-                          ? 'جاري الحفظ...' 
-                          : isGuestMode 
-                            ? 'حفظ محلياً'
-                            : 'حفظ التغييرات'
-                        }
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsEditing(false)}
-                        data-testid="button-cancel-edit"
-                      >
-                        إلغاء
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-foreground" data-testid="profile-username">{profile.username}</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Phone className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-foreground" data-testid="profile-phone">{profile.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <Mail className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-foreground" data-testid="profile-email">{profile.email}</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                      <MapPin className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-foreground" data-testid="profile-address">{profile.address}</span>
-                    </div>
-                    <Button 
-                      onClick={() => setIsEditing(true)} 
-                      className="w-full"
-                      data-testid="button-edit-profile"
-                    >
-                      تعديل المعلومات
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3">
-              {profileStats.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <Card key={index} className="text-center">
-                    <CardContent className="p-4">
-                      <Icon className={`h-6 w-6 ${stat.color} mx-auto mb-2`} />
-                      <div className="text-lg font-bold text-foreground" data-testid={`stat-${index}`}>
-                        {stat.value}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{stat.label}</div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            {/* Menu Items */}
-            <div className="space-y-3">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    className="w-full h-auto p-4 justify-between hover:bg-accent"
-                    onClick={() => item.onClick ? item.onClick() : setLocation(item.path)}
-                    data-testid={item.testId}
+                <div>
+                  <Label htmlFor="username" className="text-foreground">اسم المستخدم</Label>
+                  <Input
+                    id="username"
+                    value={profile.username}
+                    onChange={(e) => setProfile(prev => ({ ...prev, username: e.target.value }))}
+                    data-testid="input-profile-username"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone" className="text-foreground">رقم الهاتف</Label>
+                  <Input
+                    id="phone"
+                    value={profile.phone}
+                    onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                    data-testid="input-profile-phone"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-foreground">البريد الإلكتروني</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profile.email}
+                    onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                    data-testid="input-profile-email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="address" className="text-foreground">العنوان</Label>
+                  <Input
+                    id="address"
+                    value={profile.address}
+                    onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
+                    data-testid="input-profile-address"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleSave} 
+                    className="flex-1" 
+                    disabled={!isGuestMode && updateProfileMutation.isPending}
+                    data-testid="button-save-profile"
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <div className="text-right">
-                        <div className="font-medium text-foreground">{item.label}</div>
-                        <div className="text-sm text-muted-foreground">{item.description}</div>
-                      </div>
-                    </div>
-                    <ArrowRight className="h-5 w-5 text-muted-foreground rotate-180" />
+                    {!isGuestMode && updateProfileMutation.isPending 
+                      ? 'جاري الحفظ...' 
+                      : isGuestMode 
+                        ? 'حفظ محلياً'
+                        : 'حفظ التغييرات'
+                    }
                   </Button>
-                );
-              })}
-            </div>
-          </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsEditing(false)}
+                    data-testid="button-cancel-edit"
+                  >
+                    إلغاء
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground" data-testid="profile-username">{profile.username}</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground" data-testid="profile-phone">{profile.phone}</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground" data-testid="profile-email">{profile.email}</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                  <MapPin className="h-5 w-5 text-muted-foreground" />
+                  <span className="text-foreground" data-testid="profile-address">{profile.address}</span>
+                </div>
+                <Button 
+                  onClick={() => setIsEditing(true)} 
+                  className="w-full"
+                  data-testid="button-edit-profile"
+                >
+                  تعديل المعلومات
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3">
+          {profileStats.map((stat, index) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={index} className="text-center">
+                <CardContent className="p-4">
+                  <Icon className={`h-6 w-6 ${stat.color} mx-auto mb-2`} />
+                  <div className="text-lg font-bold text-foreground" data-testid={`stat-${index}`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{stat.label}</div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* Menu Items */}
+        <div className="space-y-3">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Button
+                key={item.path}
+                variant="ghost"
+                className="w-full h-auto p-4 justify-between hover:bg-accent"
+                onClick={() => item.onClick ? item.onClick() : setLocation(item.path)}
+                data-testid={item.testId}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className="h-6 w-6 text-primary" />
+                  <div className="text-right">
+                    <div className="font-medium text-foreground">{item.label}</div>
+                    <div className="text-sm text-muted-foreground">{item.description}</div>
+                  </div>
+                </div>
+                <ArrowRight className="h-5 w-5 text-muted-foreground rotate-180" />
+              </Button>
+            );
+          })}
         </div>
       </div>
     </div>
-  );
+  </div>
+</div>
+);
 }

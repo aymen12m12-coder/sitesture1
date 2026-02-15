@@ -35,21 +35,6 @@ export default function Home() {
 
   const { data: featuredProducts } = useQuery<MenuItem[]>({
     queryKey: ['/api/products/featured'],
-    queryFn: async () => {
-      const response = await fetch('/api/restaurants');
-      const stores = await response.json();
-      
-      // Fetch menus from all stores to find featured products
-      const allPromises = stores.map((s: Restaurant) => 
-        fetch(`/api/restaurants/${s.id}/menu`).then(r => r.json())
-      );
-      const results = await Promise.all(allPromises);
-      const flattened = results.flat();
-      
-      // Filter for items that are marked as featured or just take the latest ones
-      const featured = flattened.filter((item: MenuItem) => item.isFeatured);
-      return featured.length > 0 ? featured : flattened.slice(0, 12);
-    }
   });
 
   const activeOffers = offers?.filter(offer => offer.isActive) || [];
@@ -69,11 +54,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-white">
       {/* 1. Hero Section (Banner) */}
-      <section className="relative h-[500px] md:h-[700px] overflow-hidden">
+      <section className="relative h-[400px] md:h-[600px] overflow-hidden bg-gray-100">
         {activeOffers.length > 0 ? (
-          <div className="h-full relative">
+          <div className="h-full relative group">
             <div 
-              className="flex h-full transition-transform duration-1000 ease-in-out"
+              className="flex h-full transition-transform duration-700 ease-in-out"
               style={{ transform: `translateX(${currentOfferIndex * 100}%)` }}
             >
               {activeOffers.map((offer) => (
@@ -83,24 +68,25 @@ export default function Home() {
                     alt={offer.title}
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-l from-black/60 via-transparent to-transparent flex flex-col justify-center items-end text-white p-12 md:p-24 text-right">
-                    <div className="space-y-6 max-w-2xl">
-                      <Badge className="bg-primary text-white rounded-none px-6 py-2 font-black text-xs uppercase tracking-[0.2em] animate-fade-in">
-                        عرض حصري
+                  <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-black/20 to-transparent flex flex-col justify-center items-end text-white p-8 md:p-24 text-right">
+                    <div className="space-y-4 md:space-y-6 max-w-2xl">
+                      <Badge className="bg-primary text-white rounded-none px-4 md:px-6 py-1 md:py-2 font-black text-[10px] md:text-xs uppercase tracking-[0.2em]">
+                        {offer.title || 'عرض خاص'}
                       </Badge>
-                      <h2 className="text-5xl md:text-8xl font-black leading-tight uppercase tracking-tighter animate-fade-in delay-100">
-                        {offer.title}
+                      <h2 className="text-4xl md:text-7xl font-black leading-tight tracking-tighter">
+                        طزه من المزرعة <br /> 
+                        <span className="text-primary">{offer.title}</span>
                       </h2>
-                      <p className="text-lg md:text-2xl font-light opacity-90 max-w-lg leading-relaxed animate-fade-in delay-200">
-                        {offer.description}
+                      <p className="text-base md:text-xl font-medium opacity-90 max-w-lg leading-relaxed">
+                        {offer.description || 'استمتع بأفضل الفواكه والخضروات الطازجة يومياً من طمطوم'}
                       </p>
-                      <div className="pt-8 animate-fade-in delay-300">
+                      <div className="pt-4 md:pt-8">
                         <Button 
                           size="lg" 
-                          className="rounded-none px-12 h-16 bg-white text-black hover:bg-primary hover:text-white transition-all text-xl font-black uppercase tracking-widest shadow-2xl group"
-                          onClick={() => setLocation(`/category/sale`)}
+                          className="rounded-none px-8 md:px-12 h-12 md:h-16 bg-white text-black hover:bg-primary hover:text-white transition-all text-lg md:text-xl font-black uppercase tracking-widest shadow-xl"
+                          onClick={() => setLocation('/category/all')}
                         >
-                          تسوق الآن <ChevronLeft className="mr-3 h-6 w-6 group-hover:-translate-x-2 transition-transform" />
+                          تسوق الآن
                         </Button>
                       </div>
                     </div>
@@ -109,77 +95,69 @@ export default function Home() {
               ))}
             </div>
             
+            {/* Navigation Arrows */}
             {activeOffers.length > 1 && (
               <>
-                <div className="absolute top-1/2 -translate-y-1/2 left-8 right-8 flex justify-between items-center z-20 pointer-events-none">
-                  <button 
-                    onClick={prevOffer}
-                    className="w-14 h-14 bg-white/20 backdrop-blur-xl border border-white/30 text-white rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all group pointer-events-auto"
-                  >
-                    <ChevronLeft className="h-8 w-8 group-hover:-translate-x-1 transition-transform" />
-                  </button>
-                  <button 
-                    onClick={nextOffer}
-                    className="w-14 h-14 bg-white/20 backdrop-blur-xl border border-white/30 text-white rounded-full flex items-center justify-center hover:bg-white hover:text-black transition-all group pointer-events-auto"
-                  >
-                    <ChevronRight className="h-8 w-8 group-hover:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-                
-                {/* Indicators */}
-                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-4 z-20">
-                  {activeOffers.map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentOfferIndex(i)}
-                      className={`h-1 transition-all duration-700 ${i === currentOfferIndex ? 'w-16 bg-primary' : 'w-8 bg-white/30 hover:bg-white/50'}`}
-                    />
-                  ))}
-                </div>
+                <button 
+                  onClick={prevOffer}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </button>
+                <button 
+                  onClick={nextOffer}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </button>
               </>
             )}
+            
+            {/* Dots */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+              {activeOffers.map((_, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setCurrentOfferIndex(i)}
+                  className={`h-1.5 transition-all ${currentOfferIndex === i ? 'w-8 bg-primary' : 'w-2 bg-white/50'}`}
+                />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="h-full relative flex items-center justify-center bg-gray-900">
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=2000')] bg-cover bg-center opacity-40" />
-            <div className="relative text-center text-white space-y-8 px-4 max-w-4xl">
-              <h2 className="text-7xl md:text-9xl font-black uppercase tracking-tighter drop-shadow-2xl animate-fade-in">
-                طمطوم أزياء
-              </h2>
-              <p className="text-xl md:text-3xl font-light tracking-[0.3em] opacity-80 uppercase animate-fade-in delay-150">
-                اكتشف أحدث الصيحات العالمية
-              </p>
-              <div className="pt-6 animate-fade-in delay-300">
-                <Button 
-                  size="lg" 
-                  className="rounded-none px-16 h-16 bg-primary text-white hover:bg-white hover:text-black transition-all text-2xl font-black uppercase tracking-widest shadow-[0_20px_50px_rgba(255,100,0,0.3)]"
-                  onClick={() => setLocation('/category/new')}
-                >
-                  ابدأ التسوق
-                </Button>
-              </div>
-            </div>
+          <div className="h-full bg-gradient-to-r from-orange-100 to-red-100 flex items-center justify-center">
+             <div className="text-center space-y-4">
+                <h2 className="text-5xl font-black text-primary">طمطوم</h2>
+                <p className="text-xl text-gray-600">أفضل الفواكه والخضروات الطازجة</p>
+             </div>
           </div>
         )}
       </section>
 
       {/* 2. Circular Categories Section */}
-      <section className="container mx-auto px-4 py-12">
-        <div className="flex justify-center gap-4 md:gap-12 overflow-x-auto pb-4 scrollbar-hide">
+      <section className="container mx-auto px-4 py-8 md:py-16">
+        <div className="flex flex-col items-center mb-10">
+          <h2 className="text-3xl font-black text-gray-900 mb-2">تسوق حسب القسم</h2>
+          <div className="h-1.5 w-20 bg-primary" />
+        </div>
+        
+        <div className="flex justify-center gap-6 md:gap-16 overflow-x-auto pb-6 scrollbar-hide px-4">
           {categories?.map((category) => (
             <div 
               key={category.id} 
-              className="flex flex-col items-center gap-3 cursor-pointer group shrink-0"
-              onClick={() => setLocation(`/category/${category.id}`)}
+              className="flex flex-col items-center gap-4 cursor-pointer group shrink-0"
+              onClick={() => setLocation(`/category/${category.name}`)}
             >
-              <div className="w-20 h-20 md:w-28 md:h-28 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-transparent group-hover:border-black transition-all">
-                {category.icon ? (
-                  <span className="text-3xl"><i className={category.icon}></i></span>
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden border-4 border-white group-hover:border-primary transition-all duration-300 transform group-hover:scale-110">
+                {category.icon && category.icon.startsWith('http') ? (
+                  <img src={category.icon} alt={category.name} className="w-full h-full object-cover" />
                 ) : (
-                  <ShoppingBag className="h-10 w-10 text-gray-400" />
+                  <div className="bg-primary/10 w-full h-full flex items-center justify-center">
+                    <ShoppingBag className="h-10 w-10 text-primary" />
+                  </div>
                 )}
               </div>
-              <span className="text-sm md:text-base font-bold text-gray-800">{category.name}</span>
+              <span className="text-base md:text-lg font-black text-gray-900 tracking-tight group-hover:text-primary transition-colors">{category.name}</span>
             </div>
           ))}
         </div>

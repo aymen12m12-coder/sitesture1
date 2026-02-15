@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'wouter';
 import RestaurantCard from '../components/RestaurantCard';
+import MenuItemCard from '../components/MenuItemCard';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
 import type { Restaurant, Category, MenuItem } from '../../../shared/schema.js';
 
 export default function SearchPage() {
+  const [location] = useLocation();
   const [selectedTab, setSelectedTab] = useState<'all' | 'restaurants' | 'categories' | 'menuItems'>('all');
   const [searchResults, setSearchResults] = useState<{
     restaurants: Restaurant[];
@@ -12,6 +15,17 @@ export default function SearchPage() {
     menuItems: MenuItem[];
   }>({ restaurants: [], categories: [], menuItems: [] });
   const [hasSearched, setHasSearched] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  // Extract query from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const query = params.get('q');
+    if (query) {
+      setInputValue(query);
+      handleSearch(query);
+    }
+  }, [window.location.search]);
 
   const handleSearch = async (query: string) => {
     if (query.length < 2) {
@@ -68,7 +82,11 @@ export default function SearchPage() {
             <input
               type="text"
               placeholder="ابحث عن منتجات، فئات أو ماركات..."
-              onChange={(e) => handleSearch(e.target.value)}
+              value={inputValue}
+              onChange={(e) => {
+                setInputValue(e.target.value);
+                handleSearch(e.target.value);
+              }}
               className="w-full px-6 py-4 border-2 border-black rounded-none focus:outline-none focus:ring-0 text-lg font-medium"
             />
           </div>
@@ -134,26 +152,15 @@ export default function SearchPage() {
                 {/* Menu Items */}
                 {filteredMenuItems.length > 0 && (
                   <div>
-                    {selectedTab === 'all' && <h2 className="text-md font-semibold mb-3">الأطباق</h2>}
-                    <div className="grid gap-3">
+                    {selectedTab === 'all' && <h2 className="text-md font-semibold mb-3">المنتجات</h2>}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {filteredMenuItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-muted/50"
-                        >
-                          {item.image && (
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-lg ml-3"
-                            />
-                          )}
-                          <div className="flex-1">
-                            <h4 className="font-medium">{item.name}</h4>
-                            <p className="text-sm text-muted-foreground">{item.description}</p>
-                            <p className="text-sm font-semibold text-primary">{formatCurrency(item.price)}</p>
-                          </div>
-                        </div>
+                        <MenuItemCard 
+                          key={item.id} 
+                          item={item} 
+                          restaurantId={item.restaurantId || ''} 
+                          restaurantName="متجر طمطوم"
+                        />
                       ))}
                     </div>
                   </div>

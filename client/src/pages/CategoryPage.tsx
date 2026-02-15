@@ -24,57 +24,44 @@ export default function CategoryPage() {
 
   // Fetch products for this category
   const { data: allProducts, isLoading } = useQuery<MenuItem[]>({
-    queryKey: ['/api/category/products', slug],
+    queryKey: ['/api/products', slug],
     queryFn: async () => {
-      try {
-        const storesRes = await fetch('/api/restaurants');
-        if (!storesRes.ok) throw new Error('Failed to fetch stores');
-        const storesData: Restaurant[] = await storesRes.json();
-        
-        const allPromises = storesData.map(s => 
-          fetch(`/api/restaurants/${s.id}/menu`)
-            .then(r => r.ok ? r.json() : [])
-            .catch(() => [])
-        );
-        const results = await Promise.all(allPromises);
-        const flattened = results.flat();
-        
-        // Map slug to Arabic category name if needed
-        const slugMap: Record<string, string> = {
-          'women': 'نساء',
-          'woman': 'نساء',
-          'men': 'رجال',
-          'man': 'رجال',
-          'kids': 'أطفال',
-          'children': 'أطفال',
-          'plus-size': 'مقاسات كبيرة',
-          'lingerie': 'ملابس داخلية',
-          'home': 'المنزل والمطبخ',
-          'beauty': 'الصحة والجمال',
-          'accessories': 'الإكسسوارات',
-          'jewelry': 'مجوهرات',
-          'bags': 'الحقائب',
-          'shoes': 'أحذية',
-          'sale': 'تخفيضات',
-          'new': 'جديد'
-        };
+      const response = await fetch('/api/products');
+      if (!response.ok) throw new Error('Failed to fetch products');
+      const products: MenuItem[] = await response.json();
+      
+      // Map slug to Arabic category name if needed
+      const slugMap: Record<string, string> = {
+        'women': 'نساء',
+        'woman': 'نساء',
+        'men': 'رجال',
+        'man': 'رجال',
+        'kids': 'أطفال',
+        'children': 'أطفال',
+        'plus-size': 'مقاسات كبيرة',
+        'lingerie': 'ملابس داخلية',
+        'home': 'المنزل والمطبخ',
+        'beauty': 'الصحة والجمال',
+        'accessories': 'الإكسسوارات',
+        'jewelry': 'مجوهرات',
+        'bags': 'الحقائب',
+        'shoes': 'أحذية',
+        'sale': 'تخفيضات',
+        'new': 'جديد'
+      };
 
-        const targetCategory = slugMap[slug || ''] || slug;
+      const targetCategory = slugMap[slug || ''] || slug;
 
-        // Filter by category name
-        return flattened.filter((item: MenuItem) => {
-          if (!item.category) return false;
-          const itemCat = item.category.trim().toLowerCase();
-          const targetCat = targetCategory?.trim().toLowerCase() || '';
-          
-          return itemCat === targetCat || 
-                 itemCat.includes(targetCat) || 
-                 targetCat.includes(itemCat);
-        });
-      } catch (error) {
-        console.error('Error fetching category products:', error);
-        return [];
-      }
+      // Filter by category name (case insensitive and partial match)
+      return products.filter((item: MenuItem) => {
+        if (!item.category) return false;
+        const itemCat = item.category.trim().toLowerCase();
+        const targetCat = targetCategory?.trim().toLowerCase() || '';
+        
+        return itemCat === targetCat || 
+               itemCat.includes(targetCat) || 
+               targetCat.includes(itemCat);
+      });
     }
   });
 

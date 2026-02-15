@@ -146,7 +146,7 @@ export default function AdminCategories() {
           <Tag className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">إدارة الأقسام</h1>
-            <p className="text-muted-foreground">إدارة أقسام المطاعم والمتاجر</p>
+            <p className="text-muted-foreground">إدارة أقسام المتجر وشريط التنقل الرئيسي</p>
           </div>
         </div>
         
