@@ -1,36 +1,38 @@
 import React from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import type { Category } from '@shared/schema';
 
 export const Navbar: React.FC = () => {
   const [location, setLocation] = useLocation();
 
-  const categories = [
-    { name: 'نساء', path: '/category/women' },
-    { name: 'مقاسات كبيرة', path: '/category/plus-size' },
-    { name: 'أطفال', path: '/category/kids' },
-    { name: 'ملابس رجالية', path: '/category/men' },
-    { name: 'ملابس داخلية وملابس نوم', path: '/category/lingerie' },
-    { name: 'المنزل والمطبخ', path: '/category/home' },
-    { name: 'الصحة والجمال', path: '/category/beauty' },
-    { name: 'الإكسسوارات', path: '/category/accessories' },
-    { name: 'مجوهرات', path: '/category/jewelry' },
-    { name: 'الحقائب', path: '/category/bags' },
-    { name: 'أحذية', path: '/category/shoes' },
-    { name: 'التخفيضات', path: '/category/sale', className: 'text-red-600 font-bold' },
-    { name: 'جديد', path: '/category/new', className: 'text-primary font-bold' },
-  ];
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+
+  const displayCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
   return (
-    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap scrollbar-hide sticky top-[135px] z-40">
+    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap scrollbar-hide sticky top-[110px] md:top-[135px] z-40">
       <div className="container mx-auto px-4">
-        <ul className="flex items-center justify-center gap-10 py-4">
-          {categories.map((cat) => (
-            <li key={cat.path}>
+        <ul className="flex items-center justify-center gap-6 md:gap-10 py-3 md:py-4">
+          <li>
+            <button
+              onClick={() => setLocation('/')}
+              className={`text-[12px] md:text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
+                location === '/' ? 'text-primary border-primary' : 'text-black'
+              }`}
+            >
+              الرئيسية
+            </button>
+          </li>
+          {displayCategories.map((cat) => (
+            <li key={cat.id}>
               <button
-                onClick={() => setLocation(cat.path)}
-                className={`text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
-                  location === cat.path ? 'text-primary border-primary' : 'text-black'
-                } ${cat.className || ''}`}
+                onClick={() => setLocation(`/category/${cat.name}`)}
+                className={`text-[12px] md:text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
+                  location === `/category/${cat.name}` ? 'text-primary border-primary' : 'text-black'
+                }`}
               >
                 {cat.name}
               </button>

@@ -1,6 +1,22 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { Home, Search, Receipt, User, Menu, Settings, Shield, MapPin, Clock, Truck, UserCog, ShoppingCart } from 'lucide-react';
+import { 
+  Home, 
+  Search, 
+  Receipt, 
+  User, 
+  Menu, 
+  Settings, 
+  Shield, 
+  MapPin, 
+  Clock, 
+  Truck, 
+  UserCog, 
+  ShoppingCart,
+  PhoneCall,
+  Info,
+  ChevronLeft
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useCart } from '../contexts/CartContext';
@@ -23,64 +39,108 @@ export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isFeatureEnabled } = useUiSettings();
   
-  
-  // Get visibility settings from UiSettings
-  const showAdminPanel = isFeatureEnabled('show_admin_panel');
-  const showDeliveryApp = isFeatureEnabled('show_delivery_app'); 
-  const showOrdersPage = isFeatureEnabled('show_orders_page');
-  const showTrackOrdersPage = isFeatureEnabled('show_track_orders_page');
-
   const isAdminPage = location.startsWith('/admin');
   const isDeliveryPage = location.startsWith('/delivery');
   const isDriverPage = location.startsWith('/driver');
 
-  // Skip custom layout for admin/driver pages as they have their own
   if (isAdminPage || isDeliveryPage || isDriverPage) {
     return <>{children}</>;
   }
 
+  const sidebarMenuItems = [
+    { icon: Home, label: 'الرئيسية', path: '/' },
+    { icon: Receipt, label: 'طلباتي', path: '/orders' },
+    { icon: User, label: 'حسابي', path: '/profile' },
+    { icon: Settings, label: 'الإعدادات', path: '/settings' },
+    { icon: PhoneCall, label: 'اتصل بنا', path: '/contact' },
+    { icon: Info, label: 'عن طمطوم', path: '/about' },
+    { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy' },
+  ];
+
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen flex flex-col">
       <TopBar />
       <Navbar />
 
+      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <SheetTrigger asChild>
+          <button id="sidebar-trigger" className="hidden" />
+        </SheetTrigger>
+        <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
+          <SheetHeader className="p-6 border-b text-right">
+            <SheetTitle className="text-2xl font-black text-primary flex items-center justify-end gap-2">
+              طمطوم <span className="text-xs text-black opacity-50">FRESH</span>
+            </SheetTitle>
+          </SheetHeader>
+          
+          <div className="flex-1 overflow-y-auto py-4">
+            {sidebarMenuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    setLocation(item.path);
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-6 py-4 transition-colors ${
+                    isActive ? 'bg-primary/10 text-primary border-l-4 border-primary' : 'text-foreground hover:bg-muted'
+                  }`}
+                >
+                  <ChevronLeft className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <div className="flex items-center gap-4">
+                    <span className="font-bold">{item.label}</span>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-6 border-t bg-muted/50">
+            <p className="text-xs text-center text-muted-foreground">
+              نسخة التطبيق 1.0.0 &copy; 2024 طمطوم
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Main Content */}
-      <main className="min-h-screen">
+      <main className="flex-1">
         {children}
       </main>
 
-      {/* Footer (Simplified) */}
-      <footer className="bg-white border-t py-12 mt-12">
+      {/* Footer */}
+      <footer className="bg-white border-t py-12 mt-auto">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h4 className="font-bold text-lg mb-4 text-right">عن SHEIN</h4>
+            <h4 className="font-bold text-lg mb-4 text-right">عن طمطوم</h4>
             <ul className="space-y-2 text-sm text-gray-600 text-right">
-              <li>معلومات الشركة</li>
-              <li>المسؤولية الإجتماعية</li>
-              <li>مركز الأخبار</li>
+              <li>من نحن</li>
+              <li>اتصل بنا</li>
+              <li>الأسئلة الشائعة</li>
             </ul>
           </div>
           <div>
             <h4 className="font-bold text-lg mb-4 text-right">مساعدة ودعم</h4>
             <ul className="space-y-2 text-sm text-gray-600 text-right">
-              <li>معلومات الشحن</li>
-              <li>الإرجاع</li>
-              <li>كيفية الطلب</li>
-              <li>دليل المقاسات</li>
+              <li>سياسة الشحن</li>
+              <li>سياسة الإرجاع</li>
+              <li>تتبع الطلب</li>
             </ul>
           </div>
           <div>
-            <h4 className="font-bold text-lg mb-4 text-right">خدمة العملاء</h4>
+            <h4 className="font-bold text-lg mb-4 text-right">قانوني</h4>
             <ul className="space-y-2 text-sm text-gray-600 text-right">
-              <li>اتصل بنا</li>
-              <li>طرق الدفع</li>
-              <li>نقاط المكافأة</li>
+              <li>سياسة الخصوصية</li>
+              <li>شروط الخدمة</li>
             </ul>
           </div>
-          <div>
-            <h4 className="font-bold text-lg mb-4 text-right">تواصل معنا</h4>
+          <div className="text-right">
+            <h4 className="font-bold text-lg mb-4">تابعنا</h4>
             <div className="flex gap-4 justify-end">
-              {/* Social icons would go here */}
+               {/* Icons would go here */}
             </div>
           </div>
         </div>
