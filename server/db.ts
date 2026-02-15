@@ -157,6 +157,16 @@ export class DatabaseStorage {
     }
   }
 
+  async searchCategories(query: string): Promise<Category[]> {
+    try {
+      const result = await this.db.select().from(categories).where(like(categories.name, `%${query}%`));
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error searching categories:', error);
+      return [];
+    }
+  }
+
   async createCategory(category: InsertCategory): Promise<Category> {
     const [newCategory] = await this.db.insert(categories).values(category).returning();
     return newCategory;
@@ -202,6 +212,10 @@ export class DatabaseStorage {
   // Menu Items
   async getMenuItems(restaurantId: string): Promise<MenuItem[]> {
     return await this.db.select().from(menuItems).where(eq(menuItems.restaurantId, restaurantId));
+  }
+
+  async getAllMenuItems(): Promise<MenuItem[]> {
+    return await this.db.select().from(menuItems);
   }
 
   async getMenuItem(id: string): Promise<MenuItem | undefined> {
@@ -853,7 +867,7 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
     const conditions = [
       eq(menuItems.isAvailable, true),
       eq(restaurants.isActive, true),
-      eq(restaurants.isOpen, true),
+      // Removed isOpen check to allow browsing even when store is closed
       or(
         like(menuItems.name, `%${searchTerm}%`),
         like(menuItems.description, `%${searchTerm}%`),

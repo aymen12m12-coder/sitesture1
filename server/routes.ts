@@ -157,6 +157,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Restaurant write operations are only available through /api/admin/restaurants
 
   // Menu Items
+  app.get("/api/products", async (req, res) => {
+    try {
+      const products = await storage.getAllMenuItems();
+      res.json(products);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch products" });
+    }
+  });
+
+  app.get("/api/products/featured", async (req, res) => {
+    try {
+      const products = await storage.getAllMenuItems();
+      const featured = products.filter(p => p.isFeatured);
+      res.json(featured.length > 0 ? featured : products.slice(0, 12));
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch featured products" });
+    }
+  });
+
   app.get("/api/products/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -947,17 +966,7 @@ app.get("/api/notifications", async (req, res) => {
           userLongitude: userLocation?.lon,
           radius: radius ? parseFloat(radius as string) : undefined
         };
-        // TEMPORARY FIX: Return sample data for search
-        console.log('TEMPORARY FIX: Returning sample restaurants for search');
-        results.restaurants = [
-          {
-            id: '1',
-            name: 'مطعم الأصالة',
-            description: 'مطعم يقدم أشهى الأطباق العربية الأصيلة',
-            image: '/images/restaurant1.jpg',
-            rating: '4.5'
-          }
-        ];
+        results.restaurants = await storage.getRestaurants(filters);
       }
       
       if (!type || type === 'categories') {

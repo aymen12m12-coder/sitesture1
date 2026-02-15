@@ -3,10 +3,11 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
 
-// Users table (customers) - بدون مصادقة
+// Users table (customers)
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   username: varchar("username", { length: 50 }).notNull().unique(),
+  password: text("password").notNull(),
   name: text("name").notNull(),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 100 }),

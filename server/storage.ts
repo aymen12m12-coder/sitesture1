@@ -50,6 +50,7 @@ export interface IStorage {
 
   // Menu Items
   getMenuItems(restaurantId: string): Promise<MenuItem[]>;
+  getAllMenuItems(): Promise<MenuItem[]>;
   getMenuItem(id: string): Promise<MenuItem | undefined>;
   createMenuItem(menuItem: InsertMenuItem): Promise<MenuItem>;
   updateMenuItem(id: string, menuItem: Partial<InsertMenuItem>): Promise<MenuItem | undefined>;
