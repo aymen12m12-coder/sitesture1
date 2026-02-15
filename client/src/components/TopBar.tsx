@@ -34,107 +34,97 @@ export const TopBar: React.FC = () => {
 
   return (
     <div className="bg-white border-b sticky top-0 z-50">
-      {/* Upper Bar: Language, Icons */}
-      <div className="bg-gradient-to-r from-primary via-orange-500 to-primary text-white py-2">
-        <div className="container mx-auto px-4 flex items-center justify-between text-[11px] font-bold uppercase tracking-widest">
-          <div className="flex items-center gap-6">
-            <button className="hover:text-black transition-colors flex items-center gap-1">
-              <Globe className="h-3 w-3" />
-              <span>YEMEN / AR</span>
+      {/* Desktop & Tablet Header */}
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        {/* Left: Utilities (Account, Favorites, Cart) */}
+        <div className="flex items-center gap-3 md:gap-6">
+          <button 
+            onClick={() => setLocation(user ? '/profile' : '/auth')}
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors relative group"
+            title="الحساب"
+          >
+            <User className="h-6 w-6 text-gray-700" />
+            <span className="absolute -bottom-8 right-1/2 translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">حسابي</span>
+          </button>
+          
+          <button 
+            onClick={() => setLocation('/favorites')}
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors relative group"
+            title="المفضلة"
+          >
+            <Heart className="h-6 w-6 text-gray-700" />
+            <span className="absolute -bottom-8 right-1/2 translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">المفضلة</span>
+          </button>
+
+          <button 
+            onClick={() => setLocation('/cart')}
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors relative group"
+            title="الحقيبة"
+          >
+            <div className="relative">
+              <ShoppingCart className="h-6 w-6 text-gray-700" />
+              {getItemCount() > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-white text-[10px] rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white">
+                  {getItemCount()}
+                </span>
+              )}
+            </div>
+            <span className="absolute -bottom-8 right-1/2 translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">الحقيبة</span>
+          </button>
+        </div>
+
+        {/* Center: Search Bar */}
+        <div className="flex-1 max-w-2xl hidden md:block">
+          <form onSubmit={handleSearch} className="relative group">
+            <Input 
+              className="w-full pr-10 pl-4 h-11 bg-gray-100 border-none rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all text-base"
+              placeholder="ما الذي تبحث عنه اليوم؟"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-primary transition-colors">
+              <Search className="h-5 w-5" />
             </button>
-            <span className="hidden md:inline opacity-50">|</span>
-            <span className="hidden md:inline">شحن مجاني للطلبات فوق 200 ريال</span>
+          </form>
+        </div>
+
+        {/* Right Side: Logo & Menu */}
+        <div className="flex items-center gap-4">
+          <div 
+            className="cursor-pointer"
+            onClick={() => setLocation('/')}
+          >
+            <div className="logo-tamtom text-3xl md:text-4xl">
+              <span className="green">طم</span>
+              <span className="red">طوم</span>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4 md:gap-6">
-            <button 
-              onClick={() => setLocation(user ? '/profile' : '/auth')}
-              className="flex items-center gap-2 hover:text-black transition-colors"
-            >
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{user ? user.name : 'تسجيل الدخول / التسجيل'}</span>
-            </button>
-            
-            <button 
-              onClick={() => setLocation('/favorites')}
-              className="flex items-center gap-2 hover:text-black transition-colors relative"
-            >
-              <Heart className="h-4 w-4" />
-              <span className="hidden md:inline">المفضلة</span>
-            </button>
-
-            <button 
-              onClick={() => setLocation('/cart')}
-              className="flex items-center gap-2 hover:text-black transition-colors relative"
-            >
-              <div className="relative">
-                <ShoppingCart className="h-4 w-4" />
-                {getItemCount() > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-white text-primary text-[9px] rounded-full h-4 w-4 flex items-center justify-center border border-primary font-black">
-                    {getItemCount()}
-                  </span>
-                )}
-              </div>
-              <span className="hidden md:inline">الحقيبة</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Bar: Logo, Search */}
-      <div className="container mx-auto px-4 py-3 md:py-4 flex items-center justify-between gap-4 md:gap-8">
-        {/* Left Side: Menu Icon (Mobile) */}
-        <div className="flex items-center md:hidden">
-           <Button variant="ghost" size="icon" className="md:hidden" onClick={() => document.getElementById('sidebar-trigger')?.click()}>
-              <MenuIcon className="h-6 w-6" />
-           </Button>
-        </div>
-
-        {/* Search Bar (Desktop) */}
-        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-2xl mx-auto relative group">
-          <Input 
-            className="w-full pl-12 h-11 border-2 border-gray-100 rounded-none focus:border-primary focus-visible:ring-0 transition-all text-base"
-            placeholder="ابحث عن الفواكه، الخضروات، أو أي منتج..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2">
-            <Search className="h-5 w-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-          </button>
-        </form>
-
-        {/* Logo (Right) */}
-        <div 
-          className="text-3xl md:text-4xl font-black tracking-tighter cursor-pointer shrink-0 text-primary transition-transform hover:scale-105 active:scale-95 flex items-center gap-2"
-          onClick={() => setLocation('/')}
-        >
-          <span className="text-xs font-bold text-black uppercase tracking-widest opacity-50 hidden sm:inline">FRESH</span>
-          طمطوم
-        </div>
-
-        {/* Mobile Search Trigger */}
-        <div className="flex items-center md:hidden gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(!isSearchOpen)}>
-            <Search className="h-6 w-6" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden" 
+            onClick={() => document.getElementById('sidebar-trigger')?.click()}
+          >
+            <MenuIcon className="h-6 w-6" />
           </Button>
         </div>
       </div>
 
-      {/* Mobile Search Bar (Expandable) */}
-      {isSearchOpen && (
-        <div className="md:hidden bg-white px-4 pb-4 animate-in slide-in-from-top duration-300">
-          <form onSubmit={handleSearch} className="relative">
-            <Input 
-              autoFocus
-              className="w-full pl-10 h-10 border-2 border-primary rounded-none focus-visible:ring-0"
-              placeholder="بحث..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
-          </form>
-        </div>
-      )}
+      {/* Mobile Search Bar (Sticky below header on mobile) */}
+      <div className="md:hidden px-4 pb-3">
+        <form onSubmit={handleSearch} className="relative">
+          <Input 
+            className="w-full pr-10 pl-4 h-10 bg-gray-100 border-none rounded-lg focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all text-sm"
+            placeholder="ابحث عن منتجات، أقسام، أو عروض..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+            <Search className="h-4 w-4" />
+          </button>
+        </form>
+      </div>
     </div>
   );
 };

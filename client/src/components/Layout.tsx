@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { 
   Home, 
   Search, 
@@ -15,21 +16,27 @@ import {
   ShoppingCart,
   PhoneCall,
   Info,
-  ChevronLeft
+  ChevronLeft,
+  Globe,
+  Share2,
+  MessageCircle,
+  MoreVertical,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCart } from '../contexts/CartContext';
 import CartButton from './CartButton';
 import { useToast } from '@/hooks/use-toast';
 import { useUiSettings } from '@/context/UiSettingsContext';
 import TopBar from './TopBar';
 import Navbar from './Navbar';
+import { apiRequest } from '@/lib/queryClient';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
-
 
 export default function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
@@ -37,7 +44,21 @@ export default function Layout({ children }: LayoutProps) {
   const getItemCount = () => state.items.reduce((sum, item) => sum + item.quantity, 0);
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isFeatureEnabled } = useUiSettings();
+  const [supportOpen, setSupportOpen] = useState(false);
+  
+  // Fetch UI Settings for support and share
+  const { data: uiSettings } = useQuery<any[]>({
+    queryKey: ['/api/ui-settings'],
+  });
+
+  const getSetting = (key: string, defaultValue: string) => {
+    return uiSettings?.find(s => s.key === key)?.value || defaultValue;
+  };
+
+  const whatsappLink = getSetting('support_whatsapp', 'https://wa.me/967777777777');
+  const phoneLink = getSetting('support_phone', 'tel:+967777777777');
+  const shareText = getSetting('share_text', 'تسوق أفضل الفواكه والخضروات الطازجة من تطبيق طمطوم!');
+  const shareUrl = getSetting('share_url', window.location.origin);
   
   const isAdminPage = location.startsWith('/admin');
   const isDeliveryPage = location.startsWith('/delivery');
@@ -57,8 +78,24 @@ export default function Layout({ children }: LayoutProps) {
     { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy' },
   ];
 
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'طمطوم - فواكه وخضروات طازجة',
+        text: shareText,
+        url: shareUrl,
+      }).catch(console.error);
+    } else {
+      toast({
+        title: "مشاركة التطبيق",
+        description: "تم نسخ رابط التطبيق",
+      });
+      navigator.clipboard.writeText(shareUrl);
+    }
+  };
+
   return (
-    <div className="bg-background min-h-screen flex flex-col">
+    <div className="bg-background min-h-screen flex flex-col pb-16 md:pb-0">
       <TopBar />
       <Navbar />
 
@@ -68,12 +105,28 @@ export default function Layout({ children }: LayoutProps) {
         </SheetTrigger>
         <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
           <SheetHeader className="p-6 border-b text-right">
-            <SheetTitle className="text-2xl font-black text-primary flex items-center justify-end gap-2">
-              طمطوم <span className="text-xs text-black opacity-50">FRESH</span>
+            <SheetTitle className="text-2xl font-black flex items-center justify-end gap-2">
+              <div className="logo-tamtom">
+                <span className="green">طم</span>
+                <span className="red">طوم</span>
+              </div>
             </SheetTitle>
           </SheetHeader>
           
           <div className="flex-1 overflow-y-auto py-4">
+            {/* Language Selector in Sidebar */}
+            <div className="px-6 py-4 border-b mb-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold">
+                  <Globe className="h-4 w-4 text-primary" />
+                  <span>اللغة والبلد</span>
+                </div>
+                <Button variant="outline" size="sm" className="text-xs h-7 px-2">
+                  اليمن / العربية
+                </Button>
+              </div>
+            </div>
+
             {sidebarMenuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
@@ -111,8 +164,81 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-white border-t py-12 mt-auto">
+      {/* Mobile Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-50 md:hidden flex items-center justify-around h-16 px-4">
+        <button 
+          onClick={() => setLocation('/')}
+          className={`flex flex-col items-center gap-1 ${location === '/' ? 'text-primary' : 'text-gray-500'}`}
+        >
+          <Home className="h-6 w-6" />
+          <span className="text-[10px] font-bold">الرئيسية</span>
+        </button>
+
+        <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+          <DialogTrigger asChild>
+            <button className="flex flex-col items-center gap-1 text-gray-500">
+              <div className="bg-primary text-white p-3 rounded-full -mt-8 shadow-lg border-4 border-white transform transition-transform hover:scale-110 active:scale-95">
+                <MessageCircle className="h-6 w-6" />
+              </div>
+              <span className="text-[10px] font-bold mt-1">الدعم</span>
+            </button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px] rounded-t-[2rem] border-none">
+            <DialogHeader className="text-center pb-4">
+              <DialogTitle className="text-2xl font-black text-gray-900">كيف يمكننا مساعدتك؟</DialogTitle>
+              <p className="text-gray-500 font-bold">نحن متواجدون لخدمتك في أي وقت</p>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+              <Button 
+                variant="outline" 
+                className="h-16 flex items-center justify-between px-6 rounded-2xl border-2 border-green-100 hover:bg-green-50 hover:border-green-200 group transition-all"
+                onClick={() => {
+                  window.open(whatsappLink, '_blank');
+                  setSupportOpen(false);
+                }}
+              >
+                <div className="bg-green-100 p-2 rounded-xl group-hover:bg-green-200 transition-colors">
+                  <MessageCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <div className="flex-1 text-right mr-4">
+                  <p className="font-black text-lg">واتساب</p>
+                  <p className="text-xs text-gray-500">تحدث معنا مباشرة</p>
+                </div>
+                <ChevronLeft className="h-5 w-5 text-gray-400" />
+              </Button>
+
+              <Button 
+                variant="outline" 
+                className="h-16 flex items-center justify-between px-6 rounded-2xl border-2 border-blue-100 hover:bg-blue-50 hover:border-blue-200 group transition-all"
+                onClick={() => {
+                  window.location.href = phoneLink;
+                  setSupportOpen(false);
+                }}
+              >
+                <div className="bg-blue-100 p-2 rounded-xl group-hover:bg-blue-200 transition-colors">
+                  <PhoneCall className="h-6 w-6 text-blue-600" />
+                </div>
+                <div className="flex-1 text-right mr-4">
+                  <p className="font-black text-lg">اتصال مباشر</p>
+                  <p className="text-xs text-gray-500">مكالمة هاتفية فورية</p>
+                </div>
+                <ChevronLeft className="h-5 w-5 text-gray-400" />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <button 
+          onClick={handleShare}
+          className="flex flex-col items-center gap-1 text-gray-500"
+        >
+          <Share2 className="h-6 w-6" />
+          <span className="text-[10px] font-bold">مشاركة</span>
+        </button>
+      </div>
+
+      {/* Footer (Desktop) */}
+      <footer className="hidden md:block bg-white border-t py-12 mt-auto">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h4 className="font-bold text-lg mb-4 text-right">عن طمطوم</h4>
@@ -140,14 +266,20 @@ export default function Layout({ children }: LayoutProps) {
           <div className="text-right">
             <h4 className="font-bold text-lg mb-4">تابعنا</h4>
             <div className="flex gap-4 justify-end">
-               {/* Icons would go here */}
+               <button onClick={handleShare} className="p-2 hover:bg-gray-100 rounded-full">
+                 <Share2 className="h-5 w-5 text-gray-600" />
+               </button>
             </div>
           </div>
         </div>
       </footer>
 
       {/* Mobile Floating Cart Button */}
-      {getItemCount() > 0 && <CartButton />}
+      {getItemCount() > 0 && (
+        <div className="md:hidden">
+          <CartButton />
+        </div>
+      )}
     </div>
   );
 }

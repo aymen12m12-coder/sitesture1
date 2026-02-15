@@ -12,8 +12,12 @@ export const Navbar: React.FC = () => {
 
   const displayCategories = categories.filter(c => c.isActive !== false).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 
+  if (location === '/') {
+    return null;
+  }
+
   return (
-    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap scrollbar-hide sticky top-[110px] md:top-[135px] z-40">
+    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap no-scrollbar sticky top-[110px] md:top-[68px] z-40">
       <div className="container mx-auto px-4">
         <ul className="flex items-center justify-center gap-6 md:gap-10 py-3 md:py-4">
           <li>
