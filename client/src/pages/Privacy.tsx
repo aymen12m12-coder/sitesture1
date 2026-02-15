@@ -2,9 +2,20 @@ import { useLocation } from 'wouter';
 import { ArrowRight, Shield, Eye, Lock, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
 
 export default function Privacy() {
   const [, setLocation] = useLocation();
+
+  const { data: uiSettings } = useQuery<any[]>({
+    queryKey: ['/api/ui-settings'],
+  });
+
+  const getSetting = (key: string, defaultValue: string) => {
+    return uiSettings?.find(s => s.key === key)?.value || defaultValue;
+  };
+
+  const dynamicPrivacyText = getSetting('privacy_policy_text', '');
 
   const privacySections = [
     {
@@ -80,9 +91,8 @@ export default function Privacy() {
               <h3 className="text-xl font-bold text-foreground mb-2">
                 نحن نحترم خصوصيتك
               </h3>
-              <p className="text-muted-foreground">
-                تطبيق طمطوم ملتزم بحماية خصوصيتك وأمان معلوماتك الشخصية. 
-                هذه السياسة توضح كيفية جمع واستخدام وحماية بياناتك.
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {dynamicPrivacyText || `تطبيق طمطوم ملتزم بحماية خصوصيتك وأمان معلوماتك الشخصية. هذه السياسة توضح كيفية جمع واستخدام وحماية بياناتك.`}
               </p>
             </div>
             

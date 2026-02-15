@@ -116,13 +116,14 @@ export default function AdminMenuItems() {
         category: data.category.trim(),
         price: price.toString(),
         originalPrice: originalPrice ? originalPrice.toString() : null,
-        brand: data.brand.trim(),
+        brand: data.brand.trim() || 'طمطوم',
         sizes: data.sizes.trim(),
         colors: data.colors.trim(),
         salesCount: parseInt(data.salesCount) || 0,
         rating: parseFloat(data.rating) || 5,
         isFeatured: data.isFeatured,
         isNew: data.isNew,
+        restaurantId: data.restaurantId || selectedRestaurant,
       };
       
       const response = await apiRequest('POST', '/api/admin/menu-items', submitData);
@@ -187,13 +188,14 @@ export default function AdminMenuItems() {
         category: data.category.trim(),
         price: price.toString(),
         originalPrice: originalPrice ? originalPrice.toString() : null,
-        brand: data.brand.trim(),
+        brand: data.brand.trim() || 'طمطوم',
         sizes: data.sizes.trim(),
         colors: data.colors.trim(),
         salesCount: parseInt(data.salesCount) || 0,
         rating: parseFloat(data.rating) || 5,
         isFeatured: data.isFeatured,
         isNew: data.isNew,
+        restaurantId: data.restaurantId || selectedRestaurant,
       };
       
       const response = await apiRequest('PUT', `/api/admin/menu-items/${id}`, submitData);

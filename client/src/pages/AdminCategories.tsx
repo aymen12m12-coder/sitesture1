@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash2, Tag, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, Save, X, Image as ImageIcon } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,8 +22,9 @@ export default function AdminCategories() {
   const [formData, setFormData] = useState({
     name: '',
     icon: '',
-    sortOrder: 0, // الحقل المفقود من قاعدة البيانات
-    isActive: true, // الحقل المفقود من قاعدة البيانات
+    image: '',
+    sortOrder: 0,
+    isActive: true,
   });
 
   const { data: categories, isLoading } = useQuery<Category[]>({
@@ -80,6 +82,7 @@ export default function AdminCategories() {
     setFormData({
       name: '',
       icon: '',
+      image: '',
       sortOrder: 0,
       isActive: true,
     });
@@ -91,8 +94,9 @@ export default function AdminCategories() {
     setFormData({
       name: category.name,
       icon: category.icon || '',
+      image: category.image || '',
       sortOrder: category.sortOrder || 0,
-      isActive: category.isActive !== false, // قيمة افتراضية true
+      isActive: category.isActive !== false,
     });
     setIsDialogOpen(true);
   };
@@ -185,7 +189,7 @@ export default function AdminCategories() {
               </div>
 
               <div>
-                <Label htmlFor="icon">الأيقونة</Label>
+                <Label htmlFor="icon">الأيقونة (اختياري)</Label>
                 <select
                   id="icon"
                   className="w-full p-2 border border-border rounded-md bg-background"
@@ -193,13 +197,22 @@ export default function AdminCategories() {
                   onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
                   data-testid="select-category-icon"
                 >
-                  <option value="">اختر أيقونة *</option>
+                  <option value="">اختر أيقونة</option>
                   {iconOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div>
+                <ImageUpload
+                  label="صورة القسم (Photo)"
+                  value={formData.image}
+                  onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
+                  bucket="categories"
+                />
               </div>
 
               {/* الحقول المفقودة من قاعدة البيانات */}

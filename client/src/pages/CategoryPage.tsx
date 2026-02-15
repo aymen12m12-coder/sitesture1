@@ -38,9 +38,24 @@ export default function CategoryPage() {
         const itemCat = item.category.trim().toLowerCase();
         const targetCat = targetCategory.trim().toLowerCase();
         
-        return itemCat === targetCat || 
-               itemCat.includes(targetCat) || 
-               targetCat.includes(itemCat);
+        // Exact match or includes
+        const isMatch = itemCat === targetCat || 
+                        itemCat.includes(targetCat) || 
+                        targetCat.includes(itemCat);
+
+        // Map English to Arabic for produce
+        const produceMap: Record<string, string> = {
+          'fruits': 'فواكه',
+          'vegetables': 'خضروات',
+          'dates': 'تمور',
+          'juices': 'عصائر',
+          'offers': 'عروض'
+        };
+
+        const mappedAr = produceMap[targetCat];
+        const arMatch = mappedAr && (itemCat === mappedAr || itemCat.includes(mappedAr));
+
+        return isMatch || arMatch;
       });
     }
   });
@@ -61,7 +76,7 @@ export default function CategoryPage() {
       <div className="container mx-auto px-4 py-6 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
         <button onClick={() => setLocation('/')} className="hover:text-black transition-colors">HOME</button>
         <span>/</span>
-        <span className="text-black">{slug}</span>
+        <span className="text-black">{decodeURIComponent(slug || '')}</span>
       </div>
 
       <div className="container mx-auto px-4">

@@ -4,6 +4,7 @@ import { Save, Settings, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -14,18 +15,18 @@ import type { UiSettings } from '@shared/schema';
 interface SettingItem {
   key: string;
   label: string;
-  type: 'boolean' | 'text';
+  type: 'boolean' | 'text' | 'textarea';
   description: string;
   category: string;
 }
 
 const settingsConfig: SettingItem[] = [
   // Navigation Settings
-  { key: 'show_categories', label: 'عرض التصنيفات', type: 'boolean', description: 'عرض تصنيفات المطاعم في الصفحة الرئيسية', category: 'تنقل' },
-  { key: 'show_search_bar', label: 'عرض شريط البحث', type: 'boolean', description: 'عرض شريط البحث في الصفحة الرئيسية', category: 'تنقل' },
-  { key: 'show_special_offers', label: 'عرض العروض الخاصة', type: 'boolean', description: 'عرض العروض الخاصة والتخفيضات', category: 'تنقل' },
-  { key: 'show_orders_page', label: 'عرض صفحة الطلبات', type: 'boolean', description: 'عرض صفحة الطلبات في التنقل', category: 'تنقل' },
-  { key: 'show_track_orders_page', label: 'عرض صفحة تتبع الطلبات', type: 'boolean', description: 'عرض صفحة تتبع الطلبات في التنقل', category: 'تنقل' },
+  { key: 'show_categories', label: 'عرض التصنيفات', type: 'boolean', description: 'عرض تصنيفات المنتجات في الصفحة الرئيسية', category: 'التنقل' },
+  { key: 'show_search_bar', label: 'عرض شريط البحث', type: 'boolean', description: 'عرض شريط البحث في الصفحة الرئيسية', category: 'التنقل' },
+  { key: 'show_special_offers', label: 'عرض العروض الخاصة', type: 'boolean', description: 'عرض العروض الخاصة والتخفيضات', category: 'التنقل' },
+  { key: 'show_orders_page', label: 'عرض صفحة الطلبات', type: 'boolean', description: 'عرض صفحة الطلبات في التنقل', category: 'التنقل' },
+  { key: 'show_track_orders_page', label: 'عرض صفحة تتبع الطلبات', type: 'boolean', description: 'عرض صفحة تتبع الطلبات في التنقل', category: 'التنقل' },
   
   // App Settings
   { key: 'app_name', label: 'اسم التطبيق', type: 'text', description: 'اسم التطبيق الذي يظهر للمستخدمين', category: 'عام' },
@@ -33,10 +34,14 @@ const settingsConfig: SettingItem[] = [
   { key: 'delivery_fee_default', label: 'رسوم التوصيل الافتراضية', type: 'text', description: 'رسوم التوصيل الافتراضية (ريال)', category: 'عام' },
   { key: 'minimum_order_default', label: 'الحد الأدنى للطلب', type: 'text', description: 'الحد الأدنى لقيمة الطلب (ريال)', category: 'عام' },
   
-  // Store Settings
-  { key: 'opening_time', label: 'وقت الفتح', type: 'text', description: 'وقت فتح المتجر (HH:MM)', category: 'متجر' },
-  { key: 'closing_time', label: 'وقت الإغلاق', type: 'text', description: 'وقت إغلاق المتجر (HH:MM)', category: 'متجر' },
-  { key: 'store_status', label: 'حالة المتجر', type: 'text', description: 'حالة المتجر الحالية', category: 'متجر' },
+  // Support & Contact Settings
+  { key: 'support_whatsapp', label: 'رقم واتساب الدعم', type: 'text', description: 'رابط واتساب للتواصل المباشر (https://wa.me/...)', category: 'الدعم والمراسلة' },
+  { key: 'support_phone', label: 'رقم الهاتف', type: 'text', description: 'رقم الهاتف للاتصال المباشر (tel:+...)', category: 'الدعم والمراسلة' },
+  { key: 'share_text', label: 'نص المشاركة', type: 'text', description: 'النص الافتراضي عند مشاركة التطبيق', category: 'الدعم والمراسلة' },
+  { key: 'share_url', label: 'رابط المشاركة', type: 'text', description: 'الرابط الذي سيتم مشاركته للتطبيق', category: 'الدعم والمراسلة' },
+  
+  // Privacy & Legal
+  { key: 'privacy_policy_text', label: 'نص سياسة الخصوصية', type: 'textarea', description: 'نص سياسة الخصوصية الذي يظهر للمستخدمين', category: 'قانوني' },
 ];
 
 export default function AdminUiSettings() {
@@ -214,6 +219,14 @@ export default function AdminUiSettings() {
                             checked={currentValue === 'true'}
                             onCheckedChange={(checked) => handleBooleanChange(setting.key, checked)}
                             data-testid={`switch-${setting.key}`}
+                          />
+                        ) : setting.type === 'textarea' ? (
+                          <Textarea
+                            id={setting.key}
+                            value={currentValue}
+                            onChange={(e) => handleSettingChange(setting.key, e.target.value)}
+                            className="w-80 min-h-[100px]"
+                            placeholder={`ادخل ${setting.label}`}
                           />
                         ) : (
                           <Input

@@ -128,6 +128,7 @@ function MainApp() {
 import CategoryPage from "./pages/CategoryPage";
 import ProductDetails from "./pages/ProductDetails";
 import CustomerAuthPage from "./pages/CustomerAuthPage";
+import Favorites from "./pages/Favorites";
 
 function Router() {
   // Check UiSettings for page visibility
@@ -145,6 +146,7 @@ function Router() {
       <Route path="/cart" component={Cart} />
       <Route path="/profile" component={Profile} />
       <Route path="/auth" component={CustomerAuthPage} />
+      <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Location} />
       {showOrdersPage && <Route path="/orders" component={OrdersPage} />}
       <Route path="/orders/:orderId" component={OrderTracking} />
@@ -161,23 +163,27 @@ function Router() {
   );
 }
 
+import { LanguageProvider } from "./context/LanguageContext";
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <UiSettingsProvider>
-              <LocationProvider>
-                <CartProvider>
-                  <NotificationProvider>
-                    <Toaster />
-                    <MainApp />
-                  </NotificationProvider>
-                </CartProvider>
-              </LocationProvider>
-            </UiSettingsProvider>
-          </AuthProvider>
+          <LanguageProvider>
+            <AuthProvider>
+              <UiSettingsProvider>
+                <LocationProvider>
+                  <CartProvider>
+                    <NotificationProvider>
+                      <Toaster />
+                      <MainApp />
+                    </NotificationProvider>
+                  </CartProvider>
+                </LocationProvider>
+              </UiSettingsProvider>
+            </AuthProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
