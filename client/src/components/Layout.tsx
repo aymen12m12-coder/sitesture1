@@ -17,11 +17,13 @@ import {
   PhoneCall,
   Info,
   ChevronLeft,
+  ChevronRight,
   Globe,
   Share2,
   MessageCircle,
   MoreVertical,
-  X
+  X,
+  Languages
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -30,6 +32,7 @@ import { useCart } from '../contexts/CartContext';
 import CartButton from './CartButton';
 import { useToast } from '@/hooks/use-toast';
 import { useUiSettings } from '@/context/UiSettingsContext';
+import { useLanguage } from '../context/LanguageContext';
 import TopBar from './TopBar';
 import Navbar from './Navbar';
 import { apiRequest } from '@/lib/queryClient';
@@ -41,6 +44,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const { state } = useCart();
+  const { t, language, setLanguage, dir } = useLanguage();
   const getItemCount = () => state.items.reduce((sum, item) => sum + item.quantity, 0);
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -69,13 +73,12 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   const sidebarMenuItems = [
-    { icon: Home, label: 'الرئيسية', path: '/' },
-    { icon: Receipt, label: 'طلباتي', path: '/orders' },
-    { icon: User, label: 'حسابي', path: '/profile' },
-    { icon: Settings, label: 'الإعدادات', path: '/settings' },
-    { icon: PhoneCall, label: 'اتصل بنا', path: '/contact' },
-    { icon: Info, label: 'عن طمطوم', path: '/about' },
-    { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy' },
+    { icon: Home, label: t('home'), path: '/' },
+    { icon: Receipt, label: t('orders'), path: '/orders' },
+    { icon: Heart, label: t('favorites'), path: '/favorites' },
+    { icon: User, label: t('account'), path: '/profile' },
+    { icon: Settings, label: t('settings'), path: '/settings' },
+    { icon: Shield, label: t('privacy_policy'), path: '/privacy' },
   ];
 
   const handleShare = () => {
@@ -87,15 +90,24 @@ export default function Layout({ children }: LayoutProps) {
       }).catch(console.error);
     } else {
       toast({
-        title: "مشاركة التطبيق",
-        description: "تم نسخ رابط التطبيق",
+        title: t('share'),
+        description: language === 'ar' ? 'تم نسخ رابط التطبيق' : 'App link copied',
       });
       navigator.clipboard.writeText(shareUrl);
     }
   };
 
+  const toggleLanguage = () => {
+    const newLang = language === 'ar' ? 'en' : 'ar';
+    setLanguage(newLang);
+    toast({
+      title: newLang === 'ar' ? 'Language Changed' : 'تم تغيير اللغة',
+      description: newLang === 'ar' ? 'App is now in English' : 'التطبيق الآن باللغة العربية',
+    });
+  };
+
   return (
-    <div className="bg-background min-h-screen flex flex-col pb-16 md:pb-0">
+    <div className="bg-background min-h-screen flex flex-col pb-16 md:pb-0" dir={dir}>
       <TopBar />
       <Navbar />
 
@@ -103,57 +115,102 @@ export default function Layout({ children }: LayoutProps) {
         <SheetTrigger asChild>
           <button id="sidebar-trigger" className="hidden" />
         </SheetTrigger>
-        <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
-          <SheetHeader className="p-6 border-b text-right">
-            <SheetTitle className="text-2xl font-black flex items-center justify-end gap-2">
-              <div className="logo-tamtom">
-                <span className="green">طم</span>
-                <span className="red">طوم</span>
+        <SheetContent side={language === 'ar' ? 'right' : 'left'} className="w-[320px] p-0 flex flex-col border-none shadow-2xl">
+          <div className="relative h-48 bg-gradient-to-br from-[#388e3c] to-[#2e7d32] overflow-hidden">
+            <div className="absolute inset-0 opacity-20">
+              <img 
+                src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=400" 
+                alt="Fruits background"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="absolute inset-0 bg-black/20" />
+            <button 
+              onClick={() => setSidebarOpen(false)}
+              className={`absolute top-4 ${language === 'ar' ? 'left-4' : 'right-4'} p-2 text-white hover:bg-white/20 rounded-full transition-colors`}
+            >
+              <X className="h-6 w-6" />
+            </button>
+            <div className={`absolute bottom-6 ${language === 'ar' ? 'right-6' : 'left-6'} flex items-center gap-4`}>
+              <div className="w-20 h-20 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-0 overflow-hidden border-4 border-white/20">
+                <img 
+                  src="https://images.unsplash.com/photo-1590779033100-9f60a05a013d?q=80&w=200" 
+                  alt="Tamtom Logo" 
+                  className="w-full h-full object-cover"
+                />
               </div>
-            </SheetTitle>
-          </SheetHeader>
+              <div className="text-white">
+                <h2 className="text-4xl font-black tracking-tighter italic leading-none">
+                  <span className="text-[#81c784]">طم</span>
+                  <span className="text-[#ef5350]">طوم</span>
+                </h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mt-1">FRESH MARKET</p>
+              </div>
+            </div>
+          </div>
           
-          <div className="flex-1 overflow-y-auto py-4">
+          <div className="flex-1 overflow-y-auto py-6">
             {/* Language Selector in Sidebar */}
-            <div className="px-6 py-4 border-b mb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-bold">
-                  <Globe className="h-4 w-4 text-primary" />
-                  <span>اللغة والبلد</span>
+            <div className="px-6 pb-6 border-b mb-6">
+              <div className="flex items-center justify-between bg-muted/30 p-4 rounded-2xl">
+                <div className="flex items-center gap-3 font-black text-sm uppercase tracking-wider">
+                  <Globe className="h-5 w-5 text-primary" />
+                  <span>{t('language_country')}</span>
                 </div>
-                <Button variant="outline" size="sm" className="text-xs h-7 px-2">
-                  اليمن / العربية
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  className="text-xs h-8 px-4 rounded-full font-black shadow-lg shadow-primary/20"
+                  onClick={toggleLanguage}
+                >
+                  {language === 'ar' ? 'ENGLISH' : 'العربية'}
                 </Button>
               </div>
             </div>
 
-            {sidebarMenuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location === item.path;
-              return (
-                <button
-                  key={item.path}
-                  onClick={() => {
-                    setLocation(item.path);
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center justify-between px-6 py-4 transition-colors ${
-                    isActive ? 'bg-primary/10 text-primary border-l-4 border-primary' : 'text-foreground hover:bg-muted'
-                  }`}
-                >
-                  <ChevronLeft className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                  <div className="flex items-center gap-4">
-                    <span className="font-bold">{item.label}</span>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </button>
-              );
-            })}
+            <div className="px-3 space-y-1">
+              {sidebarMenuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => {
+                      setLocation(item.path);
+                      setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 ${
+                      isActive ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {language === 'ar' ? (
+                      <ChevronLeft className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'} transition-opacity`} />
+                    ) : (
+                      <ChevronRight className={`h-4 w-4 ${isActive ? 'opacity-100' : 'opacity-0'} transition-opacity`} />
+                    )}
+                    <div className="flex items-center gap-4">
+                      <span className={`font-black uppercase tracking-wider ${isActive ? 'text-lg' : 'text-sm'}`}>{item.label}</span>
+                      <div className={`p-2 rounded-xl transition-colors ${isActive ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-muted'}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="p-6 border-t bg-muted/50">
-            <p className="text-xs text-center text-muted-foreground">
-              نسخة التطبيق 1.0.0 &copy; 2024 طمطوم
+          <div className="p-8 border-t bg-muted/20">
+            <div className="flex justify-center gap-4 mb-4">
+              <button onClick={() => window.open(whatsappLink, '_blank')} className="p-3 bg-white shadow-sm border rounded-xl hover:text-green-600 transition-colors">
+                <MessageCircle className="h-5 w-5" />
+              </button>
+              <button onClick={handleShare} className="p-3 bg-white shadow-sm border rounded-xl hover:text-primary transition-colors">
+                <Share2 className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="text-[10px] text-center text-muted-foreground font-black uppercase tracking-[0.3em]">
+              TAMTOM MARKET v1.0.0
             </p>
           </div>
         </SheetContent>
@@ -164,76 +221,98 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t z-50 md:hidden flex items-center justify-around h-16 px-4">
+      {/* Mobile Bottom Navigation - Elegant Design */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t z-50 md:hidden flex items-center justify-around h-16 px-6 pb-2 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] rounded-t-[1.5rem]">
         <button 
           onClick={() => setLocation('/')}
-          className={`flex flex-col items-center gap-1 ${location === '/' ? 'text-primary' : 'text-gray-500'}`}
+          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          <Home className="h-6 w-6" />
-          <span className="text-[10px] font-bold">الرئيسية</span>
+          <Home className={`h-6 w-6 ${location === '/' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">الرئيسية</span>
+          {location === '/' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
         </button>
 
-        <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
-          <DialogTrigger asChild>
-            <button className="flex flex-col items-center gap-1 text-gray-500">
-              <div className="bg-primary text-white p-3 rounded-full -mt-8 shadow-lg border-4 border-white transform transition-transform hover:scale-110 active:scale-95">
-                <MessageCircle className="h-6 w-6" />
-              </div>
-              <span className="text-[10px] font-bold mt-1">الدعم</span>
-            </button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px] rounded-t-[2rem] border-none">
-            <DialogHeader className="text-center pb-4">
-              <DialogTitle className="text-2xl font-black text-gray-900">كيف يمكننا مساعدتك؟</DialogTitle>
-              <p className="text-gray-500 font-bold">نحن متواجدون لخدمتك في أي وقت</p>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <Button 
-                variant="outline" 
-                className="h-16 flex items-center justify-between px-6 rounded-2xl border-2 border-green-100 hover:bg-green-50 hover:border-green-200 group transition-all"
-                onClick={() => {
-                  window.open(whatsappLink, '_blank');
-                  setSupportOpen(false);
-                }}
-              >
-                <div className="bg-green-100 p-2 rounded-xl group-hover:bg-green-200 transition-colors">
-                  <MessageCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="flex-1 text-right mr-4">
-                  <p className="font-black text-lg">واتساب</p>
-                  <p className="text-xs text-gray-500">تحدث معنا مباشرة</p>
-                </div>
-                <ChevronLeft className="h-5 w-5 text-gray-400" />
-              </Button>
+        <button 
+          onClick={() => setLocation('/favorites')}
+          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/favorites' ? 'text-[#d32f2f] scale-110' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <Heart className={`h-6 w-6 ${location === '/favorites' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">المفضلة</span>
+          {location === '/favorites' && <div className="h-1 w-4 bg-[#d32f2f] rounded-full mt-0.5" />}
+        </button>
 
-              <Button 
-                variant="outline" 
-                className="h-16 flex items-center justify-between px-6 rounded-2xl border-2 border-blue-100 hover:bg-blue-50 hover:border-blue-200 group transition-all"
-                onClick={() => {
-                  window.location.href = phoneLink;
-                  setSupportOpen(false);
-                }}
-              >
-                <div className="bg-blue-100 p-2 rounded-xl group-hover:bg-blue-200 transition-colors">
-                  <PhoneCall className="h-6 w-6 text-blue-600" />
+        <div className="relative -mt-10">
+          <Dialog open={supportOpen} onOpenChange={setSupportOpen}>
+            <DialogTrigger asChild>
+              <button className="flex flex-col items-center group">
+                <div className="bg-gradient-to-br from-[#388e3c] to-[#2e7d32] text-white p-4 rounded-2xl shadow-2xl shadow-[#388e3c]/40 border-4 border-white transform transition-transform group-hover:scale-110 active:scale-95 group-active:rotate-12">
+                  <MessageCircle className="h-7 w-7" />
                 </div>
-                <div className="flex-1 text-right mr-4">
-                  <p className="font-black text-lg">اتصال مباشر</p>
-                  <p className="text-xs text-gray-500">مكالمة هاتفية فورية</p>
+              </button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] rounded-t-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
+              <div className="h-32 bg-gradient-to-br from-[#388e3c] to-[#2e7d32] p-8 flex items-end">
+                <h2 className="text-3xl font-black text-white italic tracking-tighter">نحن معك..</h2>
+              </div>
+              <div className="p-8 space-y-4">
+                <p className="text-gray-500 font-bold mb-6 text-center">اختر وسيلة التواصل المناسبة لك</p>
+                <div className="grid gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex items-center justify-between px-6 rounded-2xl border-2 border-green-50 hover:bg-green-50 hover:border-green-200 group transition-all"
+                    onClick={() => {
+                      window.open(whatsappLink, '_blank');
+                      setSupportOpen(false);
+                    }}
+                  >
+                    <div className="bg-green-100 p-3 rounded-xl group-hover:bg-green-200 transition-colors">
+                      <MessageCircle className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="flex-1 text-right mr-4">
+                      <p className="font-black text-xl text-gray-900">واتساب</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">تحدث مباشرة</p>
+                    </div>
+                    <ChevronLeft className="h-5 w-5 text-gray-300" />
+                  </Button>
+
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex items-center justify-between px-6 rounded-2xl border-2 border-blue-50 hover:bg-blue-50 hover:border-blue-200 group transition-all"
+                    onClick={() => {
+                      window.location.href = phoneLink;
+                      setSupportOpen(false);
+                    }}
+                  >
+                    <div className="bg-blue-100 p-3 rounded-xl group-hover:bg-blue-200 transition-colors">
+                      <PhoneCall className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1 text-right mr-4">
+                      <p className="font-black text-xl text-gray-900">اتصال</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">مكالمة فورية</p>
+                    </div>
+                    <ChevronLeft className="h-5 w-5 text-gray-300" />
+                  </Button>
                 </div>
-                <ChevronLeft className="h-5 w-5 text-gray-400" />
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         <button 
           onClick={handleShare}
-          className="flex flex-col items-center gap-1 text-gray-500"
+          className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600 transition-all duration-300"
         >
           <Share2 className="h-6 w-6" />
-          <span className="text-[10px] font-bold">مشاركة</span>
+          <span className="text-[10px] font-black uppercase tracking-tighter">مشاركة</span>
+        </button>
+
+        <button 
+          onClick={() => setLocation(user ? '/profile' : '/auth')}
+          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/profile' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          <User className={`h-6 w-6 ${location === '/profile' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">حسابي</span>
+          {location === '/profile' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
         </button>
       </div>
 

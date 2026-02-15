@@ -5,6 +5,10 @@ import { ShoppingBag, Star, Heart } from 'lucide-react';
 import type { MenuItem } from '@shared/schema';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../context/AuthContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -23,6 +27,48 @@ export default function MenuItemCard({
 }: MenuItemCardProps) {
   const { addItem } = useCart();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+
+  // Check if item is in favorites
+  const { data: favoriteStatus } = useQuery<{ isFavorite: boolean }>({
+    queryKey: ['/api/favorites/check', user?.id, item.id],
+    queryFn: async () => {
+      if (!user?.id) return { isFavorite: false };
+      const res = await fetch(`/api/favorites/check?userId=${user.id}&menuItemId=${item.id}`);
+      if (!res.ok) return { isFavorite: false };
+      return res.json();
+    },
+    enabled: !!user?.id,
+  });
+
+  const toggleFavorite = useMutation({
+    mutationFn: async () => {
+      if (!isAuthenticated) {
+        setLocation('/auth');
+        return;
+      }
+
+      if (favoriteStatus?.isFavorite) {
+        await apiRequest('DELETE', `/api/favorites?userId=${user?.id}&menuItemId=${item.id}`);
+      } else {
+        await apiRequest('POST', '/api/favorites', {
+          userId: user?.id,
+          menuItemId: item.id,
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites/check', user?.id, item.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/favorites/products', user?.id] });
+      
+      toast({
+        title: favoriteStatus?.isFavorite ? "تمت الإزالة من المفضلة" : "تمت الإضافة للمفضلة",
+        description: favoriteStatus?.isFavorite ? `تمت إزالة ${item.name} من قائمة مفضلاتك` : `تم إضافة ${item.name} إلى قائمة مفضلاتك`,
+      });
+    },
+  });
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,6 +89,11 @@ export default function MenuItemCard({
     });
   };
 
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite.mutate();
+  };
+
   const discountPercent = item.originalPrice 
     ? Math.round((1 - parseFloat(String(item.price)) / parseFloat(String(item.originalPrice))) * 100)
     : 0;
@@ -50,7 +101,7 @@ export default function MenuItemCard({
   const colors = item.colors ? item.colors.split(',') : [];
 
   return (
-    <div className="group relative bg-white cursor-pointer" onClick={() => window.location.href = `/product/${item.id}`}>
+    <div className="group relative bg-white cursor-pointer" onClick={() => setLocation(`/product/${item.id}`)}>
       {/* Product Image Container */}
       <div className="relative aspect-[3/4] overflow-hidden bg-gray-100">
         <img
@@ -86,15 +137,19 @@ export default function MenuItemCard({
         </div>
 
         {/* Favorite Icon */}
-        <button className="absolute top-2 left-2 p-1.5 bg-white/50 hover:bg-white rounded-full transition-colors">
-          <Heart className="h-4 w-4 text-gray-700" />
+        <button 
+          className="absolute top-2 left-2 p-1.5 bg-white/50 hover:bg-white rounded-full transition-colors z-10"
+          onClick={handleToggleFavorite}
+          disabled={toggleFavorite.isPending}
+        >
+          <Heart className={`h-4 w-4 ${favoriteStatus?.isFavorite ? 'text-red-600 fill-current' : 'text-gray-700'}`} />
         </button>
       </div>
 
       {/* Product Info */}
       <div className="py-3 px-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{item.brand || 'SHEIN'}</span>
+          <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">{item.brand || 'طمطوم'}</span>
           <div className="flex items-center gap-0.5 text-yellow-400">
             <Star className="h-3 w-3 fill-current" />
             <span className="text-[10px] text-gray-600 font-bold">{item.rating || '4.8'}</span>
@@ -114,12 +169,12 @@ export default function MenuItemCard({
 
         {/* Sales Proof */}
         {item.salesCount !== undefined && (
-          <p className="text-[10px] text-gray-500 mb-2">
+          <p className="text-[10px] text-gray-500 mb-2 font-bold">
             تم بيع {item.salesCount}+ قطعة
           </p>
         )}
 
-        {/* Color Options */}
+        {/* Color Options - Hidden for food products if empty */}
         {colors.length > 0 && (
           <div className="flex gap-1.5 mt-2">
             {colors.slice(0, 4).map((color, idx) => (
