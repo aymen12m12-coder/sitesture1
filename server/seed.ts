@@ -13,11 +13,11 @@ export async function seedDefaultData() {
 
     // Seed categories
     const categories = [
-      { name: "مطاعم", icon: "fas fa-utensils", isActive: true, sortOrder: 0 },
-      { name: "مقاهي", icon: "fas fa-coffee", isActive: true, sortOrder: 1 },
-      { name: "حلويات", icon: "fas fa-candy-cane", isActive: true, sortOrder: 2 },
-      { name: "سوبرماركت", icon: "fas fa-shopping-cart", isActive: true, sortOrder: 3 },
-      { name: "صيدليات", icon: "fas fa-pills", isActive: true, sortOrder: 4 },
+      { name: "خضروات", icon: "https://images.unsplash.com/photo-1566385101042-1a000c1268c4?q=80&w=200&auto=format&fit=crop", isActive: true, sortOrder: 0 },
+      { name: "فواكه", icon: "https://images.unsplash.com/photo-1619566636858-adf3ef46400b?q=80&w=200&auto=format&fit=crop", isActive: true, sortOrder: 1 },
+      { name: "ورقيات", icon: "https://images.unsplash.com/photo-1540420773420-3366772f4999?q=80&w=200&auto=format&fit=crop", isActive: true, sortOrder: 2 },
+      { name: "تمور", icon: "https://images.unsplash.com/photo-1596701062351-be5f6a45556d?q=80&w=200&auto=format&fit=crop", isActive: true, sortOrder: 3 },
+      { name: "فواكه مجففة", icon: "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?q=80&w=200&auto=format&fit=crop", isActive: true, sortOrder: 4 },
     ];
 
     console.log('📂 Seeding categories...');
@@ -31,26 +31,26 @@ export async function seedDefaultData() {
     // Seed restaurants
     const restaurants = [
       {
-        name: "مطعم الوزيكو للعربكة",
-        description: "مطعم يمني تقليدي متخصص في الأطباق الشعبية",
-        image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
-        phone: "+967771234567",
-        rating: "4.8",
-        reviewCount: 4891,
-        deliveryTime: "40-60 دقيقة",
+        name: "متجر طمطوم",
+        description: "أجود أنواع الفواكه والخضروات الطازجة يومياً",
+        image: "https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=400",
+        phone: "+967777777777",
+        rating: "5.0",
+        reviewCount: 1500,
+        deliveryTime: "20-40 دقيقة",
         isOpen: true,
-        minimumOrder: "25",
-        deliveryFee: "5",
+        minimumOrder: "10",
+        deliveryFee: "2",
         categoryId: seededCategories[0].id,
-        openingTime: "08:00",
-        closingTime: "23:00",
+        openingTime: "07:00",
+        closingTime: "22:00",
         workingDays: "0,1,2,3,4,5,6",
         isTemporarilyClosed: false,
-        address: "صنعاء، اليمن",
+        address: "صنعاء، حي حدة",
         latitude: "15.3694",
         longitude: "44.1910",
         isFeatured: true,
-        isNew: false,
+        isNew: true,
         isActive: true,
       },
       {
