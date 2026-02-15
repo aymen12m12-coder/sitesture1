@@ -427,6 +427,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Special offer write operations are only available through /api/admin/special-offers
 
+  // Favorites Routes
+  app.get("/api/favorites/restaurants/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const favorites = await storage.getFavoriteRestaurants(userId);
+      res.json(favorites);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch favorite restaurants" });
+    }
+  });
+
+  app.get("/api/favorites/products/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const favorites = await storage.getFavoriteProducts(userId);
+      res.json(favorites);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch favorite products" });
+    }
+  });
+
+  app.post("/api/favorites", async (req, res) => {
+    try {
+      const validatedData = insertFavoritesSchema.parse(req.body);
+      const favorite = await storage.addToFavorites(validatedData);
+      res.status(201).json(favorite);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid favorite data" });
+    }
+  });
+
+  app.delete("/api/favorites", async (req, res) => {
+    try {
+      const { userId, restaurantId, menuItemId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      const success = await storage.removeFromFavorites(userId as string, restaurantId as string, menuItemId as string);
+      if (success) {
+        res.status(204).send();
+      } else {
+        res.status(404).json({ message: "Favorite not found" });
+      }
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove favorite" });
+    }
+  });
+
+  app.get("/api/favorites/check", async (req, res) => {
+    try {
+      const { userId, restaurantId, menuItemId } = req.query;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      
+      let isFavorite = false;
+      if (restaurantId) {
+        isFavorite = await storage.isRestaurantFavorite(userId as string, restaurantId as string);
+      } else if (menuItemId) {
+        isFavorite = await storage.isProductFavorite(userId as string, menuItemId as string);
+      }
+      
+      res.json({ isFavorite });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check favorite" });
+    }
+  });
+
   // UI Settings Routes
   app.get("/api/ui-settings", async (req, res) => {
     try {

@@ -866,8 +866,7 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
   async searchMenuItemsAdvanced(searchTerm: string, restaurantId?: string): Promise<any[]> {
     const conditions = [
       eq(menuItems.isAvailable, true),
-      eq(restaurants.isActive, true),
-      // Removed isOpen check to allow browsing even when store is closed
+      // or(eq(restaurants.isActive, true), isNull(menuItems.restaurantId)), // Allow products without restaurant or from active restaurants
       or(
         like(menuItems.name, `%${searchTerm}%`),
         like(menuItems.description, `%${searchTerm}%`),
@@ -1111,6 +1110,26 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
     }
   }
 
+  async getFavoriteProducts(userId: string): Promise<MenuItem[]> {
+    try {
+      const result = await this.db.select()
+      .from(menuItems)
+      .innerJoin(favorites, eq(favorites.menuItemId, menuItems.id))
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(menuItems.isAvailable, true)
+        )
+      )
+      .orderBy(desc(favorites.addedAt));
+      
+      return Array.isArray(result) ? result.map(row => row.menu_items) : [];
+    } catch (error) {
+      console.error('Error fetching favorite products:', error);
+      return [];
+    }
+  }
+
   async addToFavorites(favorite: InsertFavorites): Promise<Favorites> {
     const [newFavorite] = await this.db.insert(favorites)
       .values(favorite)
@@ -1118,14 +1137,20 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
     return newFavorite;
   }
 
-  async removeFromFavorites(userId: string, restaurantId: string): Promise<boolean> {
+  async removeFromFavorites(userId: string, restaurantId?: string, menuItemId?: string): Promise<boolean> {
+    const conditions = [eq(favorites.userId, userId)];
+    
+    if (restaurantId) {
+      conditions.push(eq(favorites.restaurantId, restaurantId));
+    }
+    if (menuItemId) {
+      conditions.push(eq(favorites.menuItemId, menuItemId));
+    }
+    
+    if (conditions.length === 1) return false;
+
     const result = await this.db.delete(favorites)
-      .where(
-        and(
-          eq(favorites.userId, userId),
-          eq(favorites.restaurantId, restaurantId)
-        )
-      );
+      .where(and(...conditions));
     return result.rowCount > 0;
   }
 
@@ -1135,6 +1160,17 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
         and(
           eq(favorites.userId, userId),
           eq(favorites.restaurantId, restaurantId)
+        )
+      );
+    return result.length > 0;
+  }
+
+  async isProductFavorite(userId: string, menuItemId: string): Promise<boolean> {
+    const result = await this.db.select().from(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.menuItemId, menuItemId)
         )
       );
     return result.length > 0;

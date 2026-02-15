@@ -107,9 +107,11 @@ export interface IStorage {
 
   // Favorites methods
   getFavoriteRestaurants(userId: string): Promise<Restaurant[]>;
+  getFavoriteProducts(userId: string): Promise<MenuItem[]>;
   addToFavorites(favorite: InsertFavorites): Promise<Favorites>;
-  removeFromFavorites(userId: string, restaurantId: string): Promise<boolean>;
+  removeFromFavorites(userId: string, restaurantId?: string, menuItemId?: string): Promise<boolean>;
   isRestaurantFavorite(userId: string, restaurantId: string): Promise<boolean>;
+  isProductFavorite(userId: string, menuItemId: string): Promise<boolean>;
 
   // Admin methods - بدون مصادقة
   createAdminUser(adminUser: InsertAdminUser): Promise<AdminUser>;
@@ -1301,11 +1303,19 @@ export class MemStorage implements IStorage {
 
   // Favorites methods
   async getFavoriteRestaurants(userId: string): Promise<Restaurant[]> {
-    const userFavorites = Array.from(this.favorites.values()).filter(fav => fav.userId === userId);
+    const userFavorites = Array.from(this.favorites.values()).filter(fav => fav.userId === userId && fav.restaurantId);
     const favoriteRestaurants = userFavorites
-      .map(fav => this.restaurants.get(fav.restaurantId))
+      .map(fav => this.restaurants.get(fav.restaurantId!))
       .filter((restaurant): restaurant is Restaurant => restaurant !== undefined);
     return favoriteRestaurants;
+  }
+
+  async getFavoriteProducts(userId: string): Promise<MenuItem[]> {
+    const userFavorites = Array.from(this.favorites.values()).filter(fav => fav.userId === userId && fav.menuItemId);
+    const favoriteProducts = userFavorites
+      .map(fav => this.menuItems.get(fav.menuItemId!))
+      .filter((item): item is MenuItem => item !== undefined);
+    return favoriteProducts;
   }
 
   async addToFavorites(favorite: InsertFavorites): Promise<Favorites> {
@@ -1313,15 +1323,22 @@ export class MemStorage implements IStorage {
     const newFavorite: Favorites = {
       ...favorite,
       id,
+      restaurantId: favorite.restaurantId ?? null,
+      menuItemId: favorite.menuItemId ?? null,
       addedAt: new Date()
     };
     this.favorites.set(id, newFavorite);
     return newFavorite;
   }
 
-  async removeFromFavorites(userId: string, restaurantId: string): Promise<boolean> {
+  async removeFromFavorites(userId: string, restaurantId?: string, menuItemId?: string): Promise<boolean> {
     const favorite = Array.from(this.favorites.entries())
-      .find(([_, fav]) => fav.userId === userId && fav.restaurantId === restaurantId);
+      .find(([_, fav]) => {
+        if (fav.userId !== userId) return false;
+        if (restaurantId && fav.restaurantId === restaurantId) return true;
+        if (menuItemId && fav.menuItemId === menuItemId) return true;
+        return false;
+      });
     
     if (favorite) {
       return this.favorites.delete(favorite[0]);
@@ -1332,6 +1349,11 @@ export class MemStorage implements IStorage {
   async isRestaurantFavorite(userId: string, restaurantId: string): Promise<boolean> {
     return Array.from(this.favorites.values())
       .some(fav => fav.userId === userId && fav.restaurantId === restaurantId);
+  }
+
+  async isProductFavorite(userId: string, menuItemId: string): Promise<boolean> {
+    return Array.from(this.favorites.values())
+      .some(fav => fav.userId === userId && fav.menuItemId === menuItemId);
   }
 
   // Admin methods

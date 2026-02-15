@@ -38,6 +38,7 @@ export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 100 }).notNull(),
   icon: varchar("icon", { length: 100 }).notNull(),
+  image: text("image"), // تمت الإضافة: صورة القسم
   type: varchar("type", { length: 50 }).default("primary"), // primary, secondary, style
   sortOrder: integer("sort_order").default(0),
   isActive: boolean("is_active").default(true).notNull(),
@@ -302,7 +303,8 @@ export const cart = pgTable("cart", {
 export const favorites = pgTable("favorites", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").references(() => users.id).notNull(),
-  restaurantId: uuid("restaurant_id").references(() => restaurants.id).notNull(),
+  restaurantId: uuid("restaurant_id").references(() => restaurants.id),
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id),
   addedAt: timestamp("added_at").defaultNow().notNull(),
 });
 
