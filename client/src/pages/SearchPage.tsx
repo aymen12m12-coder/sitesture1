@@ -75,21 +75,11 @@ export default function SearchPage() {
   return (
     <div className="container mx-auto px-4 py-8 min-h-screen">
       {/* Content */}
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-black mb-6 uppercase tracking-tighter">نتائج البحث</h1>
-          <div className="relative group">
-            <input
-              type="text"
-              placeholder="ابحث عن منتجات، فئات أو ماركات..."
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(e.target.value);
-                handleSearch(e.target.value);
-              }}
-              className="w-full px-6 py-4 border-2 border-black rounded-none focus:outline-none focus:ring-0 text-lg font-medium"
-            />
-          </div>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-10 flex flex-col items-center">
+          <h1 className="text-4xl font-black mb-2 uppercase tracking-tighter">نتائج البحث</h1>
+          <p className="text-gray-500 font-bold italic">عن: "{inputValue}"</p>
+          <div className="h-1.5 w-24 bg-primary rounded-full mt-4" />
         </div>
 
         {hasSearched && (

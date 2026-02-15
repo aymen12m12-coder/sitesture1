@@ -50,11 +50,13 @@ export default function AdminMenuItems() {
 
   const restaurants = restaurantsData?.restaurants || [];
 
-  // تعيين أول متجر كافتراضي
+  // تعيين أول متجر كافتراضي وإخفاء الاختيار إذا كان هناك متجر واحد فقط
   useEffect(() => {
     if (restaurants && restaurants.length > 0 && !selectedRestaurant) {
-      setSelectedRestaurant(restaurants[0].id);
-      setFormData(prev => ({ ...prev, restaurantId: restaurants[0].id }));
+      // البحث عن متجر طمطوم أو اختيار الأول
+      const tamtomStore = restaurants.find(r => r.name.includes('طمطوم')) || restaurants[0];
+      setSelectedRestaurant(tamtomStore.id);
+      setFormData(prev => ({ ...prev, restaurantId: tamtomStore.id }));
     }
   }, [restaurants, selectedRestaurant]);
 
@@ -382,18 +384,20 @@ export default function AdminMenuItems() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
-            <SelectTrigger className="w-48" data-testid="select-restaurant">
-              <SelectValue placeholder="اختر متجر" />
-            </SelectTrigger>
-            <SelectContent>
-              {restaurants?.map((restaurant) => (
-                <SelectItem key={restaurant.id} value={restaurant.id}>
-                  {restaurant.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {restaurants.length > 1 && (
+            <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
+              <SelectTrigger className="w-48" data-testid="select-restaurant">
+                <SelectValue placeholder="اختر متجر" />
+              </SelectTrigger>
+              <SelectContent>
+                {restaurants?.map((restaurant) => (
+                  <SelectItem key={restaurant.id} value={restaurant.id}>
+                    {restaurant.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
@@ -418,24 +422,15 @@ export default function AdminMenuItems() {
               </DialogHeader>
               
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="name">اسم المنتج</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="أدخل اسم المنتج"
+                      placeholder="أدخل اسم المنتج (مثال: تفاح أحمر)"
                       required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="brand">العلامة التجارية</Label>
-                    <Input
-                      id="brand"
-                      value={formData.brand}
-                      onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      placeholder="مثال: DAZY, MOTF"
                     />
                   </div>
                 </div>
@@ -446,30 +441,9 @@ export default function AdminMenuItems() {
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="وصف مفصل للمنتج ومواصفاته"
+                    placeholder="وصف المنتج (مثال: طازج من المزرعة)"
                     rows={2}
                   />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="sizes">المقاسات المتوفرة (فواصل بفاصلة)</Label>
-                    <Input
-                      id="sizes"
-                      value={formData.sizes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, sizes: e.target.value }))}
-                      placeholder="S, M, L, XL"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="colors">الألوان المتوفرة (فواصل بفاصلة)</Label>
-                    <Input
-                      id="colors"
-                      value={formData.colors}
-                      onChange={(e) => setFormData(prev => ({ ...prev, colors: e.target.value }))}
-                      placeholder="Red, Blue, Green"
-                    />
-                  </div>
                 </div>
 
                 <div>

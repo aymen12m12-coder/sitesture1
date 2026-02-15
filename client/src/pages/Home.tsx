@@ -52,197 +52,130 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* 1. Hero Section (Banner) */}
-      <section className="relative h-[400px] md:h-[600px] overflow-hidden bg-gray-100">
-        {activeOffers.length > 0 ? (
-          <div className="h-full relative group">
+    <div className="min-h-screen bg-[#f8f9fa]">
+      {/* 1. Hero Section (Elegant Banner Cards) */}
+      {activeOffers.length > 0 && (
+        <section className="container mx-auto px-4 py-6 md:py-10">
+          <div className="relative group overflow-hidden rounded-[2rem] shadow-2xl bg-white">
             <div 
-              className="flex h-full transition-transform duration-700 ease-in-out"
+              className="flex transition-transform duration-1000 cubic-bezier(0.4, 0, 0.2, 1)"
               style={{ transform: `translateX(${currentOfferIndex * 100}%)` }}
             >
               {activeOffers.map((offer) => (
-                <div key={offer.id} className="w-full h-full flex-shrink-0 relative">
+                <div key={offer.id} className="w-full h-[300px] md:h-[550px] flex-shrink-0 relative">
                   <img 
                     src={offer.image} 
                     alt={offer.title}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform scale-100 hover:scale-105 transition-transform duration-[2s]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-l from-black/70 via-black/20 to-transparent flex flex-col justify-center items-end text-white p-8 md:p-24 text-right">
-                    <div className="space-y-4 md:space-y-6 max-w-2xl">
-                      <Badge className="bg-primary text-white rounded-none px-4 md:px-6 py-1 md:py-2 font-black text-[10px] md:text-xs uppercase tracking-[0.2em]">
-                        {offer.title || 'عرض خاص'}
-                      </Badge>
-                      <h2 className="text-4xl md:text-7xl font-black leading-tight tracking-tighter">
-                        طزه من المزرعة <br /> 
-                        <span className="text-primary">{offer.title}</span>
-                      </h2>
-                      <p className="text-base md:text-xl font-medium opacity-90 max-w-lg leading-relaxed">
-                        {offer.description || 'استمتع بأفضل الفواكه والخضروات الطازجة يومياً من طمطوم'}
-                      </p>
-                      <div className="pt-4 md:pt-8">
-                        <Button 
-                          size="lg" 
-                          className="rounded-none px-8 md:px-12 h-12 md:h-16 bg-white text-black hover:bg-primary hover:text-white transition-all text-lg md:text-xl font-black uppercase tracking-widest shadow-xl"
-                          onClick={() => setLocation('/category/all')}
-                        >
-                          تسوق الآن
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8 md:p-16 text-white text-right">
+                    <Badge className="w-fit mb-4 bg-primary text-white border-none text-lg px-4 py-1 rounded-full self-end">عرض خاص</Badge>
+                    <h2 className="text-3xl md:text-6xl font-black mb-4 leading-tight">{offer.title}</h2>
+                    <p className="text-sm md:text-2xl opacity-90 max-w-2xl mb-8 leading-relaxed">{offer.description}</p>
+                    <Button 
+                      size="lg" 
+                      className="w-fit self-end bg-white text-black hover:bg-primary hover:text-white transition-all duration-300 rounded-xl px-10 text-xl font-bold h-14"
+                      onClick={() => setLocation('/search?q=offers')}
+                    >
+                      تسوق الآن
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
             
-            {/* Navigation Arrows */}
+            {/* Elegant Navigation Arrows */}
             {activeOffers.length > 1 && (
               <>
                 <button 
                   onClick={prevOffer}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 p-4 rounded-full text-white backdrop-blur-xl transition-all border border-white/20 opacity-0 group-hover:opacity-100 z-10"
                 >
-                  <ChevronLeft className="h-6 w-6" />
+                  <ChevronLeft className="h-8 w-8" />
                 </button>
                 <button 
                   onClick={nextOffer}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 rounded-full text-white backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
+                  className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 p-4 rounded-full text-white backdrop-blur-xl transition-all border border-white/20 opacity-0 group-hover:opacity-100 z-10"
                 >
-                  <ChevronRight className="h-6 w-6" />
+                  <ChevronRight className="h-8 w-8" />
                 </button>
               </>
             )}
             
-            {/* Dots */}
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2">
+            {/* Modern Indicators */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3">
               {activeOffers.map((_, i) => (
                 <button 
                   key={i}
                   onClick={() => setCurrentOfferIndex(i)}
-                  className={`h-1.5 transition-all ${currentOfferIndex === i ? 'w-8 bg-primary' : 'w-2 bg-white/50'}`}
+                  className={`h-2 transition-all duration-500 rounded-full ${currentOfferIndex === i ? 'w-12 bg-primary' : 'w-2 bg-white/40'}`}
                 />
               ))}
             </div>
           </div>
-        ) : (
-          <div className="h-full bg-gradient-to-r from-orange-100 to-red-100 flex items-center justify-center">
-             <div className="text-center space-y-4">
-                <h2 className="text-5xl font-black text-primary">طمطوم</h2>
-                <p className="text-xl text-gray-600">أفضل الفواكه والخضروات الطازجة</p>
-             </div>
-          </div>
-        )}
-      </section>
+        </section>
+      )}
 
-      {/* 2. Circular Categories Section */}
-      <section className="container mx-auto px-4 py-8 md:py-16">
-        <div className="flex flex-col items-center mb-10">
-          <h2 className="text-3xl font-black text-gray-900 mb-2">تسوق حسب القسم</h2>
-          <div className="h-1.5 w-20 bg-primary" />
+      {/* 2. Modern Categories Grid */}
+      <section className="container mx-auto px-4 py-12">
+        <div className="flex flex-col items-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4 text-center">تصفح حسب التصنيف</h2>
+          <div className="h-1.5 w-24 bg-primary rounded-full" />
         </div>
         
-        <div className="flex justify-center gap-6 md:gap-16 overflow-x-auto pb-6 scrollbar-hide px-4">
-          {categories?.map((category) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 md:gap-8">
+          {categories?.filter(c => c.isActive !== false).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)).map((category) => (
             <div 
               key={category.id} 
-              className="flex flex-col items-center gap-4 cursor-pointer group shrink-0"
+              className="group relative flex flex-col items-center cursor-pointer"
               onClick={() => setLocation(`/category/${category.name}`)}
             >
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-white shadow-md flex items-center justify-center overflow-hidden border-4 border-white group-hover:border-primary transition-all duration-300 transform group-hover:scale-110">
-                {category.icon && category.icon.startsWith('http') ? (
-                  <img src={category.icon} alt={category.name} className="w-full h-full object-cover" />
+              <div className="w-full aspect-square rounded-[2rem] bg-white shadow-sm border border-gray-100 flex items-center justify-center overflow-hidden group-hover:shadow-xl group-hover:border-primary/20 transition-all duration-500 transform group-hover:-translate-y-2">
+                {category.icon && (category.icon.startsWith('http') || category.icon.startsWith('/')) ? (
+                  <img 
+                    src={category.icon} 
+                    alt={category.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                  />
                 ) : (
-                  <div className="bg-primary/10 w-full h-full flex items-center justify-center">
-                    <ShoppingBag className="h-10 w-10 text-primary" />
+                  <div className="bg-primary/5 w-full h-full flex items-center justify-center">
+                    <ShoppingBag className="h-16 w-16 text-primary group-hover:scale-110 transition-transform duration-500" />
                   </div>
                 )}
+                {/* Overlay on hover */}
+                <div className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               </div>
-              <span className="text-base md:text-lg font-black text-gray-900 tracking-tight group-hover:text-primary transition-colors">{category.name}</span>
+              <div className="mt-4 text-center">
+                <span className="text-lg font-black text-gray-800 group-hover:text-primary transition-colors block">{category.name}</span>
+                <span className="text-xs text-gray-400 font-bold opacity-0 group-hover:opacity-100 transition-opacity">تصفح المنتجات</span>
+              </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 3. Flash Sale / Featured Products */}
-      <section className="container mx-auto px-4 py-8 bg-gray-50">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <h2 className="text-3xl font-black">الأكثر مبيعاً</h2>
-          </div>
-          <Button variant="link" className="text-gray-600 font-bold" onClick={() => setLocation('/category/best-sellers')}>
-            عرض الكل <ChevronLeft className="h-4 w-4 mr-1" />
+      {/* 3. Featured Products Section */}
+      <section className="container mx-auto px-4 py-12 mb-20">
+        <div className="flex items-center justify-between mb-10 border-b pb-6">
+          <Button variant="link" className="text-primary font-black text-lg p-0" onClick={() => setLocation('/search?q=popular')}>
+            <ChevronLeft className="h-5 w-5 mr-1" /> عرض الكل 
           </Button>
+          <div className="flex items-center gap-3">
+            <h2 className="text-3xl font-black">وصل حديثاً</h2>
+            <div className="bg-primary/10 p-2 rounded-xl">
+              <TrendingUp className="h-8 w-8 text-primary" />
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-          {featuredProducts?.slice(0, 6).map((product) => (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+          {featuredProducts?.slice(0, 12).map((product) => (
             <MenuItemCard 
               key={product.id} 
               item={product} 
               restaurantId={product.restaurantId || ''} 
-              restaurantName="متجر"
+              restaurantName="طمطوم"
             />
-          ))}
-        </div>
-      </section>
-
-      {/* 4. Quick Style Sections */}
-      <section className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="relative h-[300px] group overflow-hidden cursor-pointer" onClick={() => setLocation('/category/women')}>
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1000')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-            <div className="absolute inset-0 flex flex-col justify-center items-center text-white">
-              <h3 className="text-4xl font-black mb-2 italic">الرقي والأناقة</h3>
-              <p className="text-xl border-b-2 border-white pb-1">تشكيلة النساء</p>
-            </div>
-          </div>
-          <div className="relative h-[300px] group overflow-hidden cursor-pointer" onClick={() => setLocation('/category/men')}>
-            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488161628813-04466f872be2?q=80&w=1000')] bg-cover bg-center transition-transform duration-700 group-hover:scale-110" />
-            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-            <div className="absolute inset-0 flex flex-col justify-center items-center text-white">
-              <h3 className="text-4xl font-black mb-2 italic">إطلالة واثقة</h3>
-              <p className="text-xl border-b-2 border-white pb-1">تشكيلة الرجال</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. Trending Stores (Matajer) */}
-      <section className="container mx-auto px-4 py-12 mb-12">
-        <div className="flex items-center gap-3 mb-8">
-          <Award className="h-8 w-8 text-primary" />
-          <h2 className="text-3xl font-black">أشهر المتاجر</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {stores?.slice(0, 3).map((store) => (
-            <div 
-              key={store.id} 
-              className="group border border-gray-100 rounded-none overflow-hidden hover:shadow-2xl transition-all cursor-pointer"
-              onClick={() => setLocation(`/restaurant/${store.id}`)}
-            >
-              <div className="relative h-48 overflow-hidden">
-                <img src={store.image} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-black/20" />
-                <div className="absolute bottom-4 right-4 bg-white px-3 py-1 text-xs font-bold shadow-lg">
-                  توصيل: {store.deliveryTime}
-                </div>
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-gray-900">{store.name}</h3>
-                  <div className="flex items-center gap-1 bg-yellow-400 px-2 py-0.5 rounded text-sm font-bold">
-                    <Star className="h-3 w-3 fill-current" /> {store.rating}
-                  </div>
-                </div>
-                <p className="text-gray-600 text-sm line-clamp-2 mb-4">{store.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-primary font-bold">استكشف المتجر</span>
-                  <ChevronLeft className="h-5 w-5 text-primary group-hover:-translate-x-2 transition-transform" />
-                </div>
-              </div>
-            </div>
           ))}
         </div>
       </section>

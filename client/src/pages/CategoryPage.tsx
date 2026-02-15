@@ -30,33 +30,13 @@ export default function CategoryPage() {
       if (!response.ok) throw new Error('Failed to fetch products');
       const products: MenuItem[] = await response.json();
       
-      // Map slug to Arabic category name if needed
-      const slugMap: Record<string, string> = {
-        'women': 'نساء',
-        'woman': 'نساء',
-        'men': 'رجال',
-        'man': 'رجال',
-        'kids': 'أطفال',
-        'children': 'أطفال',
-        'plus-size': 'مقاسات كبيرة',
-        'lingerie': 'ملابس داخلية',
-        'home': 'المنزل والمطبخ',
-        'beauty': 'الصحة والجمال',
-        'accessories': 'الإكسسوارات',
-        'jewelry': 'مجوهرات',
-        'bags': 'الحقائب',
-        'shoes': 'أحذية',
-        'sale': 'تخفيضات',
-        'new': 'جديد'
-      };
+      const targetCategory = decodeURIComponent(slug || '');
 
-      const targetCategory = slugMap[slug || ''] || slug;
-
-      // Filter by category name (case insensitive and partial match)
+      // Filter by category name (case insensitive and exact match)
       return products.filter((item: MenuItem) => {
         if (!item.category) return false;
         const itemCat = item.category.trim().toLowerCase();
-        const targetCat = targetCategory?.trim().toLowerCase() || '';
+        const targetCat = targetCategory.trim().toLowerCase();
         
         return itemCat === targetCat || 
                itemCat.includes(targetCat) || 
@@ -72,15 +52,7 @@ export default function CategoryPage() {
   });
 
   const getCategoryTitle = () => {
-    const titles: Record<string, string> = {
-      'women': 'تشكيلة النسائية',
-      'men': 'تشكيلة الرجالية',
-      'kids': 'ملابس الأطفال',
-      'plus-size': 'المقاسات الكبيرة',
-      'sale': 'التخفيضات الكبرى',
-      'new': 'وصل حديثاً'
-    };
-    return titles[slug || ''] || `قسم ${slug}`;
+    return decodeURIComponent(slug || '');
   };
 
   return (
@@ -117,13 +89,9 @@ export default function CategoryPage() {
                 </div>
                 
                 <div>
-                  <p className="font-bold text-sm mb-3">المقاس</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['XXS', 'XS', 'S', 'M', 'L', 'XL'].map(size => (
-                      <button key={size} className="border border-gray-200 py-2 text-xs hover:border-black">
-                        {size}
-                      </button>
-                    ))}
+                  <p className="font-bold text-sm mb-3">التصنيف</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">جاري تصفية المنتجات حسب القسم المحدد...</p>
                   </div>
                 </div>
               </div>

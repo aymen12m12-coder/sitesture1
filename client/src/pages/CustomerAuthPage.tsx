@@ -85,38 +85,41 @@ export default function CustomerAuthPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 py-12" dir="rtl">
       <div className="mb-8 text-center">
-        <h1 className="text-4xl font-black text-primary mb-2 uppercase tracking-tighter">طمطوم</h1>
-        <p className="text-muted-foreground">وجهتك الأولى للأزياء والأناقة</p>
+        <div className="logo-tamtom text-5xl md:text-6xl mb-4 justify-center">
+          <span className="green">طم</span>
+          <span className="red">طوم</span>
+        </div>
+        <p className="text-muted-foreground font-bold">خضروات وفواكه طازجة تصلك لباب بيتك</p>
       </div>
 
-      <Card className="w-full max-w-md border-2 border-black/5 shadow-xl rounded-none">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
-            <Button variant="ghost" size="icon" onClick={() => setLocation('/')} className="h-8 w-8">
-              <ArrowRight className="h-4 w-4" />
+      <Card className="w-full max-w-md border-none shadow-2xl rounded-[2rem] overflow-hidden">
+        <CardHeader className="space-y-1 bg-white pb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Button variant="ghost" size="icon" onClick={() => setLocation('/')} className="h-10 w-10 rounded-full hover:bg-gray-100 transition-colors">
+              <ArrowRight className="h-6 w-6" />
             </Button>
-            <CardTitle className="text-2xl font-black">حسابي</CardTitle>
+            <CardTitle className="text-3xl font-black">حسابي</CardTitle>
           </div>
-          <CardDescription>
-            سجل دخولك أو أنشئ حساباً جديداً لمتابعة طلباتك
+          <CardDescription className="text-base font-medium">
+            سجل دخولك أو أنشئ حساباً جديداً لتجربة تسوق رائعة
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-white px-8 pb-10">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-gray-100 p-1 rounded-none h-12">
+            <TabsList className="grid w-full grid-cols-2 mb-10 bg-gray-100 p-1.5 rounded-2xl h-14">
               <TabsTrigger 
                 value="login" 
-                className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold"
+                className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-base transition-all"
               >
-                <User className="w-4 h-4 ml-2" />
-                تسجيل الدخول
+                <User className="w-5 h-5 ml-2" />
+                دخول
               </TabsTrigger>
               <TabsTrigger 
                 value="register" 
-                className="rounded-none data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold"
+                className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-md font-black text-base transition-all"
               >
-                <UserPlus className="w-4 h-4 ml-2" />
-                إنشاء حساب
+                <UserPlus className="w-5 h-5 ml-2" />
+                تسجيل
               </TabsTrigger>
             </TabsList>
 
@@ -138,14 +141,14 @@ export default function CustomerAuthPage() {
                       onChange={(e) => setLoginIdentifier(e.target.value)}
                       placeholder="أدخل اسم المستخدم أو الهاتف"
                       required
-                      className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary"
+                      className="pr-10 h-14 rounded-xl border-gray-200 focus-visible:ring-primary focus-visible:border-primary transition-all text-lg"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-pass" className="font-bold">كلمة المرور</Label>
                   <div className="relative">
-                    <Lock className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute right-3 top-4 h-5 w-5 text-gray-400" />
                     <Input
                       id="login-pass"
                       type="password"
@@ -153,13 +156,13 @@ export default function CustomerAuthPage() {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="أدخل كلمة المرور"
                       required
-                      className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary"
+                      className="pr-10 h-14 rounded-xl border-gray-200 focus-visible:ring-primary focus-visible:border-primary transition-all text-lg"
                     />
                   </div>
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full h-12 rounded-none font-black text-lg mt-4" 
+                  className="w-full h-14 rounded-xl font-black text-xl mt-6 bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95" 
                   disabled={loading}
                 >
                   {loading ? (
@@ -248,7 +251,7 @@ export default function CustomerAuthPage() {
                 </div>
                 <Button 
                   type="submit" 
-                  className="w-full h-12 rounded-none font-black text-lg mt-4 bg-black hover:bg-black/90 text-white" 
+                  className="w-full h-14 rounded-xl font-black text-xl mt-6 bg-secondary hover:bg-secondary/90 text-white shadow-lg shadow-secondary/20 transition-all active:scale-95" 
                   disabled={loading}
                 >
                   {loading ? (

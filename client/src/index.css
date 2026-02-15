@@ -13,21 +13,21 @@
   --card-foreground: hsl(222.2 84% 4.9%);
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(222.2 84% 4.9%);
-  --primary: hsl(10 100% 50%);
+  --primary: hsl(0 100% 50%); /* Red */
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(10 15% 95%);
-  --secondary-foreground: hsl(222.2 84% 4.9%);
-  --muted: hsl(10 10% 96%);
-  --muted-foreground: hsl(215.4 16.3% 46.9%);
-  --accent: hsl(10 100% 50%);
+  --secondary: hsl(120 100% 25%); /* Green */
+  --secondary-foreground: hsl(0 0% 100%);
+  --muted: hsl(120 10% 96%);
+  --muted-foreground: hsl(120 5% 46.9%);
+  --accent: hsl(120 100% 25%);
   --accent-foreground: hsl(0 0% 100%);
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(210 40% 98%);
   --border: hsl(214.3 31.8% 91.4%);
   --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(10 100% 50%);
-  --chart-1: hsl(10 100% 50%);
-  --chart-2: hsl(159.7826 100% 36.0784%);
+  --ring: hsl(0 100% 50%);
+  --chart-1: hsl(0 100% 50%);
+  --chart-2: hsl(120 100% 25%);
   --chart-3: hsl(42.0290 92.8251% 56.2745%);
   --chart-4: hsl(147.1429 78.5047% 41.9608%);
   --chart-5: hsl(341.4894 75.2000% 50.9804%);
@@ -107,11 +107,25 @@
 
 @layer components {
   .hero-banner {
-    background: linear-gradient(135deg, hsl(10 100% 50%) 0%, hsl(10 100% 40%) 100%);
+    background: linear-gradient(135deg, hsl(0 100% 50%) 0%, hsl(120 100% 25%) 100%);
   }
 
   .gradient-header {
-    background: linear-gradient(135deg, hsl(10 100% 50%) 0%, hsl(10 100% 40%) 100%);
+    background: linear-gradient(135deg, hsl(0 100% 50%) 0%, hsl(120 100% 25%) 100%);
+  }
+
+  .logo-tamtom {
+    display: flex;
+    align-items: center;
+    font-weight: 900;
+  }
+
+  .logo-tamtom .green {
+    color: hsl(120 100% 25%);
+  }
+
+  .logo-tamtom .red {
+    color: hsl(0 100% 50%);
   }
 
   .orange-gradient {
