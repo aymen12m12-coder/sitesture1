@@ -14,6 +14,7 @@ import {
   Truck, 
   UserCog, 
   ShoppingCart,
+  Heart,
   PhoneCall,
   Info,
   ChevronLeft,
@@ -132,19 +133,12 @@ export default function Layout({ children }: LayoutProps) {
               <X className="h-6 w-6" />
             </button>
             <div className={`absolute bottom-6 ${language === 'ar' ? 'right-6' : 'left-6'} flex items-center gap-4`}>
-              <div className="w-20 h-20 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-0 overflow-hidden border-4 border-white/20">
+              <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-2 overflow-hidden border-4 border-white/20">
                 <img 
                   src="https://images.unsplash.com/photo-1590779033100-9f60a05a013d?q=80&w=200" 
                   alt="Tamtom Logo" 
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
-              </div>
-              <div className="text-white">
-                <h2 className="text-4xl font-black tracking-tighter italic leading-none">
-                  <span className="text-[#81c784]">طم</span>
-                  <span className="text-[#ef5350]">طوم</span>
-                </h2>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 mt-1">FRESH MARKET</p>
               </div>
             </div>
           </div>

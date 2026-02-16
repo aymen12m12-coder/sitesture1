@@ -55,9 +55,9 @@ export const TopBar: React.FC = () => {
           className="cursor-pointer shrink-0"
           onClick={() => setLocation('/')}
         >
-          <div className="logo-tamtom text-4xl md:text-6xl flex items-center font-black tracking-tighter italic leading-none">
+          <div className="logo-tamtom text-4xl md:text-6xl flex items-center font-black tracking-tighter italic leading-none select-none">
             <span className="text-[#388e3c]">طم</span>
-            <span className="text-[#d32f2f]">طوم</span>
+            <span className="text-[#d32f2f] -mr-1">طوم</span>
           </div>
         </div>
 
@@ -76,18 +76,8 @@ export const TopBar: React.FC = () => {
           </form>
         </div>
 
-        {/* Utilities: Language, Account, Favorites, Cart */}
-        <div className="flex items-center gap-1 md:gap-5">
-          {/* Language Toggle - Desktop only to save space */}
-          <button 
-            onClick={toggleLanguage}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors relative group hidden md:flex items-center gap-1"
-            title={t('language_country')}
-          >
-            <Globe className="h-6 w-6 text-gray-700" />
-            <span className="text-[10px] font-black uppercase tracking-tighter text-gray-400">{language === 'ar' ? 'EN' : 'عربي'}</span>
-          </button>
-
+        {/* Utilities: Account, Favorites, Cart */}
+        <div className="flex items-center gap-1 md:gap-3">
           <button 
             onClick={() => setLocation(user ? '/profile' : '/auth')}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors relative group"
