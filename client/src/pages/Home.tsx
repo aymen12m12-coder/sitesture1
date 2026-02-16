@@ -74,9 +74,9 @@ export default function Home() {
                         <Badge className="bg-primary text-white border-none text-sm md:text-xl px-6 py-2 rounded-2xl shadow-xl shadow-primary/40 uppercase tracking-widest font-black italic">طازج يومياً</Badge>
                         <Badge variant="outline" className="text-white border-white/50 text-sm md:text-xl px-6 py-2 rounded-2xl backdrop-blur-md font-black italic">عروض حصرية</Badge>
                       </div>
-                      <h2 className="text-5xl md:text-9xl font-black mb-6 leading-[0.85] uppercase tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] italic">
-                        <span className="text-[#81c784]">طم</span>
-                        <span className="text-[#ef5350]">طوم</span>
+                      <h2 className="text-5xl md:text-9xl font-black mb-6 leading-[0.85] uppercase tracking-tighter drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] italic select-none">
+                        <span className="text-[#388e3c]">طم</span>
+                        <span className="text-[#d32f2f] -mr-1 md:-mr-3">طوم</span>
                         <br />
                         {offer.title}
                       </h2>

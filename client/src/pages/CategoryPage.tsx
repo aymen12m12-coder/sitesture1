@@ -30,32 +30,36 @@ export default function CategoryPage() {
       if (!response.ok) throw new Error('Failed to fetch products');
       const products: MenuItem[] = await response.json();
       
-      const targetCategory = decodeURIComponent(slug || '');
+      const targetCategory = decodeURIComponent(slug || '').trim().toLowerCase();
 
-      // Filter by category name (case insensitive and exact match)
+      // Map common categories for better matching
+      const categoryMap: Record<string, string[]> = {
+        'fruits': ['فواكه', 'fruits', 'fruit'],
+        'vegetables': ['خضروات', 'vegetables', 'veg', 'خضار'],
+        'dates': ['تمور', 'dates', 'تمر'],
+        'juices': ['عصائر', 'juices', 'juice'],
+        'offers': ['عروض', 'offers', 'offer', 'تخفيضات']
+      };
+
+      // Filter by category name
       return products.filter((item: MenuItem) => {
         if (!item.category) return false;
         const itemCat = item.category.trim().toLowerCase();
-        const targetCat = targetCategory.trim().toLowerCase();
         
-        // Exact match or includes
-        const isMatch = itemCat === targetCat || 
-                        itemCat.includes(targetCat) || 
-                        targetCat.includes(itemCat);
+        // 1. Direct match
+        if (itemCat === targetCategory || itemCat.includes(targetCategory) || targetCategory.includes(itemCat)) {
+          return true;
+        }
 
-        // Map English to Arabic for produce
-        const produceMap: Record<string, string> = {
-          'fruits': 'فواكه',
-          'vegetables': 'خضروات',
-          'dates': 'تمور',
-          'juices': 'عصائر',
-          'offers': 'عروض'
-        };
+        // 2. Map match
+        for (const [key, variants] of Object.entries(categoryMap)) {
+          const isTargetVariant = key === targetCategory || variants.includes(targetCategory);
+          if (isTargetVariant && (variants.includes(itemCat) || itemCat === key)) {
+            return true;
+          }
+        }
 
-        const mappedAr = produceMap[targetCat];
-        const arMatch = mappedAr && (itemCat === mappedAr || itemCat.includes(mappedAr));
-
-        return isMatch || arMatch;
+        return false;
       });
     }
   });
