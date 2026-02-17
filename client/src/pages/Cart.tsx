@@ -175,64 +175,66 @@ export default function Cart() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-8">
             {items.length > 0 ? (
-              <div className="space-y-6">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
-                    <div className="relative">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    </div>
-                    
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900" data-testid={`cart-item-name-${item.id}`}>
-                        {item.name}
-                      </h4>
-                      <p className="text-sm font-bold text-gray-900" data-testid={`cart-item-price-${item.id}`}>
-                        {formatCurrency(item.price)}
-                      </p>
-                    </div>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="space-y-6">
+                    {items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg">
+                        <div className="relative">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        </div>
+                        
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900" data-testid={`cart-item-name-${item.id}`}>
+                            {item.name}
+                          </h4>
+                          <p className="text-sm font-bold text-gray-900" data-testid={`cart-item-price-${item.id}`}>
+                            {formatCurrency(item.price)}
+                          </p>
+                        </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="w-6 h-6"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        data-testid={`button-decrease-${item.id}`}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <span className="w-8 text-center text-sm font-medium" data-testid={`cart-item-quantity-${item.id}`}>
-                        {item.quantity}
-                      </span>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="w-6 h-6"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        data-testid={`button-increase-${item.id}`}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        className="w-6 h-6 ml-2 text-black hover:text-red-700"
-                        onClick={() => removeItem(item.id)}
-                        data-testid={`button-remove-${item.id}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="w-6 h-6"
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            data-testid={`button-decrease-${item.id}`}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-8 text-center text-sm font-medium" data-testid={`cart-item-quantity-${item.id}`}>
+                            {item.quantity}
+                          </span>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="w-6 h-6"
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            data-testid={`button-increase-${item.id}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="w-6 h-6 ml-2 text-black hover:text-red-700"
+                            onClick={() => removeItem(item.id)}
+                            data-testid={`button-remove-${item.id}`}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </CardContent>
+              </Card>
+            ) : null}
 
         {/* Customer Information Form */}
         <Card>
