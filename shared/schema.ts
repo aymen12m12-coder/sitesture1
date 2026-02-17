@@ -165,6 +165,7 @@ export const specialOffers = pgTable("special_offers", {
   showBadge: boolean("show_badge").default(true), // إظهار أو إخفاء الملصق
   badgeText1: varchar("badge_text_1", { length: 50 }).default("طازج يومياً"), // النص الأول (مثلاً: طازج يومياً)
   badgeText2: varchar("badge_text_2", { length: 50 }).default("عروض حصرية"), // النص الثاني (مثلاً: عروض حصرية)
+  menuItemId: uuid("menu_item_id").references(() => menuItems.id), // ربط العرض بمنتج محدد
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
