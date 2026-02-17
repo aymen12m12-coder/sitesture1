@@ -1,5 +1,6 @@
 // AdminDriversAdvanced.tsx
 import { useState, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Truck, User, Wallet, BarChart3, Star, Clock, DollarSign, 
@@ -63,7 +64,8 @@ interface DriverStats {
 export default function AdminDriversAdvanced() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const navigate = useNavigate ? (() => window.location.href = '/admin') : () => {};
+  const [, setLocation] = useLocation();
+  const navigate = (path: string) => setLocation(path);
   const [activeTab, setActiveTab] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<DriverStats | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
@@ -162,7 +164,7 @@ export default function AdminDriversAdvanced() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => navigate()}
+            onClick={() => navigate('/admin')}
             className="gap-2 lg:absolute lg:left-6 lg:top-6"
           >
             <ArrowLeft className="h-4 w-4" />

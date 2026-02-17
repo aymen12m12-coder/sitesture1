@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation as useWouterLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -46,7 +46,8 @@ import NotFound from "@/pages/not-found";
 import SplashScreen from "./components/SplashScreen";
 
 function MainApp() {
-  const { location, setLocation } = useLocation();
+  const { location } = useLocation();
+  const [, setLocation] = useWouterLocation();
   const [showLocationModal, setShowLocationModal] = useState(true);
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem('splash_seen');
