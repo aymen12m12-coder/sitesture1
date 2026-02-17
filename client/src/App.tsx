@@ -43,12 +43,39 @@ import SearchPage from "./pages/SearchPage";
 // Admin pages removed - now handled separately
 import NotFound from "@/pages/not-found";
 
-function MainApp() {
-  // const { userType, loading } = useAuth(); // تم إزالة نظام المصادقة
-  const { location } = useLocation();
-  const [showLocationModal, setShowLocationModal] = useState(true);
+import SplashScreen from "./components/SplashScreen";
 
-  // تم إزالة loading state ومراجع المصادقة
+function MainApp() {
+  const { location, setLocation } = useLocation();
+  const [showLocationModal, setShowLocationModal] = useState(true);
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('splash_seen');
+  });
+  const [isGuest, setIsGuest] = useState(() => {
+    return localStorage.getItem('is_guest') === 'true';
+  });
+
+  const { isAuthenticated } = useAuth();
+
+  // Handle splash finish
+  const handleSplashFinish = () => {
+    sessionStorage.setItem('splash_seen', 'true');
+    setShowSplash(false);
+  };
+
+  if (showSplash) {
+    return <SplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  // If not authenticated and not guest, redirect to auth (unless already on auth or login pages)
+  const isAuthPage = window.location.pathname === '/auth' || 
+                     window.location.pathname === '/admin-login' || 
+                     window.location.pathname === '/driver-login';
+
+  if (!isAuthenticated && !isGuest && !isAuthPage && !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/driver')) {
+    setLocation('/auth');
+    return null;
+  }
 
   // Handle login pages first (without layout)
   if (window.location.pathname === '/admin-login') {
@@ -99,8 +126,6 @@ function MainApp() {
       window.location.href = '/';
     }} />;
   }
-
-  // Remove admin/driver routes from customer app routing
 
   // Default customer app
   return (

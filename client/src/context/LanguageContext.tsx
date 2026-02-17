@@ -95,8 +95,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    const dir = language === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.dir = dir;
+    // الاتجاه ثابت دائماً لليمين (RTL) بناءً على طلب المستخدم
+    document.documentElement.dir = 'rtl';
     document.documentElement.lang = language;
   }, [language]);
 
@@ -104,7 +104,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return translations[language][key as keyof typeof translations['ar']] || key;
   };
 
-  const dir = language === 'ar' ? 'rtl' : 'ltr';
+  const dir = 'rtl'; // ثابت دائماً لليمين (RTL) بناءً على طلب المستخدم
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, dir }}>

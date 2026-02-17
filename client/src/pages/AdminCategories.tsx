@@ -283,18 +283,25 @@ export default function AdminCategories() {
           ))
         ) : categories?.length ? (
           categories.map((category) => (
-            <Card key={category.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
-                    {category.icon ? (
-                      <i className={`${category.icon} text-primary text-xl`} />
-                    ) : (
-                      <Tag className="h-6 w-6 text-primary" />
-                    )}
+            <Card key={category.id} className="hover:shadow-md transition-shadow overflow-hidden">
+              <div className="h-32 bg-muted relative">
+                {category.image ? (
+                  <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground italic">
+                    بدون صورة
                   </div>
-                  <CardTitle className="text-lg">{category.name}</CardTitle>
+                )}
+                <div className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-lg flex items-center justify-center shadow-sm">
+                  {category.icon ? (
+                    <i className={`${category.icon} text-primary text-lg`} />
+                  ) : (
+                    <Tag className="h-5 w-5 text-primary" />
+                  )}
                 </div>
+              </div>
+              <CardHeader className="pb-3 pt-4">
+                <CardTitle className="text-lg">{category.name}</CardTitle>
               </CardHeader>
               
               <CardContent className="pt-0">

@@ -85,9 +85,9 @@ export default function CustomerAuthPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4 py-12" dir="rtl">
       <div className="mb-8 text-center">
-        <div className="logo-tamtom text-5xl md:text-6xl mb-4 justify-center">
-          <span className="green">طم</span>
-          <span className="red">طوم</span>
+        <div className="text-5xl md:text-6xl mb-4 flex justify-center font-black">
+          <span className="text-[#388e3c]">طم</span>
+          <span className="text-[#d32f2f]">طوم</span>
         </div>
         <p className="text-muted-foreground font-bold">خضروات وفواكه طازجة تصلك لباب بيتك</p>
       </div>
@@ -173,6 +173,27 @@ export default function CustomerAuthPage() {
                   ) : (
                     'تسجيل الدخول'
                   )}
+                </Button>
+                
+                <div className="relative my-8">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-4 text-gray-500 font-bold">أو</span>
+                  </div>
+                </div>
+
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.setItem('is_guest', 'true');
+                    window.location.reload();
+                  }}
+                  className="w-full h-14 rounded-xl font-black text-xl border-2 hover:bg-gray-50 transition-all active:scale-95"
+                >
+                  الدخول كزائر
                 </Button>
               </form>
             </TabsContent>

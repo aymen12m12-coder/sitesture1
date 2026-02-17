@@ -28,6 +28,9 @@ export function AdminSpecialOffers() {
     discountAmount: '',
     minimumOrder: '',
     validUntil: '',
+    showBadge: true,
+    badgeText1: 'طازج يومياً',
+    badgeText2: 'عروض حصرية',
     isActive: true
   });
 
@@ -107,6 +110,9 @@ export function AdminSpecialOffers() {
       discountAmount: '',
       minimumOrder: '',
       validUntil: '',
+      showBadge: true,
+      badgeText1: 'طازج يومياً',
+      badgeText2: 'عروض حصرية',
       isActive: true
     });
   };
@@ -123,6 +129,9 @@ export function AdminSpecialOffers() {
       discountAmount: formData.discountAmount ? parseFloat(formData.discountAmount) : null,
       minimumOrder: formData.minimumOrder ? parseFloat(formData.minimumOrder) : 0,
       validUntil: formData.validUntil ? new Date(formData.validUntil) : null,
+      showBadge: formData.showBadge,
+      badgeText1: formData.badgeText1,
+      badgeText2: formData.badgeText2,
       isActive: formData.isActive
     };
     
@@ -143,6 +152,9 @@ export function AdminSpecialOffers() {
       discountAmount: offer.discountAmount?.toString() || '',
       minimumOrder: offer.minimumOrder?.toString() || '',
       validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().slice(0, 16) : '',
+      showBadge: offer.showBadge ?? true,
+      badgeText1: offer.badgeText1 || 'طازج يومياً',
+      badgeText2: offer.badgeText2 || 'عروض حصرية',
       isActive: offer.isActive
     });
     setShowAddForm(false);
@@ -311,13 +323,46 @@ export function AdminSpecialOffers() {
                 />
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg bg-muted/20">
+                <div className="flex items-center space-x-2 space-x-reverse h-full pt-6">
+                  <Switch
+                    id="showBadge"
+                    checked={formData.showBadge}
+                    onCheckedChange={(checked) => setFormData({ ...formData, showBadge: checked })}
+                  />
+                  <Label htmlFor="showBadge">إظهار الملصقات الترويجية</Label>
+                </div>
+
+                <div>
+                  <Label htmlFor="badgeText1">نص الملصق 1</Label>
+                  <Input
+                    id="badgeText1"
+                    value={formData.badgeText1}
+                    onChange={(e) => setFormData({ ...formData, badgeText1: e.target.value })}
+                    placeholder="طازج يومياً"
+                    disabled={!formData.showBadge}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="badgeText2">نص الملصق 2</Label>
+                  <Input
+                    id="badgeText2"
+                    value={formData.badgeText2}
+                    onChange={(e) => setFormData({ ...formData, badgeText2: e.target.value })}
+                    placeholder="عروض حصرية"
+                    disabled={!formData.showBadge}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 space-x-reverse">
                 <Switch
                   id="isActive"
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
                 />
-                <Label htmlFor="isActive">نشط</Label>
+                <Label htmlFor="isActive">نشط (ظهور العرض للعملاء)</Label>
               </div>
 
               <div className="flex gap-2">

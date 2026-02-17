@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Settings, Eye, EyeOff } from 'lucide-react';
+import { Save, Settings, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,12 +16,19 @@ import type { UiSettings } from '@shared/schema';
 interface SettingItem {
   key: string;
   label: string;
-  type: 'boolean' | 'text' | 'textarea';
+  type: 'boolean' | 'text' | 'textarea' | 'image';
   description: string;
   category: string;
 }
 
 const settingsConfig: SettingItem[] = [
+  // Branding Settings
+  { key: 'header_logo_url', label: 'صورة شعار الهيدر', type: 'image', description: 'يتم عرضه في الشريط العلوي بدلاً من النص', category: 'الهوية البصرية' },
+  { key: 'sidebar_image_url', label: 'صورة القائمة الجانبية', type: 'image', description: 'الصورة التي تظهر في أعلى السايد بار', category: 'الهوية البصرية' },
+  { key: 'splash_image_url', label: 'صورة شاشة الترحيب', type: 'image', description: 'الصورة التي تظهر عند فتح التطبيق لأول مرة', category: 'شاشة الترحيب' },
+  { key: 'splash_title', label: 'عنوان شاشة الترحيب', type: 'text', description: 'العنوان الرئيسي في شاشة السبلاتش', category: 'شاشة الترحيب' },
+  { key: 'splash_subtitle', label: 'وصف شاشة الترحيب', type: 'textarea', description: 'الوصف الذي يظهر أسفل العنوان في شاشة السبلاتش', category: 'شاشة الترحيب' },
+
   // Navigation Settings
   { key: 'show_categories', label: 'عرض التصنيفات', type: 'boolean', description: 'عرض تصنيفات المنتجات في الصفحة الرئيسية', category: 'التنقل' },
   { key: 'show_search_bar', label: 'عرض شريط البحث', type: 'boolean', description: 'عرض شريط البحث في الصفحة الرئيسية', category: 'التنقل' },
@@ -220,6 +228,15 @@ export default function AdminUiSettings() {
                             onCheckedChange={(checked) => handleBooleanChange(setting.key, checked)}
                             data-testid={`switch-${setting.key}`}
                           />
+                        ) : setting.type === 'image' ? (
+                          <div className="flex flex-col gap-2 w-80">
+                            <ImageUpload
+                              label={setting.label}
+                              value={currentValue}
+                              onChange={(url) => handleSettingChange(setting.key, url)}
+                              bucket="ui-settings"
+                            />
+                          </div>
                         ) : setting.type === 'textarea' ? (
                           <Textarea
                             id={setting.key}
