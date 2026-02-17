@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { 
@@ -44,6 +44,15 @@ export default function Home() {
 
   const activeOffers = offers?.filter(offer => offer.isActive) || [];
 
+  useEffect(() => {
+    if (activeOffers.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentOfferIndex((prev) => (prev + 1) % activeOffers.length);
+      }, 5000); // تمرير كل 5 ثواني
+      return () => clearInterval(interval);
+    }
+  }, [activeOffers.length]);
+
   const nextOffer = () => {
     if (activeOffers.length > 1) {
       setCurrentOfferIndex((prev) => (prev + 1) % activeOffers.length);
@@ -67,37 +76,36 @@ export default function Home() {
               style={{ transform: `translateX(${currentOfferIndex * 100}%)` }}
             >
               {activeOffers.map((offer) => (
-                <div key={offer.id} className="w-full h-[250px] md:h-[500px] flex-shrink-0 relative overflow-hidden">
+                <div key={offer.id} className="w-full h-[250px] md:h-[500px] flex-shrink-0 relative overflow-hidden bg-black/5">
                   <img 
                     src={offer.image} 
                     alt={offer.title}
-                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-[10s]"
+                    className="w-full h-full object-contain transform scale-100 group-hover:scale-105 transition-transform duration-[10s]"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent flex flex-col justify-end p-4 md:p-16 text-white text-right">
                     <div className="flex flex-col gap-1 items-end max-w-4xl mr-auto">
                       {offer.showBadge !== false && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <Badge className="bg-primary text-white border-none text-[10px] md:text-sm px-3 py-0.5 rounded-full shadow-lg shadow-primary/40 uppercase font-black italic">{offer.badgeText1 || 'طازج يومياً'}</Badge>
-                          <Badge variant="outline" className="text-white border-white/50 text-[10px] md:text-sm px-3 py-0.5 rounded-full backdrop-blur-md font-black italic">{offer.badgeText2 || 'عروض حصرية'}</Badge>
+                        <div className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-top-8 duration-1000">
+                          <Badge className="bg-primary text-white border-none text-[10px] md:text-sm px-3 py-0.5 rounded-full shadow-lg shadow-primary/40 uppercase font-black italic hover:scale-110 transition-transform">{offer.badgeText1 || 'طازج يومياً'}</Badge>
+                          <Badge variant="outline" className="text-white border-white/50 text-[10px] md:text-sm px-3 py-0.5 rounded-full backdrop-blur-md font-black italic hover:scale-110 transition-transform">{offer.badgeText2 || 'عروض حصرية'}</Badge>
                         </div>
                       )}
                       <h2 className="text-3xl md:text-7xl font-black mb-2 leading-[0.9] uppercase tracking-tighter drop-shadow-md italic select-none">
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="Logo" className="h-8 md:h-20 w-auto mb-2 inline-block" />
-                        ) : (
-                          <>
-                            <span className="text-[#388e3c]">طم</span>
-                            <span className="text-[#d32f2f] -mr-1">طوم</span>
-                          </>
-                        )}
-                        <br />
                         <span className="text-white">{offer.title}</span>
                       </h2>
                       <p className="text-sm md:text-2xl opacity-90 max-w-xl mb-4 leading-tight font-bold drop-shadow-sm line-clamp-2">{offer.description}</p>
                       <Button 
                         size="sm" 
                         className="md:size-lg w-fit bg-white text-black hover:bg-primary hover:text-white transition-all duration-500 rounded-xl px-6 md:px-10 text-xs md:text-lg font-black h-10 md:h-16 shadow-xl hover:shadow-primary/40 group/btn italic uppercase"
-                        onClick={() => setLocation('/search?q=offers')}
+                        onClick={() => {
+                          if (offer.menuItemId) {
+                            setLocation(`/product/${offer.menuItemId}`);
+                          } else if (offer.restaurantId) {
+                            setLocation(`/restaurant/${offer.restaurantId}`);
+                          } else {
+                            setLocation('/search?q=offers');
+                          }
+                        }}
                       >
                         تسوق الآن
                         <ChevronLeft className="mr-2 h-4 w-4 md:h-6 md:w-6 group-hover/btn:-translate-x-2 transition-transform" />
@@ -113,15 +121,15 @@ export default function Home() {
               <>
                 <button 
                   onClick={prevOffer}
-                  className="absolute left-8 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-5 rounded-3xl text-white backdrop-blur-2xl transition-all border border-white/30 opacity-0 group-hover:opacity-100 z-10 shadow-2xl"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 md:p-3 rounded-full text-white backdrop-blur-md transition-all border border-white/30 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
                 >
-                  <ChevronLeft className="h-10 w-10" />
+                  <ChevronLeft className="h-5 w-5 md:h-8 md:w-8" />
                 </button>
                 <button 
                   onClick={nextOffer}
-                  className="absolute right-8 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-5 rounded-3xl text-white backdrop-blur-2xl transition-all border border-white/30 opacity-0 group-hover:opacity-100 z-10 shadow-2xl"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 p-2 md:p-3 rounded-full text-white backdrop-blur-md transition-all border border-white/30 opacity-0 group-hover:opacity-100 z-10 shadow-lg"
                 >
-                  <ChevronRight className="h-10 w-10" />
+                  <ChevronRight className="h-5 w-5 md:h-8 md:w-8" />
                 </button>
               </>
             )}
