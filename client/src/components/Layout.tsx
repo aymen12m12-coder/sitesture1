@@ -64,6 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   const phoneLink = getSetting('support_phone', 'tel:+967777777777');
   const shareText = getSetting('share_text', 'تسوق أفضل الفواكه والخضروات الطازجة من تطبيق طمطوم!');
   const shareUrl = getSetting('share_url', window.location.origin);
+  const sidebarImageUrl = getSetting('sidebar_image_url', 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=400');
   
   const isAdminPage = location.startsWith('/admin');
   const isDeliveryPage = location.startsWith('/delivery');
@@ -110,18 +111,18 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="bg-background min-h-screen flex flex-col pb-16 md:pb-0" dir={dir}>
       <TopBar />
-      <Navbar />
+      {location !== '/' && <Navbar />}
 
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetTrigger asChild>
           <button id="sidebar-trigger" className="hidden" />
         </SheetTrigger>
-        <SheetContent side={language === 'ar' ? 'right' : 'left'} className="w-[320px] p-0 flex flex-col border-none shadow-2xl">
+        <SheetContent side="right" className="w-[320px] p-0 flex flex-col border-none shadow-2xl">
           <div className="relative h-48 bg-gradient-to-br from-[#388e3c] to-[#2e7d32] overflow-hidden">
             <div className="absolute inset-0 opacity-20">
               <img 
-                src="https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=400" 
-                alt="Fruits background"
+                src={sidebarImageUrl} 
+                alt="Sidebar background"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -134,11 +135,18 @@ export default function Layout({ children }: LayoutProps) {
             </button>
             <div className={`absolute bottom-6 ${language === 'ar' ? 'right-6' : 'left-6'} flex items-center gap-4`}>
               <div className="w-24 h-24 bg-white rounded-3xl shadow-2xl flex items-center justify-center p-2 overflow-hidden border-4 border-white/20">
-                <img 
-                  src="https://images.unsplash.com/photo-1590779033100-9f60a05a013d?q=80&w=200" 
-                  alt="Tamtom Logo" 
-                  className="w-full h-full object-contain"
-                />
+                {getSetting('header_logo_url', '') ? (
+                  <img 
+                    src={getSetting('header_logo_url', '')} 
+                    alt="Tamtom Logo" 
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="text-2xl flex items-center font-black tracking-tighter select-none">
+                    <span className="text-[#388e3c]">طم</span>
+                    <span className="text-[#d32f2f]">طوم</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
