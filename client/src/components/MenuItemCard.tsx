@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Star, Heart } from 'lucide-react';
+import { ShoppingBag, Star, Heart, Plus } from 'lucide-react';
 import type { MenuItem } from '@shared/schema';
 import { useCart } from '../contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';

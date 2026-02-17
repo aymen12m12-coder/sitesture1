@@ -30,6 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../context/AuthContext';
 import CartButton from './CartButton';
 import { useToast } from '@/hooks/use-toast';
 import { useUiSettings } from '@/context/UiSettingsContext';
@@ -45,6 +46,7 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [location, setLocation] = useLocation();
   const { state } = useCart();
+  const { user } = useAuth();
   const { t, language, setLanguage, dir } = useLanguage();
   const getItemCount = () => state.items.reduce((sum, item) => sum + item.quantity, 0);
   const { toast } = useToast();
