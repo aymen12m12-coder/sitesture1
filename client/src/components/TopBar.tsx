@@ -39,6 +39,10 @@ export const TopBar: React.FC = () => {
     }
   };
 
+  const handleOpenCart = () => {
+    window.dispatchEvent(new CustomEvent('openCart'));
+  };
+
   const getItemCount = () => state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const Logo = () => (
@@ -97,7 +101,7 @@ export const TopBar: React.FC = () => {
           </button>
 
           <button 
-            onClick={() => setLocation('/cart')}
+            onClick={handleOpenCart}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors relative"
             title={t('cart')}
           >
@@ -140,7 +144,7 @@ export const TopBar: React.FC = () => {
             <button onClick={() => setLocation('/favorites')} className="p-1 relative">
               <Heart className="h-5 w-5 text-gray-600" />
             </button>
-            <button onClick={() => setLocation('/cart')} className="p-1 relative">
+            <button onClick={handleOpenCart} className="p-1 relative">
               <ShoppingCart className="h-5 w-5 text-gray-600" />
               {getItemCount() > 0 && (
                 <span className="absolute -top-1 -right-1 bg-primary text-white text-[8px] rounded-full h-4 w-4 flex items-center justify-center font-bold">
