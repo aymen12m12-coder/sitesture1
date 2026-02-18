@@ -24,30 +24,33 @@ router.post("/", async (req, res) => {
       deliveryFee: clientDeliveryFee,
       totalAmount,
       restaurantId,
-      customerId
+      customerId,
+      deliveryPreference,
+      scheduledDate,
+      scheduledTimeSlot
     } = req.body;
 
     // التحقق من البيانات المطلوبة
-    if (!customerName || !customerPhone || !deliveryAddress || !items || !restaurantId) {
+    if (!customerName || !customerPhone || !deliveryAddress || !items) {
       return res.status(400).json({ 
-        error: "بيانات ناقصة: الاسم، الهاتف، العنوان، العناصر، ومعرف المطعم مطلوبة"
+        error: "بيانات ناقصة: الاسم، الهاتف، العنوان، والعناصر مطلوبة"
       });
     }
 
-    // التحقق من وجود المطعم
-    const restaurant = await storage.getRestaurant(restaurantId);
-    if (!restaurant) {
-      return res.status(400).json({ 
-        error: "المطعم المحدد غير موجود"
-      });
+    // التحقق من وجود المطعم (اختياري الآن)
+    let restaurant = null;
+    if (restaurantId) {
+      restaurant = await storage.getRestaurant(restaurantId);
     }
-
-    // التحقق من ساعات العمل
-    const orderStatus = canOrderFromRestaurant(restaurant);
-    if (!orderStatus.canOrder) {
-      return res.status(400).json({ 
-        error: orderStatus.message || "المطعم مغلق حالياً"
-      });
+    
+    // التحقق من ساعات العمل إذا كان المطعم موجوداً
+    if (restaurant) {
+      const orderStatus = canOrderFromRestaurant(restaurant);
+      if (!orderStatus.canOrder) {
+        return res.status(400).json({ 
+          error: orderStatus.message || "المطعم مغلق حالياً"
+        });
+      }
     }
 
     // حساب رسوم التوصيل والمسافة
@@ -85,10 +88,19 @@ router.post("/", async (req, res) => {
     // حساب العمولات
     const subtotalNum = parseFloat(subtotal || '0');
     const deliveryFeeNum = finalDeliveryFee;
-    const restaurantCommissionRate = parseFloat(restaurant.commissionRate?.toString() || '10'); // افتراضي 10%
     
-    const restaurantCommissionAmount = (subtotalNum * restaurantCommissionRate) / 100;
-    const restaurantEarnings = subtotalNum - restaurantCommissionAmount;
+    let restaurantCommissionAmount = 0;
+    let restaurantEarnings = 0;
+    
+    if (restaurant) {
+      const restaurantCommissionRate = parseFloat(restaurant.commissionRate?.toString() || '10'); // افتراضي 10%
+      restaurantCommissionAmount = (subtotalNum * restaurantCommissionRate) / 100;
+      restaurantEarnings = subtotalNum - restaurantCommissionAmount;
+    } else {
+      // إذا لم يكن هناك مطعم (متجر رئيسي)، فكل الدخل للمؤسسة
+      restaurantEarnings = 0;
+      restaurantCommissionAmount = subtotalNum;
+    }
     
     // حساب عمولة السائق الأولية (سيتم تحديثها عند التعيين)
     const defaultDriverCommissionRate = 70; // 70% من رسوم التوصيل
@@ -117,24 +129,29 @@ router.post("/", async (req, res) => {
       driverEarnings: String(driverEarnings),
       restaurantEarnings: String(restaurantEarnings),
       companyEarnings: String(companyEarnings),
-      restaurantId,
-      estimatedTime: restaurant.deliveryTime || '30-45 دقيقة'
+      restaurantId: restaurantId || null,
+      estimatedTime: restaurant?.deliveryTime || '30-45 دقيقة',
+      deliveryPreference: deliveryPreference || 'now',
+      scheduledDate: scheduledDate || null,
+      scheduledTimeSlot: scheduledTimeSlot || null
     };
 
     const order = await storage.createOrder(orderData);
 
     // إنشاء إشعارات للجميع
     try {
-      // إشعار للمطعم
-      await storage.createNotification({
-        type: 'new_order',
-        title: 'طلب جديد',
-        message: `طلب جديد رقم ${orderNumber} من ${customerName}. صافي الربح: ${formatCurrency(restaurantEarnings)}`,
-        recipientType: 'restaurant',
-        recipientId: restaurantId,
-        orderId: order.id,
-        isRead: false
-      });
+      // إشعار للمطعم (إذا وجد)
+      if (restaurantId) {
+        await storage.createNotification({
+          type: 'new_order',
+          title: 'طلب جديد',
+          message: `طلب جديد رقم ${orderNumber} من ${customerName}. صافي الربح: ${formatCurrency(restaurantEarnings)}`,
+          recipientType: 'restaurant',
+          recipientId: restaurantId,
+          orderId: order.id,
+          isRead: false
+        });
+      }
       
       // إشعار لجميع السائقين المتاحين
       const availableDrivers = await storage.getAvailableDrivers();
@@ -145,7 +162,7 @@ router.post("/", async (req, res) => {
         await storage.createNotification({
           type: 'new_order_available',
           title: 'طلب جديد متاح للتوصيل',
-          message: `طلب جديد من ${restaurant.name} - رسوم التوصيل: ${formatCurrency(deliveryFeeNum)} - عمولتك: ${formatCurrency(potentialEarnings)}`,
+          message: `طلب جديد من ${restaurant?.name || 'المتجر الرئيسي'} - رسوم التوصيل: ${formatCurrency(deliveryFeeNum)} - عمولتك: ${formatCurrency(potentialEarnings)}`,
           recipientType: 'driver',
           recipientId: driver.id,
           orderId: order.id,
@@ -273,12 +290,19 @@ router.put("/:id/assign-driver", async (req, res) => {
     
     // تحديث أرباح الشركة بناءً على عمولة السائق الفعلية
     const restaurantId = order.restaurantId;
-    const restaurants = await storage.getRestaurants();
-    const restaurant = restaurants.find(r => r.id === restaurantId);
+    let restaurant = null;
+    let restaurantCommissionAmount = 0;
     
     const subtotalNum = parseFloat(order.subtotal?.toString() || '0');
-    const restaurantCommissionRate = parseFloat(restaurant?.commissionRate?.toString() || '10');
-    const restaurantCommissionAmount = (subtotalNum * restaurantCommissionRate) / 100;
+    
+    if (restaurantId) {
+      restaurant = await storage.getRestaurant(restaurantId);
+      const restaurantCommissionRate = parseFloat(restaurant?.commissionRate?.toString() || '10');
+      restaurantCommissionAmount = (subtotalNum * restaurantCommissionRate) / 100;
+    } else {
+      restaurantCommissionAmount = subtotalNum;
+    }
+    
     const companyEarnings = restaurantCommissionAmount + (deliveryFeeNum - driverEarnings);
 
     // تحديث الطلب
@@ -305,7 +329,7 @@ router.put("/:id/assign-driver", async (req, res) => {
       await storage.createNotification({
         type: 'new_order_assigned',
         title: 'طلب جديد مُعين لك',
-        message: `تم تعيينك لتوصيل الطلب رقم ${order.orderNumber} من مطعم ${restaurant.name}`,
+        message: `تم تعيينك لتوصيل الطلب رقم ${order.orderNumber} من ${restaurant?.name || 'المتجر الرئيسي'}`,
         recipientType: 'driver',
         recipientId: driverId,
         orderId: id,

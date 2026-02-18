@@ -139,6 +139,9 @@ export const orders = pgTable("orders", {
   total: decimal("total", { precision: 10, scale: 2 }).notNull(),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
   estimatedTime: varchar("estimated_time", { length: 50 }).default("30-45 دقيقة"),
+  deliveryPreference: varchar("delivery_preference", { length: 20 }).default("now"), // now, later
+  scheduledDate: varchar("scheduled_date", { length: 50 }),
+  scheduledTimeSlot: varchar("scheduled_time_slot", { length: 100 }),
   driverEarnings: decimal("driver_earnings", { precision: 10, scale: 2 }).default("0"),
   restaurantEarnings: decimal("restaurant_earnings", { precision: 10, scale: 2 }).default("0"),
   companyEarnings: decimal("company_earnings", { precision: 10, scale: 2 }).default("0"),

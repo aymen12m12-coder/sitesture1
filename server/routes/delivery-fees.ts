@@ -16,16 +16,16 @@ router.post("/calculate", async (req, res) => {
   try {
     const { customerLat, customerLng, restaurantId, orderSubtotal } = req.body;
 
-    if (!customerLat || !customerLng || !restaurantId) {
+    if (!customerLat || !customerLng) {
       return res.status(400).json({
         error: "بيانات ناقصة",
-        details: "يجب توفير إحداثيات العميل ومعرف المطعم"
+        details: "يجب توفير إحداثيات العميل"
       });
     }
 
     const result = await calculateDeliveryFee(
       { lat: parseFloat(customerLat), lng: parseFloat(customerLng) },
-      restaurantId,
+      restaurantId || null,
       parseFloat(orderSubtotal || '0')
     );
 

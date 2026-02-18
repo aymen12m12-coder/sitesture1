@@ -112,93 +112,62 @@ export function estimateDeliveryTime(distanceKm: number): string {
  */
 export async function calculateDeliveryFee(
   customerLocation: DeliveryLocation,
-  restaurantId: string,
+  restaurantId: string | null,
   orderSubtotal: number
 ): Promise<DeliveryFeeResult> {
-  // جلب بيانات المطعم
-  const restaurant = await storage.getRestaurant(restaurantId);
-  
-  if (!restaurant) {
-    throw new Error('المطعم غير موجود');
-  }
+  // جلب إعدادات المتجر الرئيسي من إعدادات الواجهة
+  const storeLat = await storage.getUiSetting('store_lat');
+  const storeLng = await storage.getUiSetting('store_lng');
+  const baseFeeSetting = await storage.getUiSetting('delivery_base_fee');
+  const perKmFeeSetting = await storage.getUiSetting('delivery_fee_per_km');
+  const minFeeSetting = await storage.getUiSetting('min_delivery_fee');
 
-  // جلب إعدادات رسوم التوصيل
-  const feeSettings = await getDeliveryFeeSettings(restaurantId);
+  // جلب بيانات المطعم إذا كان لا يزال مستخدماً (للتوافق)
+  const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
   
-  // تحديد رسوم المطعم المخصصة إذا وجدت
-  const restaurantBaseFee = parseFloat(restaurant.deliveryFee || '0');
-  const restaurantPerKmFee = parseFloat(restaurant.perKmFee || '0');
-
-  // موقع المطعم
-  const restaurantLocation: DeliveryLocation = {
-    lat: parseFloat(restaurant.latitude || '0'),
-    lng: parseFloat(restaurant.longitude || '0')
+  // تحديد الإحداثيات (الأولوية لإعدادات المتجر الرئيسي)
+  let storeLocation: DeliveryLocation = {
+    lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
+    lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
   };
 
-  // التحقق من وجود إحداثيات المطعم
-  if (restaurantLocation.lat === 0 && restaurantLocation.lng === 0) {
-    // استخدام رسوم المطعم المخصصة أو الرسوم الأساسية من الإعدادات العامة إذا لم تكن هناك إحداثيات
-    const fallbackFee = restaurantBaseFee > 0 ? restaurantBaseFee : feeSettings.baseFee;
-    
+  // جلب إعدادات رسوم التوصيل
+  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
+  
+  // تحديد الرسوم (الأولوية لإعدادات المتجر الرئيسي)
+  let baseFee = baseFeeSetting ? parseFloat(baseFeeSetting.value) : (restaurant ? parseFloat(restaurant.deliveryFee || '0') : feeSettings.baseFee);
+  let perKmFee = perKmFeeSetting ? parseFloat(perKmFeeSetting.value) : (restaurant ? parseFloat(restaurant.perKmFee || '0') : feeSettings.perKmFee);
+  let minFee = minFeeSetting ? parseFloat(minFeeSetting.value) : feeSettings.minFee;
+
+  // التحقق من وجود إحداثيات المتجر
+  if (storeLocation.lat === 0 && storeLocation.lng === 0) {
     return {
-      fee: fallbackFee,
+      fee: baseFee,
       distance: 0,
-      estimatedTime: restaurant.deliveryTime || '30-45 دقيقة',
+      estimatedTime: restaurant?.deliveryTime || '30-45 دقيقة',
       feeBreakdown: {
-        baseFee: fallbackFee,
+        baseFee: baseFee,
         distanceFee: 0,
-        totalBeforeLimit: fallbackFee
+        totalBeforeLimit: baseFee
       },
       isFreeDelivery: false
     };
   }
 
   // حساب المسافة
-  const distance = calculateDistance(customerLocation, restaurantLocation);
+  const distance = calculateDistance(customerLocation, storeLocation);
   
   // تقدير وقت التوصيل
   const estimatedTime = estimateDeliveryTime(distance);
 
-  // حساب الرسوم حسب النوع
-  let fee = 0;
-  let baseFee = restaurantBaseFee > 0 ? restaurantBaseFee : feeSettings.baseFee;
-  let perKmFee = restaurantPerKmFee > 0 ? restaurantPerKmFee : feeSettings.perKmFee;
-  let distanceFee = 0;
-
-  switch (feeSettings.type) {
-    case 'fixed':
-      fee = baseFee;
-      break;
-
-    case 'per_km':
-      distanceFee = distance * perKmFee;
-      fee = baseFee + distanceFee;
-      break;
-
-    case 'zone_based':
-      const zoneFee = await getZoneBasedFee(distance);
-      fee = zoneFee;
-      baseFee = zoneFee;
-      break;
-
-    case 'restaurant_custom':
-      // استخدام رسوم المطعم المخصصة (قاعدة البيانات مباشرة)
-      fee = restaurantBaseFee;
-      distanceFee = distance * restaurantPerKmFee;
-      fee = restaurantBaseFee + distanceFee;
-      baseFee = restaurantBaseFee;
-      break;
-
-    default:
-      // افتراضي: حسب المسافة
-      distanceFee = distance * (perKmFee || DEFAULT_PER_KM_FEE);
-      fee = (baseFee || DEFAULT_BASE_FEE) + distanceFee;
-  }
+  // حساب الرسوم
+  let distanceFee = distance * perKmFee;
+  let fee = baseFee + distanceFee;
 
   const totalBeforeLimit = fee;
 
   // تطبيق الحد الأدنى والأقصى
-  fee = Math.max(feeSettings.minFee, Math.min(feeSettings.maxFee, fee));
+  fee = Math.max(minFee, Math.min(feeSettings.maxFee, fee));
   
   // تقريب الرسوم
   fee = Math.round(fee * 100) / 100;
