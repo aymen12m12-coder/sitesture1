@@ -42,12 +42,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       description: 'إدارة جميع الطلبات'
     },
     { 
-      icon: Store, 
-      label: 'المتاجر', 
-      path: '/admin/restaurants',
-      description: 'إدارة المتاجر والعلامات التجارية'
-    },
-    { 
       icon: Tag, 
       label: 'التصنيفات', 
       path: '/admin/categories',
@@ -76,12 +70,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       label: 'رسوم التوصيل', 
       path: '/admin/delivery-fees',
       description: 'إدارة رسوم ومناطق التوصيل'
-    },
-    { 
-      icon: Store, 
-      label: 'إدارة المتاجر (متقدم)', 
-      path: '/admin/restaurants-advanced',
-      description: 'إحصائيات ومحفظة المتاجر'
     },
     { 
       icon: DollarSign, 
