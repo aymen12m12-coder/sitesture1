@@ -113,10 +113,10 @@ export default function AdminCategories() {
       return;
     }
 
-    if (!formData.icon) {
+    if (!formData.image) {
       toast({
         title: "خطأ",
-        description: "يرجى اختيار أيقونة للقسم",
+        description: "يرجى إضافة صورة للقسم",
         variant: "destructive",
       });
       return;
@@ -189,26 +189,8 @@ export default function AdminCategories() {
               </div>
 
               <div>
-                <Label htmlFor="icon">الأيقونة (اختياري)</Label>
-                <select
-                  id="icon"
-                  className="w-full p-2 border border-border rounded-md bg-background"
-                  value={formData.icon}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                  data-testid="select-category-icon"
-                >
-                  <option value="">اختر أيقونة</option>
-                  {iconOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
                 <ImageUpload
-                  label="صورة القسم (Photo)"
+                  label="صورة القسم (الأساسية)"
                   value={formData.image}
                   onChange={(url) => setFormData(prev => ({ ...prev, image: url }))}
                   bucket="categories"
@@ -292,13 +274,6 @@ export default function AdminCategories() {
                     بدون صورة
                   </div>
                 )}
-                <div className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-lg flex items-center justify-center shadow-sm">
-                  {category.icon ? (
-                    <i className={`${category.icon} text-primary text-lg`} />
-                  ) : (
-                    <Tag className="h-5 w-5 text-primary" />
-                  )}
-                </div>
               </div>
               <CardHeader className="pb-3 pt-4">
                 <CardTitle className="text-lg">{category.name}</CardTitle>

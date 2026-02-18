@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation as useWouterLocation } from 'wouter';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowRight, Trash2, MapPin, Calendar, Clock, DollarSign, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { LocationPicker, LocationData } from '@/components/LocationPicker';
@@ -13,26 +13,40 @@ import { useCart } from '../contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
+import { useLocation } from '@/context/LocationContext';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 
 export default function Cart() {
-  const [, setLocation] = useLocation();
+  const [, setLocation] = useWouterLocation();
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
   const { items, subtotal, total, deliveryFee, restaurantId } = state;
   const { toast } = useToast();
+  const { location: userLocation } = useLocation();
 
   const [orderForm, setOrderForm] = useState({
-    customerName: '',
-    customerPhone: '',
-    customerEmail: '',
+    customerName: localStorage.getItem('customer_name') || '',
+    customerPhone: localStorage.getItem('customer_phone') || '',
+    customerEmail: localStorage.getItem('customer_email') || '',
     deliveryAddress: '',
     notes: '',
     paymentMethod: 'cash',
     deliveryTime: 'now',
-    deliveryDate: '',
+    deliveryDate: new Date().toISOString().split('T')[0],
     deliveryTimeSlot: '',
     locationData: null as LocationData | null,
   });
+
+  // حساب الرسوم تلقائياً عند توفر الموقع
+  useEffect(() => {
+    if (userLocation.position && !orderForm.locationData) {
+      const location = {
+        lat: userLocation.position.coords.latitude,
+        lng: userLocation.position.coords.longitude,
+        address: 'موقعي الحالي'
+      };
+      handleLocationSelect(location);
+    }
+  }, [userLocation.position]);
 
   const { data: restaurant } = useQuery<Restaurant>({
     queryKey: [`/api/restaurants/${restaurantId}`],
@@ -50,12 +64,12 @@ export default function Cart() {
       locationData: location,
     }));
 
-    if (restaurantId) {
+    if (location.lat && location.lng) {
       try {
         const response = await apiRequest('POST', '/api/delivery-fees/calculate', {
           customerLat: location.lat,
           customerLng: location.lng,
-          restaurantId: restaurantId,
+          restaurantId: restaurantId || null,
           orderSubtotal: subtotal
         });
         
@@ -135,11 +149,14 @@ export default function Cart() {
       deliveryFee: deliveryFee.toString(),
       total: (subtotal + deliveryFee).toString(),
       totalAmount: (subtotal + deliveryFee).toString(),
-      restaurantId: restaurantId || '',
+      restaurantId: restaurantId || null,
       status: 'pending',
       orderNumber: `ORD${Date.now()}`,
       customerLocationLat: orderForm.locationData?.lat.toString(),
       customerLocationLng: orderForm.locationData?.lng.toString(),
+      deliveryPreference: orderForm.deliveryTime,
+      scheduledDate: orderForm.deliveryTime === 'later' ? orderForm.deliveryDate : undefined,
+      scheduledTimeSlot: orderForm.deliveryTime === 'later' ? orderForm.deliveryTimeSlot : undefined,
     };
 
     placeOrderMutation.mutate(orderData);
@@ -344,6 +361,37 @@ export default function Cart() {
                     في وقت لاحق
                   </Button>
                 </div>
+
+                {orderForm.deliveryTime === 'later' && (
+                  <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryDate">تاريخ التوصيل</Label>
+                      <Input
+                        id="deliveryDate"
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={orderForm.deliveryDate}
+                        onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="deliveryTimeSlot">وقت التوصيل</Label>
+                      <select
+                        id="deliveryTimeSlot"
+                        className="w-full p-2 border border-border rounded-md bg-background"
+                        value={orderForm.deliveryTimeSlot}
+                        onChange={(e) => setOrderForm(prev => ({ ...prev, deliveryTimeSlot: e.target.value }))}
+                      >
+                        <option value="">اختر وقت التوصيل</option>
+                        <option value="12:00 PM - 02:00 PM">12:00 PM - 02:00 PM</option>
+                        <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM</option>
+                        <option value="04:00 PM - 06:00 PM">04:00 PM - 06:00 PM</option>
+                        <option value="06:00 PM - 08:00 PM">06:00 PM - 08:00 PM</option>
+                        <option value="08:00 PM - 10:00 PM">08:00 PM - 10:00 PM</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

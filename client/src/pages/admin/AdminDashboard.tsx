@@ -89,7 +89,6 @@ export default function AdminDashboard() {
     { title: 'طلبات اليوم', value: stats.todayOrders || 0, icon: Package },
     { title: 'مبيعات اليوم', value: `${stats.todayRevenue || 0} ريال`, icon: TrendingUp },
     { title: 'طلبات معلقة', value: stats.pendingOrders || 0, icon: Clock },
-    { title: 'المتاجر النشطة', value: stats.totalRestaurants || 0, icon: Store },
   ];
 
   if (isLoading) {
@@ -167,10 +166,9 @@ export default function AdminDashboard() {
 
         {/* Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto p-1">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto p-1">
             <TabsTrigger value="overview" className="py-3">نظرة عامة</TabsTrigger>
             <TabsTrigger value="orders" className="py-3">الطلبات</TabsTrigger>
-            <TabsTrigger value="restaurants" className="py-3">المتاجر</TabsTrigger>
             <TabsTrigger value="drivers" className="py-3">السائقين</TabsTrigger>
             <TabsTrigger value="reports" className="py-3">التقارير</TabsTrigger>
           </TabsList>
@@ -325,10 +323,6 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="restaurants">
-            <RestaurantManagementPanel />
           </TabsContent>
 
           <TabsContent value="drivers">

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Settings, Eye, EyeOff, Image as ImageIcon } from 'lucide-react';
+import { Save, Settings, Eye, EyeOff, Image as ImageIcon, MapPin } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
+import GoogleMapPicker from '@/components/maps/GoogleMapPicker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,12 +17,24 @@ import type { UiSettings } from '@shared/schema';
 interface SettingItem {
   key: string;
   label: string;
-  type: 'boolean' | 'text' | 'textarea' | 'image';
+  type: 'boolean' | 'text' | 'textarea' | 'image' | 'location';
   description: string;
   category: string;
 }
 
 const settingsConfig: SettingItem[] = [
+  // Store Settings
+  { key: 'store_name', label: 'اسم المتجر الرئيسي', type: 'text', description: 'اسم المتجر الرئيسي الذي سيتم عرضه', category: 'إعدادات المتجر الرئيسي' },
+  { key: 'store_address', label: 'عنوان المتجر', type: 'text', description: 'عنوان المتجر الرئيسي بالتفصيل', category: 'إعدادات المتجر الرئيسي' },
+  { key: 'store_lat', label: 'خط العرض (Latitude)', type: 'text', description: 'إحداثيات الموقع - خط العرض', category: 'إعدادات المتجر الرئيسي' },
+  { key: 'store_lng', label: 'خط الطول (Longitude)', type: 'text', description: 'إحداثيات الموقع - خط الطول', category: 'إعدادات المتجر الرئيسي' },
+  { key: 'store_location_picker', label: 'تحديد الموقع على الخريطة', type: 'location', description: 'افتح الخريطة لتحديد موقع المتجر بدقة', category: 'إعدادات المتجر الرئيسي' },
+
+  // Delivery Fee Settings
+  { key: 'delivery_base_fee', label: 'رسوم التوصيل الأساسية', type: 'text', description: 'الرسوم الثابتة للتوصيل (ريال)', category: 'إدارة رسوم التوصيل' },
+  { key: 'delivery_fee_per_km', label: 'رسوم الكيلومتر الواحد', type: 'text', description: 'الرسوم الإضافية لكل كيلومتر (ريال/كم)', category: 'إدارة رسوم التوصيل' },
+  { key: 'min_delivery_fee', label: 'الحد الأدنى لرسوم التوصيل', type: 'text', description: 'أقل مبلغ لرسوم التوصيل مهما كانت المسافة', category: 'إدارة رسوم التوصيل' },
+
   // Branding Settings
   { key: 'header_logo_url', label: 'صورة شعار الهيدر', type: 'image', description: 'يتم عرضه في الشريط العلوي بدلاً من النص', category: 'الهوية البصرية' },
   { key: 'sidebar_image_url', label: 'صورة القائمة الجانبية', type: 'image', description: 'الصورة التي تظهر في أعلى السايد بار', category: 'الهوية البصرية' },
@@ -39,7 +52,6 @@ const settingsConfig: SettingItem[] = [
   // App Settings
   { key: 'app_name', label: 'اسم التطبيق', type: 'text', description: 'اسم التطبيق الذي يظهر للمستخدمين', category: 'عام' },
   { key: 'app_theme', label: 'لون الموضوع', type: 'text', description: 'اللون الأساسي للتطبيق (hex color)', category: 'عام' },
-  { key: 'delivery_fee_default', label: 'رسوم التوصيل الافتراضية', type: 'text', description: 'رسوم التوصيل الافتراضية (ريال)', category: 'عام' },
   { key: 'minimum_order_default', label: 'الحد الأدنى للطلب', type: 'text', description: 'الحد الأدنى لقيمة الطلب (ريال)', category: 'عام' },
   
   // Support & Contact Settings
@@ -56,6 +68,7 @@ export default function AdminUiSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const { data: uiSettings, isLoading } = useQuery<UiSettings[]>({
     queryKey: ['/api/admin/ui-settings'],
@@ -108,6 +121,13 @@ export default function AdminUiSettings() {
 
   const handleBooleanChange = (key: string, checked: boolean) => {
     handleSettingChange(key, checked ? 'true' : 'false');
+  };
+
+  const handleLocationSelect = (location: any) => {
+    handleSettingChange('store_lat', location.lat.toString());
+    handleSettingChange('store_lng', location.lng.toString());
+    handleSettingChange('store_address', location.address);
+    setIsMapOpen(false);
   };
 
   const saveSetting = (key: string) => {
@@ -171,8 +191,8 @@ export default function AdminUiSettings() {
         <div className="flex items-center gap-3">
           <Settings className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إعدادات الواجهة</h1>
-            <p className="text-muted-foreground">إدارة إعدادات التطبيق والواجهة</p>
+            <h1 className="text-2xl font-bold text-foreground">إدارة إعدادات المتجر والواجهة</h1>
+            <p className="text-muted-foreground">إدارة إعدادات المتجر الرئيسي والرسوم والواجهة</p>
           </div>
         </div>
 
@@ -188,6 +208,17 @@ export default function AdminUiSettings() {
           </Button>
         )}
       </div>
+
+      {/* Map Picker Dialog */}
+      <GoogleMapPicker
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onLocationSelect={handleLocationSelect}
+        initialLocation={{
+          lat: parseFloat(getCurrentValue('store_lat')) || 24.7136,
+          lng: parseFloat(getCurrentValue('store_lng')) || 46.6753
+        }}
+      />
 
       {/* Settings by Category */}
       <div className="grid gap-6">
@@ -245,6 +276,15 @@ export default function AdminUiSettings() {
                             className="w-80 min-h-[100px]"
                             placeholder={`ادخل ${setting.label}`}
                           />
+                        ) : setting.type === 'location' ? (
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsMapOpen(true)}
+                            className="gap-2"
+                          >
+                            <MapPin className="h-4 w-4" />
+                            فتح الخريطة
+                          </Button>
                         ) : (
                           <Input
                             id={setting.key}
@@ -287,21 +327,21 @@ export default function AdminUiSettings() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
+              <h4 className="font-medium mb-2">إعدادات المتجر والرسوم</h4>
+              <ul className="space-y-1 text-muted-foreground">
+                <li>المتجر: {getCurrentValue('store_name') || 'غير محدد'}</li>
+                <li>العنوان: {getCurrentValue('store_address') || 'غير محدد'}</li>
+                <li>الرسوم الأساسية: {getCurrentValue('delivery_base_fee') || '0'} ريال</li>
+                <li>رسوم الكيلومتر: {getCurrentValue('delivery_fee_per_km') || '0'} ريال/كم</li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-medium mb-2">إعدادات التطبيق</h4>
               <ul className="space-y-1 text-muted-foreground">
                 <li>اسم التطبيق: {getCurrentValue('app_name') || 'طمطوم'}</li>
                 <li>لون الموضوع: {getCurrentValue('app_theme') || '#007bff'}</li>
-                <li>رسوم التوصيل: {getCurrentValue('delivery_fee_default') || '5'} ريال</li>
                 <li>الحد الأدنى للطلب: {getCurrentValue('minimum_order_default') || '25'} ريال</li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-medium mb-2">إعدادات العرض</h4>
-              <ul className="space-y-1 text-muted-foreground">
                 <li>التصنيفات: {getCurrentValue('show_categories') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
-                <li>شريط البحث: {getCurrentValue('show_search_bar') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
-                <li>العروض الخاصة: {getCurrentValue('show_special_offers') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
-                <li>صفحة الطلبات: {getCurrentValue('show_orders_page') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
               </ul>
             </div>
           </div>
