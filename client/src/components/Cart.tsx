@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'; // أضف useEffect
 import { Minus, Plus, Trash2, ShoppingBag, X, MapPin, Loader2 } from 'lucide-react'; 
 import { useCart } from '../contexts/CartContext';
-import { useLocation as useGeoLocation } from '../contexts/LocationContext';
+import { useUserLocation as useGeoLocation } from '../contexts/LocationContext';
 import { GoogleMapsLocationPicker, LocationData } from './GoogleMapsLocationPicker';
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
