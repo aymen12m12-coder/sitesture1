@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'; // أضف useEffect
 import { Minus, Plus, Trash2, ShoppingBag, X, MapPin, Loader2 } from 'lucide-react'; 
 import { useCart } from '../contexts/CartContext';
-import { useUserLocation as useGeoLocation } from '../contexts/LocationContext';
+import { useUserLocation as useGeoLocation } from '../context/LocationContext';
 import { GoogleMapsLocationPicker, LocationData } from './GoogleMapsLocationPicker';
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
@@ -30,6 +30,13 @@ export function Cart({ isOpen, onClose }: CartProps) {
     paymentMethod: 'cash'
   });
 
+  const paymentMethods = [
+    { id: 'cash', name: 'نقداً عند الاستلام', icon: '💵' },
+    { id: 'card', name: 'بطاقة دفع', icon: '💳' },
+    { id: 'wallet', name: 'المحفظة', icon: '👛' },
+    { id: 'online', name: 'دفع إلكتروني', icon: '🌐' }
+  ];
+
   // Automatically request location if not available when cart is open
   useEffect(() => {
     if (isOpen && !userGeoLocation.position && !userGeoLocation.isLoading && !userGeoLocation.error) {
@@ -40,12 +47,15 @@ export function Cart({ isOpen, onClose }: CartProps) {
   // Use GPS location as default if selectedLocation is null
   useEffect(() => {
     if (userGeoLocation.position && !selectedLocation && isOpen) {
+      const { latitude, longitude } = userGeoLocation.position.coords;
       setSelectedLocation({
-        lat: userGeoLocation.position.coords.latitude,
-        lng: userGeoLocation.position.coords.longitude,
+        lat: latitude,
+        lng: longitude,
         address: 'موقعي الحالي (GPS)',
         area: 'تحديد تلقائي'
       });
+      
+      // لا نحتاج لاستدعاء fetchDeliveryFee هنا لأن الـ useEffect التالي سيقوم بذلك بمجرد تغير selectedLocation
     }
   }, [userGeoLocation.position, selectedLocation, isOpen]);
 
@@ -228,6 +238,14 @@ export function Cart({ isOpen, onClose }: CartProps) {
               <p>سلة التسوق فارغة</p>
               <p className="text-sm">أضف عناصر من المطاعم لتبدأ طلبك</p>
             </div>
+          ) : (userGeoLocation.isLoading || isCalculatingFee) && !selectedLocation ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+              <Loader2 size={48} className="animate-spin text-primary" />
+              <div className="text-center">
+                <p className="font-bold text-gray-800">جاري حساب رسوم التوصيل...</p>
+                <p className="text-xs">يرجى الانتظار قليلاً لنتمكن من تحديد موقعك</p>
+              </div>
+            </div>
           ) : (
             <>
               {/* Restaurant Name */}
@@ -298,38 +316,36 @@ export function Cart({ isOpen, onClose }: CartProps) {
                       <span>المجموع الفرعي:</span>
                       <span>{state.subtotal.toFixed(2)} ر.ي</span>
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
                       <div className="flex justify-between items-center">
-                        <span>رسوم التوصيل:</span>
+                        <span className="text-sm text-gray-600 font-bold">رسوم التوصيل</span>
                         <div className="text-left">
                           {!selectedLocation ? (
-                            <span className="text-sm text-amber-600 font-medium">حدد الموقع للحساب</span>
+                            <span className="text-xs text-amber-600 font-black animate-pulse bg-amber-50 px-2 py-0.5 rounded">جاري تحديد الموقع...</span>
                           ) : isCalculatingFee ? (
                             <Loader2 className="h-4 w-4 animate-spin text-primary inline" />
                           ) : (
-                            <>
-                              <span className={deliveryDetails?.isFreeDelivery ? "line-through text-gray-400" : ""}>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-sm font-black ${deliveryDetails?.isFreeDelivery ? "line-through text-gray-400" : "text-gray-900"}`}>
                                 {deliveryFee.toFixed(2)} ر.ي
                               </span>
                               {deliveryDetails?.isFreeDelivery && (
-                                <span className="text-green-600 font-medium mr-2">مجاني</span>
+                                <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-black">مجاني</span>
                               )}
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
                       
                       {selectedLocation && deliveryDetails && !isCalculatingFee && (
-                        <div className="flex flex-col text-xs text-muted-foreground">
-                          {deliveryDetails.distance > 0 && (
-                            <span>المسافة: {deliveryDetails.distance.toFixed(2)} كم</span>
-                          )}
-                          {deliveryDetails.estimatedTime && (
-                            <span>وقت التوصيل المتوقع: {deliveryDetails.estimatedTime}</span>
-                          )}
-                          {deliveryDetails.freeDeliveryReason && (
-                            <span className="text-green-600 mt-1">{deliveryDetails.freeDeliveryReason}</span>
-                          )}
+                        <div className="grid grid-cols-2 gap-2 mt-1 pt-2 border-t border-gray-200/50">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3 text-primary" />
+                            <span className="text-[10px] text-gray-500 font-bold">المسافة: {deliveryDetails.distance.toFixed(1)} كم</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 justify-end">
+                            <span className="text-[10px] text-gray-500 font-bold">⏱ {deliveryDetails.estimatedTime}</span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -439,52 +455,38 @@ export function Cart({ isOpen, onClose }: CartProps) {
 
                   {/* طرق الدفع */}
                   <div>
-                    <h3 className="font-medium mb-2">طريقة الدفع *</h3>
+                    <h3 className="font-medium mb-2 text-sm">طريقة الدفع *</h3>
                     <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'cash'})}
-                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'cash' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
-                      >
-                        <i className="fas fa-money-bill-wave text-xl"></i>
-                        <span className="text-xs font-bold">نقداً</span>
-                      </button>
-                      <button
-                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'card'})}
-                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'card' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
-                      >
-                        <i className="fas fa-credit-card text-xl"></i>
-                        <span className="text-xs font-bold">بطاقة</span>
-                      </button>
-                      <button
-                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'wallet'})}
-                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'wallet' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
-                      >
-                        <i className="fas fa-wallet text-xl"></i>
-                        <span className="text-xs font-bold">المحفظة</span>
-                      </button>
-                      <button
-                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'online'})}
-                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'online' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
-                      >
-                        <i className="fas fa-globe text-xl"></i>
-                        <span className="text-xs font-bold">دفع إلكتروني</span>
-                      </button>
+                      {paymentMethods.map((method) => (
+                        <button
+                          key={method.id}
+                          onClick={() => setCustomerInfo({...customerInfo, paymentMethod: method.id})}
+                          className={`p-3 border rounded-xl flex flex-col items-center justify-center gap-1.5 transition-all duration-300 ${
+                            customerInfo.paymentMethod === method.id 
+                              ? 'border-red-500 bg-red-50 text-red-700 shadow-sm' 
+                              : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="text-xl">{method.icon}</span>
+                          <span className="text-[10px] font-black">{method.name}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-3 pt-4 border-t mt-4">
+                    <Button
+                      onClick={handleCheckout}
+                      className="w-full bg-red-600 text-white py-7 rounded-2xl font-black text-lg hover:bg-red-700 transition-all shadow-xl flex items-center justify-center gap-2"
+                    >
+                      تأكيد الطلب بنجاح
+                    </Button>
                     <button
                       onClick={() => setShowCheckout(false)}
-                      className="flex-1 border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50"
+                      className="w-full py-3 text-gray-500 font-bold hover:text-gray-700 transition-colors text-sm"
                     >
-                      رجوع
-                    </button>
-                    <button
-                      onClick={handleCheckout}
-                      className="flex-1 bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
-                    >
-                      تأكيد الطلب
+                      رجوع لتعديل السلة
                     </button>
                   </div>
                 </div>
