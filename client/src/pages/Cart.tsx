@@ -13,7 +13,7 @@ import { useCart } from '../contexts/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { formatCurrency } from '@/lib/utils';
-import { useLocation } from '@/context/LocationContext';
+import { useUserLocation } from '@/context/LocationContext';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 
 export default function Cart() {
@@ -21,7 +21,7 @@ export default function Cart() {
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
   const { items, subtotal, total, deliveryFee, restaurantId } = state;
   const { toast } = useToast();
-  const { location: userLocation } = useLocation();
+  const { location: userLocation } = useUserLocation();
 
   const [orderForm, setOrderForm] = useState({
     customerName: localStorage.getItem('customer_name') || '',

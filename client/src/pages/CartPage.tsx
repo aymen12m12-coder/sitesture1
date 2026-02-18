@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useCart } from '../contexts/CartContext';
-import { useLocation as useCoordinates } from '../contexts/LocationContext';
+import { useUserLocation as useCoordinates } from '../contexts/LocationContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { InsertOrder, Restaurant } from '@shared/schema';
