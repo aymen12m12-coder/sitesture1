@@ -209,13 +209,13 @@ export async function seedDefaultData() {
       // App Settings
       {
         key: "app_name",
-        value: "السريع ون للتوصيل",
+        value: "طمطوم للتوصيل",
         category: "general",
         description: "اسم التطبيق الذي يظهر للمستخدمين"
       },
       {
         key: "app_theme",
-        value: "#007bff",
+        value: "#e11d48", // Rose-600 (Tamtoom Red)
         category: "general",
         description: "اللون الأساسي للتطبيق (hex color)"
       },
@@ -224,6 +224,30 @@ export async function seedDefaultData() {
         value: "5",
         category: "general",
         description: "رسوم التوصيل الافتراضية (ريال)"
+      },
+      {
+        key: "delivery_base_fee",
+        value: "5",
+        category: "delivery",
+        description: "الرسوم الأساسية للتوصيل (ريال)"
+      },
+      {
+        key: "min_delivery_fee",
+        value: "5",
+        category: "delivery",
+        description: "الحد الأدنى لرسوم التوصيل (ريال)"
+      },
+      {
+        key: "store_lat",
+        value: "15.3694",
+        category: "store",
+        description: "خط العرض لموقع المتجر الرئيسي"
+      },
+      {
+        key: "store_lng",
+        value: "44.1910",
+        category: "store",
+        description: "خط الطول لموقع المتجر الرئيسي"
       },
       {
         key: "minimum_order_default",
