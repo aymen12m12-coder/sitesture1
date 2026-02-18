@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "./contexts/CartContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { LocationProvider, useLocation } from "./context/LocationContext";
+import { LocationProvider, useUserLocation } from "./context/LocationContext";
 import { UiSettingsProvider, useUiSettings } from "./context/UiSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
@@ -33,7 +33,7 @@ import NotFound from "@/pages/not-found";
 
 function MainApp() {
   // const { userType, loading } = useAuth(); // تم إزالة نظام المصادقة
-  const { location } = useLocation();
+  const { location } = useUserLocation();
   const [showLocationModal, setShowLocationModal] = useState(true);
 
   // تم إزالة loading state ومراجع المصادقة
