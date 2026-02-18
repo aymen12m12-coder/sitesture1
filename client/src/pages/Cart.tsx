@@ -167,7 +167,10 @@ export default function Cart() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8 border-b pb-4">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-black uppercase tracking-tighter">حقيبة التسوق</h1>
+            <div className="text-3xl font-black tracking-tighter">
+              <span className="text-[#388e3c]">طم</span><span className="text-[#d32f2f]">طوم</span>
+            </div>
+            <h1 className="text-3xl font-black uppercase tracking-tighter"> - السلة</h1>
           </div>
           {items.length > 0 && (
             <Button 
@@ -481,10 +484,10 @@ export default function Cart() {
                   <Button 
                     className="w-full bg-black hover:bg-red-600 text-white font-semibold py-3 text-lg"
                     onClick={handlePlaceOrder}
-                    disabled={placeOrderMutation.isPending}
+                    disabled={placeOrderMutation.isPending || !orderForm.locationData}
                     data-testid="button-place-order"
                   >
-                    {placeOrderMutation.isPending ? 'جاري تأكيد الطلب...' : `تأكيد الطلب - ${formatCurrency(total)}`}
+                    {placeOrderMutation.isPending ? 'جاري تأكيد الطلب...' : !orderForm.locationData ? 'يرجى تحديد الموقع للمتابعة' : `تأكيد الطلب - ${formatCurrency(total)}`}
                   </Button>
                 </CardContent>
               </Card>

@@ -21,6 +21,12 @@ export default function CartPage() {
   const { items, subtotal, total, deliveryFee } = state;
   const { toast } = useToast();
   const { location: userLocation, getCurrentLocation } = useCoordinates();
+  const [calculatingFee, setCalculatingFee] = useState(false);
+  const [deliveryInfo, setDeliveryInfo] = useState<{
+    distance: number;
+    estimatedTime: string;
+    isFreeDelivery: boolean;
+  } | null>(null);
 
   const restaurantId = items[0]?.restaurantId;
 
@@ -31,31 +37,49 @@ export default function CartPage() {
 
   // Calculate delivery fee whenever subtotal or location changes
   useEffect(() => {
-    if (!restaurant) return;
-
-    let fee = 5; // Default fee
-
-    if (userLocation.position && restaurant.latitude && restaurant.longitude) {
-      const distance = calculateDistance(
-        userLocation.position.coords.latitude,
-        userLocation.position.coords.longitude,
-        parseFloat(String(restaurant.latitude)),
-        parseFloat(String(restaurant.longitude))
-      );
-
-      fee = calculateDeliveryFee(distance, {
-        baseFee: parseFloat(String(restaurant.deliveryFee || 0)),
-        perKmFee: parseFloat(String(restaurant.perKmFee || 0)),
-        minFee: 5,
-        maxFee: 50,
-        subtotal: subtotal
-      });
-    } else {
-      fee = parseFloat(String(restaurant.deliveryFee || 5));
+    if (items.length === 0) {
+      setDeliveryInfo(null);
+      setDeliveryFee(0);
+      return;
     }
 
-    setDeliveryFee(fee);
-  }, [restaurant, userLocation.position, subtotal]);
+    const calculateFee = async () => {
+      if (userLocation.position) {
+        setCalculatingFee(true);
+        try {
+          const response = await apiRequest('POST', '/api/delivery-fees/calculate', {
+            customerLat: userLocation.position.coords.latitude,
+            customerLng: userLocation.position.coords.longitude,
+            restaurantId: restaurantId,
+            orderSubtotal: subtotal
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            setDeliveryFee(result.fee);
+            setDeliveryInfo({
+              distance: result.distance,
+              estimatedTime: result.estimatedTime,
+              isFreeDelivery: result.isFreeDelivery
+            });
+          }
+        } catch (error) {
+          console.error('Error calculating delivery fee:', error);
+          // Fallback to basic fee if API fails
+          setDeliveryFee(5);
+        } finally {
+          setCalculatingFee(false);
+        }
+      } else {
+        // Try to get location if not available
+        getCurrentLocation();
+        setDeliveryFee(0);
+        setDeliveryInfo(null);
+      }
+    };
+
+    calculateFee();
+  }, [userLocation.position, subtotal, restaurantId]);
 
   const [orderForm, setOrderForm] = useState({
     customerName: '',
@@ -153,7 +177,7 @@ export default function CartPage() {
           >
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-bold text-foreground">السلة</h2>
+          <h2 className="text-xl font-bold text-foreground">طمطوم - السلة</h2>
         </div>
       </header>
 
@@ -230,28 +254,63 @@ export default function CartPage() {
                   {subtotal} ريال
                 </span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">رسوم التوصيل</span>
-                <span className="text-foreground">{deliveryFee} ريال</span>
+                <div className="flex flex-col items-end">
+                  {calculatingFee ? (
+                    <span className="text-xs text-muted-foreground animate-pulse">جاري الحساب...</span>
+                  ) : deliveryFee > 0 ? (
+                    <span className="text-foreground">{deliveryFee} ريال</span>
+                  ) : userLocation.position ? (
+                    <span className="text-green-600 font-bold">توصيل مجاني</span>
+                  ) : (
+                    <span className="text-destructive text-xs">يرجى تحديد الموقع للحساب</span>
+                  )}
+                </div>
               </div>
-              {userLocation.error && (
-                <p className="text-xs text-destructive mt-1">{userLocation.error}</p>
+
+              {deliveryInfo && (
+                <div className="flex flex-col gap-1 py-2 border-y border-dashed border-border my-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">المسافة المقدرة:</span>
+                    <span className="text-foreground font-medium">{deliveryInfo.distance} كم</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">وقت التوصيل المتوقع:</span>
+                    <span className="text-foreground font-medium">{deliveryInfo.estimatedTime}</span>
+                  </div>
+                </div>
               )}
-              {!userLocation.position && (
+
+              {userLocation.error && (
+                <div className="bg-destructive/10 p-2 rounded text-xs text-destructive flex items-center gap-2 mt-1">
+                  <i className="fas fa-exclamation-circle"></i>
+                  {userLocation.error}
+                </div>
+              )}
+              
+              {!userLocation.position && !userLocation.isLoading && (
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full mt-2 text-xs h-8"
+                  className="w-full mt-2 text-xs h-9 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary"
                   onClick={getCurrentLocation}
                 >
-                  <MapPin className="h-3 w-3 ml-1" />
-                  تحديد موقعي بدقة لحساب التوصيل
+                  <MapPin className="h-3.5 w-3.5 ml-2" />
+                  تحديد موقعي الآن لحساب التوصيل تلقائياً
                 </Button>
               )}
+
+              {userLocation.isLoading && (
+                <div className="text-center py-2">
+                  <span className="text-xs text-muted-foreground animate-pulse italic">جاري جلب موقعك الحالي...</span>
+                </div>
+              )}
+
               <div className="border-t border-border pt-2 mt-2">
                 <div className="flex justify-between font-bold">
                   <span className="text-foreground">الإجمالي</span>
-                  <span className="text-primary" data-testid="order-total">
+                  <span className="text-primary text-lg" data-testid="order-total">
                     {total} ريال
                   </span>
                 </div>
@@ -351,11 +410,21 @@ export default function CartPage() {
 
             <Button
               onClick={handlePlaceOrder}
-              disabled={placeOrderMutation.isPending}
+              disabled={placeOrderMutation.isPending || calculatingFee || !userLocation.position}
               className="w-full mt-6 py-4 text-lg font-bold"
               data-testid="button-place-order"
             >
-              {placeOrderMutation.isPending ? 'جاري تأكيد الطلب...' : 'تأكيد الطلب'}
+              {placeOrderMutation.isPending ? (
+                <span className="flex items-center gap-2">
+                  <i className="fas fa-spinner fa-spin"></i> جاري تأكيد الطلب...
+                </span>
+              ) : calculatingFee ? (
+                'جاري حساب رسوم التوصيل...'
+              ) : !userLocation.position ? (
+                'يرجى تحديد الموقع لإكمال الطلب'
+              ) : (
+                'تأكيد الطلب'
+              )}
             </Button>
           </Card>
         )}
