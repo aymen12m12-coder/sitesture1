@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useCart } from '../contexts/CartContext';
-import { useUserLocation as useCoordinates } from '../contexts/LocationContext';
+import { useUserLocation as useCoordinates } from '../context/LocationContext';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import type { InsertOrder, Restaurant } from '@shared/schema';
@@ -381,27 +381,34 @@ export default function CartPage() {
                 <RadioGroup
                   value={orderForm.paymentMethod}
                   onValueChange={(value) => setOrderForm(prev => ({ ...prev, paymentMethod: value }))}
-                  className="space-y-2 mt-2"
+                  className="grid grid-cols-2 gap-2 mt-2"
                 >
-                  <div className="flex items-center space-x-2 space-x-reverse p-3 bg-muted rounded-lg">
-                    <RadioGroupItem value="cash" id="cash" data-testid="payment-cash" />
-                    <Label htmlFor="cash" className="flex items-center gap-3 cursor-pointer">
-                      <i className="fas fa-money-bill-wave text-muted-foreground"></i>
-                      <span className="text-foreground">الدفع عند الاستلام</span>
+                  <div className={`flex flex-col items-center justify-center p-3 border rounded-xl transition-all ${orderForm.paymentMethod === 'cash' ? 'border-primary bg-primary/5 text-primary' : 'border-border'}`}>
+                    <RadioGroupItem value="cash" id="cash" className="sr-only" />
+                    <Label htmlFor="cash" className="flex flex-col items-center gap-2 cursor-pointer w-full h-full">
+                      <span className="text-2xl">💵</span>
+                      <span className="text-[10px] font-black">نقداً</span>
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2 space-x-reverse p-3 bg-muted rounded-lg">
-                    <RadioGroupItem value="card" id="card" data-testid="payment-card" />
-                    <Label htmlFor="card" className="flex items-center gap-3 cursor-pointer">
-                      <i className="fas fa-credit-card text-muted-foreground"></i>
-                      <span className="text-foreground">الدفع الإلكتروني</span>
+                  <div className={`flex flex-col items-center justify-center p-3 border rounded-xl transition-all ${orderForm.paymentMethod === 'card' ? 'border-primary bg-primary/5 text-primary' : 'border-border'}`}>
+                    <RadioGroupItem value="card" id="card" className="sr-only" />
+                    <Label htmlFor="card" className="flex flex-col items-center gap-2 cursor-pointer w-full h-full">
+                      <span className="text-2xl">💳</span>
+                      <span className="text-[10px] font-black">بطاقة دفع</span>
                     </Label>
                   </div>
-                  <div className="flex items-center space-x-2 space-x-reverse p-3 bg-muted rounded-lg">
-                    <RadioGroupItem value="wallet" id="wallet" data-testid="payment-wallet" />
-                    <Label htmlFor="wallet" className="flex items-center gap-3 cursor-pointer">
-                      <i className="fas fa-wallet text-muted-foreground"></i>
-                      <span className="text-foreground">الدفع من الرصيد</span>
+                  <div className={`flex flex-col items-center justify-center p-3 border rounded-xl transition-all ${orderForm.paymentMethod === 'wallet' ? 'border-primary bg-primary/5 text-primary' : 'border-border'}`}>
+                    <RadioGroupItem value="wallet" id="wallet" className="sr-only" />
+                    <Label htmlFor="wallet" className="flex flex-col items-center gap-2 cursor-pointer w-full h-full">
+                      <span className="text-2xl">👛</span>
+                      <span className="text-[10px] font-black">المحفظة</span>
+                    </Label>
+                  </div>
+                  <div className={`flex flex-col items-center justify-center p-3 border rounded-xl transition-all ${orderForm.paymentMethod === 'online' ? 'border-primary bg-primary/5 text-primary' : 'border-border'}`}>
+                    <RadioGroupItem value="online" id="online" className="sr-only" />
+                    <Label htmlFor="online" className="flex flex-col items-center gap-2 cursor-pointer w-full h-full">
+                      <span className="text-2xl">🌐</span>
+                      <span className="text-[10px] font-black">دفع إلكتروني</span>
                     </Label>
                   </div>
                 </RadioGroup>
