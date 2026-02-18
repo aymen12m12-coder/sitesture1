@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'; // أضف useEffect
-import { Minus, Plus, Trash2, ShoppingBag, X, MapPin } from 'lucide-react'; // أضف MapPin
+import { Minus, Plus, Trash2, ShoppingBag, X, MapPin, Loader2 } from 'lucide-react'; 
 import { useCart } from '../contexts/CartContext';
+import { useLocation as useGeoLocation } from '../contexts/LocationContext';
 import { GoogleMapsLocationPicker, LocationData } from './GoogleMapsLocationPicker';
 import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
@@ -14,6 +15,7 @@ interface CartProps {
 
 export function Cart({ isOpen, onClose }: CartProps) {
   const { state, updateQuantity, removeItem, addNotes, clearCart, setDeliveryFee: setContextDeliveryFee } = useCart();
+  const { location: userGeoLocation, getCurrentLocation } = useGeoLocation();
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -24,8 +26,28 @@ export function Cart({ isOpen, onClose }: CartProps) {
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     phone: '',
-    notes: ''
+    notes: '',
+    paymentMethod: 'cash'
   });
+
+  // Automatically request location if not available when cart is open
+  useEffect(() => {
+    if (isOpen && !userGeoLocation.position && !userGeoLocation.isLoading && !userGeoLocation.error) {
+      getCurrentLocation();
+    }
+  }, [isOpen, userGeoLocation.position, userGeoLocation.isLoading]);
+
+  // Use GPS location as default if selectedLocation is null
+  useEffect(() => {
+    if (userGeoLocation.position && !selectedLocation && isOpen) {
+      setSelectedLocation({
+        lat: userGeoLocation.position.coords.latitude,
+        lng: userGeoLocation.position.coords.longitude,
+        address: 'موقعي الحالي (GPS)',
+        area: 'تحديد تلقائي'
+      });
+    }
+  }, [userGeoLocation.position, selectedLocation, isOpen]);
 
   // جلب إعدادات رسوم التوصيل
   const { data: uiSettings } = useQuery({
@@ -136,7 +158,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
         customerLocationLat: selectedLocation.lat,
         customerLocationLng: selectedLocation.lng,
         notes: customerInfo.notes,
-        paymentMethod: 'cash',
+        paymentMethod: customerInfo.paymentMethod,
         items: JSON.stringify(state.items),
         subtotal: state.subtotal,
         deliveryFee: deliveryFee,
@@ -183,8 +205,10 @@ export function Cart({ isOpen, onClose }: CartProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="text-red-500" size={24} />
-            <h2 className="text-lg font-semibold">سلة التسوق</h2>
+            <div className="text-xl font-black tracking-tighter">
+              <span className="text-[#388e3c]">طم</span><span className="text-[#d32f2f]">طوم</span>
+            </div>
+            <h2 className="text-lg font-bold"> - السلة</h2>
             {state.items.length > 0 && (
               <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                 {state.items.length}
@@ -317,12 +341,25 @@ export function Cart({ isOpen, onClose }: CartProps) {
                     </div>
                   </div>
 
-                  <button
+                  <Button
                     onClick={() => setShowCheckout(true)}
-                    className="w-full bg-red-500 text-white py-3 rounded-lg font-medium hover:bg-red-600 transition-colors"
+                    disabled={!selectedLocation || isCalculatingFee}
+                    className="w-full bg-red-600 text-white py-6 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    إتمام الطلب
-                  </button>
+                    {!selectedLocation ? (
+                      <>
+                        <MapPin size={20} />
+                        حدد الموقع للمتابعة
+                      </>
+                    ) : isCalculatingFee ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        جاري حساب التوصيل...
+                      </>
+                    ) : (
+                      'إتمام الطلب'
+                    )}
+                  </Button>
                 </div>
               ) : (
                 <div className="p-4 border-t space-y-4">
@@ -398,6 +435,41 @@ export function Cart({ isOpen, onClose }: CartProps) {
                         تحديد موقع التوصيل
                       </Button>
                     )}
+                  </div>
+
+                  {/* طرق الدفع */}
+                  <div>
+                    <h3 className="font-medium mb-2">طريقة الدفع *</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'cash'})}
+                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'cash' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
+                      >
+                        <i className="fas fa-money-bill-wave text-xl"></i>
+                        <span className="text-xs font-bold">نقداً</span>
+                      </button>
+                      <button
+                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'card'})}
+                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'card' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
+                      >
+                        <i className="fas fa-credit-card text-xl"></i>
+                        <span className="text-xs font-bold">بطاقة</span>
+                      </button>
+                      <button
+                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'wallet'})}
+                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'wallet' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
+                      >
+                        <i className="fas fa-wallet text-xl"></i>
+                        <span className="text-xs font-bold">المحفظة</span>
+                      </button>
+                      <button
+                        onClick={() => setCustomerInfo({...customerInfo, paymentMethod: 'online'})}
+                        className={`p-3 border rounded-lg flex flex-col items-center gap-1 transition-all ${customerInfo.paymentMethod === 'online' ? 'border-red-500 bg-red-50 text-red-700' : 'hover:bg-gray-50'}`}
+                      >
+                        <i className="fas fa-globe text-xl"></i>
+                        <span className="text-xs font-bold">دفع إلكتروني</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
