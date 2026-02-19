@@ -34,6 +34,8 @@ export interface DeliveryFeeResult {
   };
   isFreeDelivery: boolean;
   freeDeliveryReason?: string;
+  appliedRuleId?: string;
+  appliedDiscountId?: string;
 }
 
 export interface DeliveryFeeSettings {
@@ -76,6 +78,23 @@ function toRadians(degrees: number): number {
 }
 
 /**
+ * التحقق مما إذا كانت النقطة داخل مضلع (Geo-Zone)
+ */
+export function isPointInPolygon(point: DeliveryLocation, polygon: DeliveryLocation[]): boolean {
+  let isInside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = point.lat, yi = point.lng;
+    const x1 = polygon[i].lat, y1 = polygon[i].lng;
+    const x2 = polygon[j].lat, y2 = polygon[j].lng;
+    
+    const intersect = ((y1 > yi) !== (y2 > yi)) &&
+        (xi < (x2 - x1) * (yi - y1) / (y2 - y1) + x1);
+    if (intersect) isInside = !isInside;
+  }
+  return isInside;
+}
+
+/**
  * تقدير وقت التوصيل بناءً على المسافة
  * Estimate delivery time based on distance
  */
@@ -115,84 +134,139 @@ export async function calculateDeliveryFee(
   restaurantId: string | null,
   orderSubtotal: number
 ): Promise<DeliveryFeeResult> {
-  // جلب إعدادات المتجر الرئيسي من إعدادات الواجهة
+  // 1. جلب المناطق الجغرافية والقواعد والخصومات النشطة
+  const [geoZones, deliveryRules, discounts] = await Promise.all([
+    storage.getGeoZones(),
+    storage.getDeliveryRules(),
+    storage.getDeliveryDiscounts()
+  ]);
+
+  const activeGeoZones = geoZones.filter(z => z.isActive);
+  const activeRules = deliveryRules.filter(r => r.isActive);
+  const activeDiscounts = discounts.filter(d => d.isActive);
+
+  // 2. جلب إعدادات المتجر الأساسية (للتوافق)
   const storeLat = await storage.getUiSetting('store_lat');
   const storeLng = await storage.getUiSetting('store_lng');
   const baseFeeSetting = await storage.getUiSetting('delivery_base_fee');
   const perKmFeeSetting = await storage.getUiSetting('delivery_fee_per_km');
-  const minFeeSetting = await storage.getUiSetting('min_delivery_fee');
-
-  // جلب بيانات المطعم إذا كان لا يزال مستخدماً (للتوافق)
+  
   const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
   
-  // تحديد الإحداثيات (الأولوية لإعدادات المتجر الرئيسي)
   let storeLocation: DeliveryLocation = {
     lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
     lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
   };
 
-  // جلب إعدادات رسوم التوصيل
-  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
-  
-  // تحديد الرسوم (الأولوية لإعدادات المتجر الرئيسي)
-  let baseFee = baseFeeSetting ? parseFloat(baseFeeSetting.value) : (restaurant ? parseFloat(restaurant.deliveryFee || '0') : feeSettings.baseFee);
-  let perKmFee = perKmFeeSetting ? parseFloat(perKmFeeSetting.value) : (restaurant ? parseFloat(restaurant.perKmFee || '0') : feeSettings.perKmFee);
-  let minFee = minFeeSetting ? parseFloat(minFeeSetting.value) : feeSettings.minFee;
-
-  // التحقق من وجود إحداثيات المتجر
-  if (storeLocation.lat === 0 && storeLocation.lng === 0) {
-    return {
-      fee: baseFee,
-      distance: 0,
-      estimatedTime: restaurant?.deliveryTime || '30-45 دقيقة',
-      feeBreakdown: {
-        baseFee: baseFee,
-        distanceFee: 0,
-        totalBeforeLimit: baseFee
-      },
-      isFreeDelivery: false
-    };
-  }
-
   // حساب المسافة
-  const distance = calculateDistance(customerLocation, storeLocation);
-  
-  // تقدير وقت التوصيل
+  const distance = storeLocation.lat !== 0 ? calculateDistance(customerLocation, storeLocation) : 0;
   const estimatedTime = estimateDeliveryTime(distance);
 
-  // حساب الرسوم
-  let distanceFee = distance * perKmFee;
-  let fee = baseFee + distanceFee;
+  // 3. تحديد المنطقة الجغرافية (Geo-Zone)
+  let matchingGeoZoneId: string | null = null;
+  for (const zone of activeGeoZones) {
+    try {
+      const polygon = JSON.parse(zone.coordinates);
+      if (isPointInPolygon(customerLocation, polygon)) {
+        matchingGeoZoneId = zone.id;
+        break; // نأخذ أول منطقة مطابقة
+      }
+    } catch (e) {
+      console.error(`Error parsing coordinates for zone ${zone.name}`, e);
+    }
+  }
 
-  const totalBeforeLimit = fee;
+  // 4. تطبيق القواعد الديناميكية (Dynamic Rules)
+  // القواعد مرتبة حسب الأولوية (Priority) من الأعلى إلى الأقل
+  let appliedFee: number | null = null;
+  let appliedRuleId: string | undefined;
 
-  // تطبيق الحد الأدنى والأقصى
-  fee = Math.max(minFee, Math.min(feeSettings.maxFee, fee));
+  for (const rule of activeRules) {
+    let matches = false;
+
+    if (rule.ruleType === 'zone' && rule.geoZoneId === matchingGeoZoneId) {
+      matches = true;
+    } else if (rule.ruleType === 'distance') {
+      const minD = rule.minDistance ? parseFloat(rule.minDistance) : 0;
+      const maxD = rule.maxDistance ? parseFloat(rule.maxDistance) : Infinity;
+      if (distance >= minD && distance <= maxD) matches = true;
+    } else if (rule.ruleType === 'order_value') {
+      const minV = rule.minOrderValue ? parseFloat(rule.minOrderValue) : 0;
+      const maxV = rule.maxOrderValue ? parseFloat(rule.maxOrderValue) : Infinity;
+      if (orderSubtotal >= minV && orderSubtotal <= maxV) matches = true;
+    }
+
+    if (matches) {
+      appliedFee = parseFloat(rule.fee);
+      appliedRuleId = rule.id;
+      break; // نطبق أول قاعدة مطابقة حسب الأولوية
+    }
+  }
+
+  // 5. إذا لم تطبق أي قاعدة، نستخدم الحساب الافتراضي
+  let baseFee = baseFeeSetting ? parseFloat(baseFeeSetting.value) : (restaurant ? parseFloat(restaurant.deliveryFee || '0') : DEFAULT_BASE_FEE);
+  let perKmFee = perKmFeeSetting ? parseFloat(perKmFeeSetting.value) : (restaurant ? parseFloat(restaurant.perKmFee || '0') : DEFAULT_PER_KM_FEE);
   
-  // تقريب الرسوم
-  fee = Math.round(fee * 100) / 100;
+  if (appliedFee === null) {
+    appliedFee = baseFee + (distance * perKmFee);
+  }
 
-  // التحقق من التوصيل المجاني
+  // 6. تطبيق الخصومات (Discounts)
   let isFreeDelivery = false;
   let freeDeliveryReason: string | undefined;
+  let appliedDiscountId: string | undefined;
 
+  // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات القديمة (للتوافق)
+  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
   if (feeSettings.freeDeliveryThreshold > 0 && orderSubtotal >= feeSettings.freeDeliveryThreshold) {
     isFreeDelivery = true;
     freeDeliveryReason = `توصيل مجاني للطلبات فوق ${feeSettings.freeDeliveryThreshold} ريال`;
-    fee = 0;
+    appliedFee = 0;
   }
 
+  // تطبيق خصومات التوصيل الجديدة
+  const now = new Date();
+  for (const discount of activeDiscounts) {
+    if (discount.validFrom && new Date(discount.validFrom) > now) continue;
+    if (discount.validUntil && new Date(discount.validUntil) < now) continue;
+    if (discount.minOrderValue && orderSubtotal < parseFloat(discount.minOrderValue)) continue;
+
+    appliedDiscountId = discount.id;
+    if (discount.discountType === 'percentage') {
+      const discountAmount = appliedFee * (parseFloat(discount.discountValue) / 100);
+      appliedFee -= discountAmount;
+      if (parseFloat(discount.discountValue) === 100) {
+        isFreeDelivery = true;
+        freeDeliveryReason = `خصم توصيل مجاني: ${discount.name}`;
+      }
+    } else {
+      appliedFee -= parseFloat(discount.discountValue);
+      if (appliedFee <= 0) {
+        appliedFee = 0;
+        isFreeDelivery = true;
+        freeDeliveryReason = `توصيل مجاني: ${discount.name}`;
+      }
+    }
+    break; // نطبق أول خصم متاح
+  }
+
+  // التأكد من أن الرسوم لا تقل عن صفر ولا تتجاوز الحد الأقصى
+  appliedFee = Math.max(0, Math.min(feeSettings.maxFee, appliedFee));
+  appliedFee = Math.round(appliedFee * 100) / 100;
+
   return {
-    fee,
+    fee: appliedFee,
     distance,
     estimatedTime,
     feeBreakdown: {
-      baseFee,
-      distanceFee,
-      totalBeforeLimit
+      baseFee: appliedFee === 0 && isFreeDelivery ? 0 : appliedFee,
+      distanceFee: 0,
+      totalBeforeLimit: appliedFee
     },
     isFreeDelivery,
-    freeDeliveryReason
+    freeDeliveryReason,
+    appliedRuleId,
+    appliedDiscountId
   };
 }
 

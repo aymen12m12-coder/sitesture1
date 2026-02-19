@@ -8,6 +8,7 @@ import {
   cart, favorites, employees, attendance, leaveRequests, driverWallets, driverEarningsTable,
   driverBalances, driverTransactions, driverCommissions, driverWithdrawals,
   deliveryFeeSettings, deliveryZones, financialReports,
+  geoZones, deliveryRules, deliveryDiscounts,
   type AdminUser, type InsertAdminUser,
   type Category, type InsertCategory,
   type Restaurant, type InsertRestaurant,
@@ -29,7 +30,10 @@ import {
   type DriverBalance, type InsertDriverBalance,
   type DriverTransaction, type InsertDriverTransaction,
   type DriverCommission, type InsertDriverCommission,
-  type DriverWithdrawal, type InsertDriverWithdrawal
+  type DriverWithdrawal, type InsertDriverWithdrawal,
+  type GeoZone, type InsertGeoZone,
+  type DeliveryRule, type InsertDeliveryRule,
+  type DeliveryDiscount, type InsertDeliveryDiscount
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { eq, and, desc, sql, or, like, asc, inArray } from "drizzle-orm";
@@ -73,7 +77,10 @@ function getDb() {
       favorites,
       employees,
       attendance,
-      leaveRequests
+      leaveRequests,
+      geoZones,
+      deliveryRules,
+      deliveryDiscounts
     };
     
     db = drizzle(sqlClient, { schema });
@@ -1675,6 +1682,76 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
       .where(eq(orders.id, id))
       .returning();
     return updated;
+  }
+
+  // Geo-Zones methods
+  async getGeoZones(): Promise<GeoZone[]> {
+    return await this.db.select().from(geoZones);
+  }
+
+  async getGeoZone(id: string): Promise<GeoZone | undefined> {
+    const [zone] = await this.db.select().from(geoZones).where(eq(geoZones.id, id));
+    return zone;
+  }
+
+  async createGeoZone(zone: InsertGeoZone): Promise<GeoZone> {
+    const [newZone] = await this.db.insert(geoZones).values(zone).returning();
+    return newZone;
+  }
+
+  async updateGeoZone(id: string, zone: Partial<InsertGeoZone>): Promise<GeoZone | undefined> {
+    const [updated] = await this.db.update(geoZones).set({ ...zone, updatedAt: new Date() }).where(eq(geoZones.id, id)).returning();
+    return updated;
+  }
+
+  async deleteGeoZone(id: string): Promise<boolean> {
+    const result = await this.db.delete(geoZones).where(eq(geoZones.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Delivery Rules methods
+  async getDeliveryRules(): Promise<DeliveryRule[]> {
+    return await this.db.select().from(deliveryRules).orderBy(desc(deliveryRules.priority));
+  }
+
+  async getDeliveryRule(id: string): Promise<DeliveryRule | undefined> {
+    const [rule] = await this.db.select().from(deliveryRules).where(eq(deliveryRules.id, id));
+    return rule;
+  }
+
+  async createDeliveryRule(rule: InsertDeliveryRule): Promise<DeliveryRule> {
+    const [newRule] = await this.db.insert(deliveryRules).values(rule).returning();
+    return newRule;
+  }
+
+  async updateDeliveryRule(id: string, rule: Partial<InsertDeliveryRule>): Promise<DeliveryRule | undefined> {
+    const [updated] = await this.db.update(deliveryRules).set({ ...rule, updatedAt: new Date() }).where(eq(deliveryRules.id, id)).returning();
+    return updated;
+  }
+
+  async deleteDeliveryRule(id: string): Promise<boolean> {
+    const result = await this.db.delete(deliveryRules).where(eq(deliveryRules.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Delivery Discounts methods
+  async getDeliveryDiscounts(): Promise<DeliveryDiscount[]> {
+    return await this.db.select().from(deliveryDiscounts);
+  }
+
+  async createDeliveryDiscount(discount: InsertDeliveryDiscount): Promise<DeliveryDiscount> {
+    const [newDiscount] = await this.db.insert(deliveryDiscounts).values(discount).returning();
+    return newDiscount;
+  }
+
+  async updateDeliveryDiscount(id: string, discount: Partial<InsertDeliveryDiscount>): Promise<DeliveryDiscount | undefined> {
+    const [updated] = await this.db.update(deliveryDiscounts).set({ ...discount, updatedAt: new Date() }).where(eq(deliveryDiscounts.id, id)).returning();
+    return updated;
+  }
+
+  async deleteDeliveryDiscount(id: string): Promise<boolean> {
+    const result = await this.db.delete(deliveryDiscounts).where(eq(deliveryDiscounts.id, id));
+    return result.rowCount > 0;
   }
 }
 

@@ -8,6 +8,11 @@ import { storage } from "../storage";
 import { calculateDeliveryFee, calculateDistance, estimateDeliveryTime } from "../services/deliveryFeeService";
 import { z } from "zod";
 import { coerceRequestData } from "../utils/coercion";
+import { 
+  insertGeoZoneSchema, 
+  insertDeliveryRuleSchema, 
+  insertDeliveryDiscountSchema 
+} from "@shared/schema";
 
 const router = express.Router();
 
@@ -204,6 +209,142 @@ router.delete("/zones/:id", async (req, res) => {
   } catch (error) {
     console.error('خطأ في حذف منطقة التوصيل:', error);
     res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// --- Geo-Zones (Polygons) ---
+
+router.get("/geo-zones", async (req, res) => {
+  try {
+    const zones = await storage.getGeoZones();
+    res.json(zones);
+  } catch (error) {
+    res.status(500).json({ error: "خطأ في جلب المناطق الجغرافية" });
+  }
+});
+
+router.post("/geo-zones", async (req, res) => {
+  try {
+    const validatedData = insertGeoZoneSchema.parse(req.body);
+    const zone = await storage.createGeoZone(validatedData);
+    res.status(201).json(zone);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات المنطقة غير صحيحة" });
+  }
+});
+
+router.patch("/geo-zones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const validatedData = insertGeoZoneSchema.partial().parse(req.body);
+    const zone = await storage.updateGeoZone(id, validatedData);
+    if (!zone) return res.status(404).json({ error: "المنطقة غير موجودة" });
+    res.json(zone);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات المنطقة غير صحيحة" });
+  }
+});
+
+router.delete("/geo-zones/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await storage.deleteGeoZone(id);
+    if (!success) return res.status(404).json({ error: "المنطقة غير موجودة" });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: "فشل حذف المنطقة" });
+  }
+});
+
+// --- Delivery Rules ---
+
+router.get("/rules", async (req, res) => {
+  try {
+    const rules = await storage.getDeliveryRules();
+    res.json(rules);
+  } catch (error) {
+    res.status(500).json({ error: "خطأ في جلب القواعد" });
+  }
+});
+
+router.post("/rules", async (req, res) => {
+  try {
+    const coercedData = coerceRequestData(req.body);
+    const validatedData = insertDeliveryRuleSchema.parse(coercedData);
+    const rule = await storage.createDeliveryRule(validatedData);
+    res.status(201).json(rule);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات القاعدة غير صحيحة" });
+  }
+});
+
+router.patch("/rules/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coercedData = coerceRequestData(req.body);
+    const validatedData = insertDeliveryRuleSchema.partial().parse(coercedData);
+    const rule = await storage.updateDeliveryRule(id, validatedData);
+    if (!rule) return res.status(404).json({ error: "القاعدة غير موجودة" });
+    res.json(rule);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات القاعدة غير صحيحة" });
+  }
+});
+
+router.delete("/rules/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await storage.deleteDeliveryRule(id);
+    if (!success) return res.status(404).json({ error: "القاعدة غير موجودة" });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: "فشل حذف القاعدة" });
+  }
+});
+
+// --- Delivery Discounts ---
+
+router.get("/discounts", async (req, res) => {
+  try {
+    const discounts = await storage.getDeliveryDiscounts();
+    res.json(discounts);
+  } catch (error) {
+    res.status(500).json({ error: "خطأ في جلب الخصومات" });
+  }
+});
+
+router.post("/discounts", async (req, res) => {
+  try {
+    const coercedData = coerceRequestData(req.body);
+    const validatedData = insertDeliveryDiscountSchema.parse(coercedData);
+    const discount = await storage.createDeliveryDiscount(validatedData);
+    res.status(201).json(discount);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات الخصم غير صحيحة" });
+  }
+});
+
+router.patch("/discounts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coercedData = coerceRequestData(req.body);
+    const validatedData = insertDeliveryDiscountSchema.partial().parse(coercedData);
+    const discount = await storage.updateDeliveryDiscount(id, validatedData);
+    if (!discount) return res.status(404).json({ error: "الخصم غير موجود" });
+    res.json(discount);
+  } catch (error) {
+    res.status(400).json({ error: "بيانات الخصم غير صحيحة" });
+  }
+});
+
+router.delete("/discounts/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const success = await storage.deleteDeliveryDiscount(id);
+    if (!success) return res.status(404).json({ error: "الخصم غير موجود" });
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: "فشل حذف الخصم" });
   }
 });
 

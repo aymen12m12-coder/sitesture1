@@ -20,7 +20,10 @@ import {
   type DriverWithdrawal, type InsertDriverWithdrawal,
   type Employee, type InsertEmployee,
   type Attendance, type InsertAttendance,
-  type LeaveRequest, type InsertLeaveRequest
+  type LeaveRequest, type InsertLeaveRequest,
+  type GeoZone, type InsertGeoZone,
+  type DeliveryRule, type InsertDeliveryRule,
+  type DeliveryDiscount, type InsertDeliveryDiscount
 } from "../shared/schema";
 import { randomUUID } from "crypto";
 
@@ -188,6 +191,26 @@ export interface IStorage {
   getLeaveRequests(employeeId?: string): Promise<LeaveRequest[]>;
   createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest>;
   updateLeaveRequest(id: string, request: Partial<InsertLeaveRequest>): Promise<LeaveRequest | undefined>;
+
+  // Geo-Zones methods
+  getGeoZones(): Promise<GeoZone[]>;
+  getGeoZone(id: string): Promise<GeoZone | undefined>;
+  createGeoZone(zone: InsertGeoZone): Promise<GeoZone>;
+  updateGeoZone(id: string, zone: Partial<InsertGeoZone>): Promise<GeoZone | undefined>;
+  deleteGeoZone(id: string): Promise<boolean>;
+
+  // Delivery Rules methods
+  getDeliveryRules(): Promise<DeliveryRule[]>;
+  getDeliveryRule(id: string): Promise<DeliveryRule | undefined>;
+  createDeliveryRule(rule: InsertDeliveryRule): Promise<DeliveryRule>;
+  updateDeliveryRule(id: string, rule: Partial<InsertDeliveryRule>): Promise<DeliveryRule | undefined>;
+  deleteDeliveryRule(id: string): Promise<boolean>;
+
+  // Delivery Discounts methods
+  getDeliveryDiscounts(): Promise<DeliveryDiscount[]>;
+  createDeliveryDiscount(discount: InsertDeliveryDiscount): Promise<DeliveryDiscount>;
+  updateDeliveryDiscount(id: string, discount: Partial<InsertDeliveryDiscount>): Promise<DeliveryDiscount | undefined>;
+  deleteDeliveryDiscount(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -217,6 +240,9 @@ export class MemStorage implements IStorage {
   private employeesMap: Map<string, Employee>;
   private attendanceMap: Map<string, Attendance>;
   private leaveRequestsMap: Map<string, LeaveRequest>;
+  private geoZonesMap: Map<string, GeoZone>;
+  private deliveryRulesMap: Map<string, DeliveryRule>;
+  private deliveryDiscountsMap: Map<string, DeliveryDiscount>;
 
   // Add db property for compatibility with routes that access it directly
   get db() {
@@ -250,6 +276,9 @@ export class MemStorage implements IStorage {
     this.employeesMap = new Map();
     this.attendanceMap = new Map();
     this.leaveRequestsMap = new Map();
+    this.geoZonesMap = new Map();
+    this.deliveryRulesMap = new Map();
+    this.deliveryDiscountsMap = new Map();
     
     this.initializeData();
   }
@@ -1864,6 +1893,115 @@ export class MemStorage implements IStorage {
     const updated = { ...existing, ...request } as LeaveRequest;
     this.leaveRequestsMap.set(id, updated);
     return updated;
+  }
+
+  // Geo-Zones methods
+  async getGeoZones(): Promise<GeoZone[]> {
+    return Array.from(this.geoZonesMap.values());
+  }
+
+  async getGeoZone(id: string): Promise<GeoZone | undefined> {
+    return this.geoZonesMap.get(id);
+  }
+
+  async createGeoZone(zone: InsertGeoZone): Promise<GeoZone> {
+    const id = randomUUID();
+    const newZone: GeoZone = {
+      ...zone,
+      id,
+      isActive: zone.isActive !== false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      description: zone.description || null,
+    } as GeoZone;
+    this.geoZonesMap.set(id, newZone);
+    return newZone;
+  }
+
+  async updateGeoZone(id: string, zone: Partial<InsertGeoZone>): Promise<GeoZone | undefined> {
+    const existing = this.geoZonesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...zone, updatedAt: new Date() } as GeoZone;
+    this.geoZonesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteGeoZone(id: string): Promise<boolean> {
+    return this.geoZonesMap.delete(id);
+  }
+
+  // Delivery Rules methods
+  async getDeliveryRules(): Promise<DeliveryRule[]> {
+    return Array.from(this.deliveryRulesMap.values())
+      .sort((a, b) => (b.priority || 0) - (a.priority || 0));
+  }
+
+  async getDeliveryRule(id: string): Promise<DeliveryRule | undefined> {
+    return this.deliveryRulesMap.get(id);
+  }
+
+  async createDeliveryRule(rule: InsertDeliveryRule): Promise<DeliveryRule> {
+    const id = randomUUID();
+    const newRule: DeliveryRule = {
+      ...rule,
+      id,
+      isActive: rule.isActive !== false,
+      priority: rule.priority || 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      minDistance: rule.minDistance || null,
+      maxDistance: rule.maxDistance || null,
+      minOrderValue: rule.minOrderValue || null,
+      maxOrderValue: rule.maxOrderValue || null,
+      geoZoneId: rule.geoZoneId || null,
+    } as DeliveryRule;
+    this.deliveryRulesMap.set(id, newRule);
+    return newRule;
+  }
+
+  async updateDeliveryRule(id: string, rule: Partial<InsertDeliveryRule>): Promise<DeliveryRule | undefined> {
+    const existing = this.deliveryRulesMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...rule, updatedAt: new Date() } as DeliveryRule;
+    this.deliveryRulesMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteDeliveryRule(id: string): Promise<boolean> {
+    return this.deliveryRulesMap.delete(id);
+  }
+
+  // Delivery Discounts methods
+  async getDeliveryDiscounts(): Promise<DeliveryDiscount[]> {
+    return Array.from(this.deliveryDiscountsMap.values());
+  }
+
+  async createDeliveryDiscount(discount: InsertDeliveryDiscount): Promise<DeliveryDiscount> {
+    const id = randomUUID();
+    const newDiscount: DeliveryDiscount = {
+      ...discount,
+      id,
+      isActive: discount.isActive !== false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      minOrderValue: discount.minOrderValue || null,
+      validFrom: discount.validFrom || null,
+      validUntil: discount.validUntil || null,
+    } as DeliveryDiscount;
+    this.deliveryDiscountsMap.set(id, newDiscount);
+    return newDiscount;
+  }
+
+  async updateDeliveryDiscount(id: string, discount: Partial<InsertDeliveryDiscount>): Promise<DeliveryDiscount | undefined> {
+    const existing = this.deliveryDiscountsMap.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...discount, updatedAt: new Date() } as DeliveryDiscount;
+    this.deliveryDiscountsMap.set(id, updated);
+    return updated;
+  }
+
+  async deleteDeliveryDiscount(id: string): Promise<boolean> {
+    return this.deliveryDiscountsMap.delete(id);
   }
 }
 

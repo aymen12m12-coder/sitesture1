@@ -945,3 +945,77 @@ export const insertFinancialReportSchema = createInsertSchema(financialReports).
 export const selectFinancialReportSchema = createSelectSchema(financialReports);
 export type FinancialReport = z.infer<typeof selectFinancialReportSchema>;
 export type InsertFinancialReport = z.infer<typeof insertFinancialReportSchema>;
+
+// Geo-Zones table (Polygons)
+export const geoZones = pgTable("geo_zones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  description: text("description"),
+  coordinates: text("coordinates").notNull(), // JSON string representing polygon coordinates
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Delivery Rules table
+export const deliveryRules = pgTable("delivery_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  ruleType: varchar("rule_type", { length: 50 }).notNull(), // distance, order_value, zone
+  minDistance: decimal("min_distance", { precision: 10, scale: 2 }),
+  maxDistance: decimal("max_distance", { precision: 10, scale: 2 }),
+  minOrderValue: decimal("min_order_value", { precision: 10, scale: 2 }),
+  maxOrderValue: decimal("max_order_value", { precision: 10, scale: 2 }),
+  geoZoneId: uuid("geo_zone_id").references(() => geoZones.id),
+  fee: decimal("fee", { precision: 10, scale: 2 }).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  priority: integer("priority").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Delivery Discounts table
+export const deliveryDiscounts = pgTable("delivery_discounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 100 }).notNull(),
+  discountType: varchar("discount_type", { length: 50 }).notNull(), // percentage, fixed_amount
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(),
+  minOrderValue: decimal("min_order_value", { precision: 10, scale: 2 }),
+  validFrom: timestamp("valid_from"),
+  validUntil: timestamp("valid_until"),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Zod schemas for new tables
+export const insertGeoZoneSchema = createInsertSchema(geoZones).partial({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true,
+});
+export const selectGeoZoneSchema = createSelectSchema(geoZones);
+export type GeoZone = z.infer<typeof selectGeoZoneSchema>;
+export type InsertGeoZone = z.infer<typeof insertGeoZoneSchema>;
+
+export const insertDeliveryRuleSchema = createInsertSchema(deliveryRules).partial({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true,
+  priority: true,
+});
+export const selectDeliveryRuleSchema = createSelectSchema(deliveryRules);
+export type DeliveryRule = z.infer<typeof selectDeliveryRuleSchema>;
+export type InsertDeliveryRule = z.infer<typeof insertDeliveryRuleSchema>;
+
+export const insertDeliveryDiscountSchema = createInsertSchema(deliveryDiscounts).partial({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true,
+});
+export const selectDeliveryDiscountSchema = createSelectSchema(deliveryDiscounts);
+export type DeliveryDiscount = z.infer<typeof selectDeliveryDiscountSchema>;
+export type InsertDeliveryDiscount = z.infer<typeof insertDeliveryDiscountSchema>;
