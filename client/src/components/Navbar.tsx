@@ -17,14 +17,16 @@ export const Navbar: React.FC = () => {
   }
 
   return (
-    <nav className="bg-white border-b overflow-x-auto whitespace-nowrap no-scrollbar sticky top-[110px] md:top-[68px] z-40">
+    <nav className="bg-white/80 backdrop-blur-md border-b overflow-x-auto whitespace-nowrap no-scrollbar sticky top-[64px] md:top-[88px] z-30 transition-all">
       <div className="container mx-auto px-4">
-        <ul className="flex items-center justify-center gap-6 md:gap-10 py-3 md:py-4">
+        <ul className="flex items-center justify-center gap-4 md:gap-8 py-2 md:py-3">
           <li>
             <button
               onClick={() => setLocation('/')}
-              className={`text-[12px] md:text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
-                location === '/' ? 'text-primary border-primary' : 'text-black'
+              className={`text-[11px] md:text-[13px] font-black uppercase tracking-tighter transition-all px-4 py-1.5 rounded-full ${
+                location === '/' 
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                  : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
               الرئيسية
@@ -34,8 +36,10 @@ export const Navbar: React.FC = () => {
             <li key={cat.id}>
               <button
                 onClick={() => setLocation(`/category/${cat.name}`)}
-                className={`text-[12px] md:text-[14px] font-black uppercase tracking-widest transition-all pb-2 border-b-4 border-transparent hover:border-black ${
-                  location === `/category/${cat.name}` ? 'text-primary border-primary' : 'text-black'
+                className={`text-[11px] md:text-[13px] font-black uppercase tracking-tighter transition-all px-4 py-1.5 rounded-full ${
+                  location === `/category/${cat.name}` 
+                    ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                    : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
                 {cat.name}
