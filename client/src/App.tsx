@@ -11,6 +11,7 @@ import { UiSettingsProvider, useUiSettings } from "./context/UiSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import Layout from "./components/Layout";
+import FloatingCartNotification from "./components/FloatingCartNotification";
 import { LoginPage } from "./pages/LoginPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import DriverLoginPage from "./pages/driver/DriverLoginPage";
@@ -134,6 +135,7 @@ function MainApp() {
       <Layout>
         <Router />
       </Layout>
+      <FloatingCartNotification />
       
       {showLocationModal && !location.hasPermission && (
         <LocationPermissionModal

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Save, Settings, Eye, EyeOff, Image as ImageIcon, MapPin } from 'lucide-react';
+import { Save, Settings, Eye, Image as ImageIcon } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
-import GoogleMapPicker from '@/components/maps/GoogleMapPicker';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,42 +16,37 @@ import type { UiSettings } from '@shared/schema';
 interface SettingItem {
   key: string;
   label: string;
-  type: 'boolean' | 'text' | 'textarea' | 'image' | 'location';
+  type: 'boolean' | 'text' | 'textarea' | 'image';
   description: string;
   category: string;
 }
 
 const settingsConfig: SettingItem[] = [
-  // Store Settings
-  { key: 'store_name', label: 'اسم المتجر الرئيسي', type: 'text', description: 'اسم المتجر الرئيسي الذي سيتم عرضه', category: 'إعدادات المتجر الرئيسي' },
-  { key: 'store_address', label: 'عنوان المتجر', type: 'text', description: 'عنوان المتجر الرئيسي بالتفصيل', category: 'إعدادات المتجر الرئيسي' },
-  { key: 'store_lat', label: 'خط العرض (Latitude)', type: 'text', description: 'إحداثيات الموقع - خط العرض', category: 'إعدادات المتجر الرئيسي' },
-  { key: 'store_lng', label: 'خط الطول (Longitude)', type: 'text', description: 'إحداثيات الموقع - خط الطول', category: 'إعدادات المتجر الرئيسي' },
-  { key: 'store_location_picker', label: 'تحديد الموقع على الخريطة', type: 'location', description: 'افتح الخريطة لتحديد موقع المتجر بدقة', category: 'إعدادات المتجر الرئيسي' },
-
-  // Delivery Fee Settings
-  { key: 'delivery_base_fee', label: 'رسوم التوصيل الأساسية', type: 'text', description: 'الرسوم الثابتة للتوصيل (ريال)', category: 'إدارة رسوم التوصيل' },
-  { key: 'delivery_fee_per_km', label: 'رسوم الكيلومتر الواحد', type: 'text', description: 'الرسوم الإضافية لكل كيلومتر (ريال/كم)', category: 'إدارة رسوم التوصيل' },
-  { key: 'min_delivery_fee', label: 'الحد الأدنى لرسوم التوصيل', type: 'text', description: 'أقل مبلغ لرسوم التوصيل مهما كانت المسافة', category: 'إدارة رسوم التوصيل' },
-
   // Branding Settings
+  { key: 'app_name', label: 'اسم التطبيق', type: 'text', description: 'اسم التطبيق الذي يظهر للمستخدمين', category: 'الهوية البصرية' },
   { key: 'header_logo_url', label: 'صورة شعار الهيدر', type: 'image', description: 'يتم عرضه في الشريط العلوي بدلاً من النص', category: 'الهوية البصرية' },
+  { key: 'app_theme', label: 'لون الموضوع', type: 'text', description: 'اللون الأساسي للتطبيق (hex color)', category: 'الهوية البصرية' },
   { key: 'sidebar_image_url', label: 'صورة القائمة الجانبية', type: 'image', description: 'الصورة التي تظهر في أعلى السايد بار', category: 'الهوية البصرية' },
+
+  // Home Page Content
+  { key: 'show_hero_section', label: 'عرض قسم البانر الرئيسي', type: 'boolean', description: 'عرض شريط العروض المتحرك في أعلى الصفحة', category: 'محتوى الصفحة الرئيسية' },
+  { key: 'show_categories', label: 'عرض قسم التصنيفات', type: 'boolean', description: 'عرض شبكة التصنيفات في الصفحة الرئيسية', category: 'محتوى الصفحة الرئيسية' },
+  { key: 'show_featured_products', label: 'عرض قسم وصل حديثاً', type: 'boolean', description: 'عرض المنتجات المميزة في الصفحة الرئيسية', category: 'محتوى الصفحة الرئيسية' },
+  { key: 'show_search_bar', label: 'عرض شريط البحث', type: 'boolean', description: 'عرض شريط البحث في الصفحة الرئيسية', category: 'محتوى الصفحة الرئيسية' },
+
+  // Splash Screen
   { key: 'splash_image_url', label: 'صورة شاشة الترحيب', type: 'image', description: 'الصورة التي تظهر عند فتح التطبيق لأول مرة', category: 'شاشة الترحيب' },
   { key: 'splash_title', label: 'عنوان شاشة الترحيب', type: 'text', description: 'العنوان الرئيسي في شاشة السبلاتش', category: 'شاشة الترحيب' },
   { key: 'splash_subtitle', label: 'وصف شاشة الترحيب', type: 'textarea', description: 'الوصف الذي يظهر أسفل العنوان في شاشة السبلاتش', category: 'شاشة الترحيب' },
 
   // Navigation Settings
-  { key: 'show_categories', label: 'عرض التصنيفات', type: 'boolean', description: 'عرض تصنيفات المنتجات في الصفحة الرئيسية', category: 'التنقل' },
-  { key: 'show_search_bar', label: 'عرض شريط البحث', type: 'boolean', description: 'عرض شريط البحث في الصفحة الرئيسية', category: 'التنقل' },
-  { key: 'show_special_offers', label: 'عرض العروض الخاصة', type: 'boolean', description: 'عرض العروض الخاصة والتخفيضات', category: 'التنقل' },
   { key: 'show_orders_page', label: 'عرض صفحة الطلبات', type: 'boolean', description: 'عرض صفحة الطلبات في التنقل', category: 'التنقل' },
   { key: 'show_track_orders_page', label: 'عرض صفحة تتبع الطلبات', type: 'boolean', description: 'عرض صفحة تتبع الطلبات في التنقل', category: 'التنقل' },
   
-  // App Settings
-  { key: 'app_name', label: 'اسم التطبيق', type: 'text', description: 'اسم التطبيق الذي يظهر للمستخدمين', category: 'عام' },
-  { key: 'app_theme', label: 'لون الموضوع', type: 'text', description: 'اللون الأساسي للتطبيق (hex color)', category: 'عام' },
-  { key: 'minimum_order_default', label: 'الحد الأدنى للطلب', type: 'text', description: 'الحد الأدنى لقيمة الطلب (ريال)', category: 'عام' },
+  // Store Settings
+  { key: 'store_name', label: 'اسم المتجر الرئيسي', type: 'text', description: 'اسم المتجر الرئيسي الذي سيتم عرضه', category: 'إعدادات المتجر' },
+  { key: 'store_address', label: 'عنوان المتجر', type: 'text', description: 'عنوان المتجر الرئيسي بالتفصيل', category: 'إعدادات المتجر' },
+  { key: 'minimum_order_default', label: 'الحد الأدنى للطلب', type: 'text', description: 'الحد الأدنى لقيمة الطلب (ريال)', category: 'إعدادات المتجر' },
   
   // Support & Contact Settings
   { key: 'support_whatsapp', label: 'رقم واتساب الدعم', type: 'text', description: 'رابط واتساب للتواصل المباشر (https://wa.me/...)', category: 'الدعم والمراسلة' },
@@ -68,7 +62,6 @@ export default function AdminUiSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({});
-  const [isMapOpen, setIsMapOpen] = useState(false);
 
   const { data: uiSettings, isLoading } = useQuery<UiSettings[]>({
     queryKey: ['/api/admin/ui-settings'],
@@ -121,13 +114,6 @@ export default function AdminUiSettings() {
 
   const handleBooleanChange = (key: string, checked: boolean) => {
     handleSettingChange(key, checked ? 'true' : 'false');
-  };
-
-  const handleLocationSelect = (location: any) => {
-    handleSettingChange('store_lat', location.lat.toString());
-    handleSettingChange('store_lng', location.lng.toString());
-    handleSettingChange('store_address', location.address);
-    setIsMapOpen(false);
   };
 
   const saveSetting = (key: string) => {
@@ -192,7 +178,7 @@ export default function AdminUiSettings() {
           <Settings className="h-8 w-8 text-primary" />
           <div>
             <h1 className="text-2xl font-bold text-foreground">إدارة إعدادات المتجر والواجهة</h1>
-            <p className="text-muted-foreground">إدارة إعدادات المتجر الرئيسي والرسوم والواجهة</p>
+            <p className="text-muted-foreground">إدارة إعدادات المتجر والواجهة والمحتوى</p>
           </div>
         </div>
 
@@ -208,17 +194,6 @@ export default function AdminUiSettings() {
           </Button>
         )}
       </div>
-
-      {/* Map Picker Dialog */}
-      <GoogleMapPicker
-        isOpen={isMapOpen}
-        onClose={() => setIsMapOpen(false)}
-        onLocationSelect={handleLocationSelect}
-        initialLocation={{
-          lat: parseFloat(getCurrentValue('store_lat')) || 24.7136,
-          lng: parseFloat(getCurrentValue('store_lng')) || 46.6753
-        }}
-      />
 
       {/* Settings by Category */}
       <div className="grid gap-6">
@@ -276,15 +251,6 @@ export default function AdminUiSettings() {
                             className="w-80 min-h-[100px]"
                             placeholder={`ادخل ${setting.label}`}
                           />
-                        ) : setting.type === 'location' ? (
-                          <Button
-                            variant="outline"
-                            onClick={() => setIsMapOpen(true)}
-                            className="gap-2"
-                          >
-                            <MapPin className="h-4 w-4" />
-                            فتح الخريطة
-                          </Button>
                         ) : (
                           <Input
                             id={setting.key}
@@ -327,12 +293,11 @@ export default function AdminUiSettings() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <h4 className="font-medium mb-2">إعدادات المتجر والرسوم</h4>
+              <h4 className="font-medium mb-2">إعدادات المتجر</h4>
               <ul className="space-y-1 text-muted-foreground">
                 <li>المتجر: {getCurrentValue('store_name') || 'غير محدد'}</li>
                 <li>العنوان: {getCurrentValue('store_address') || 'غير محدد'}</li>
-                <li>الرسوم الأساسية: {getCurrentValue('delivery_base_fee') || '0'} ريال</li>
-                <li>رسوم الكيلومتر: {getCurrentValue('delivery_fee_per_km') || '0'} ريال/كم</li>
+                <li>الحد الأدنى للطلب: {getCurrentValue('minimum_order_default') || '25'} ريال</li>
               </ul>
             </div>
             <div>
@@ -340,7 +305,6 @@ export default function AdminUiSettings() {
               <ul className="space-y-1 text-muted-foreground">
                 <li>اسم التطبيق: {getCurrentValue('app_name') || 'طمطوم'}</li>
                 <li>لون الموضوع: {getCurrentValue('app_theme') || '#007bff'}</li>
-                <li>الحد الأدنى للطلب: {getCurrentValue('minimum_order_default') || '25'} ريال</li>
                 <li>التصنيفات: {getCurrentValue('show_categories') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
               </ul>
             </div>

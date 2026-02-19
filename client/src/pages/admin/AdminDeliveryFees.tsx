@@ -35,6 +35,7 @@ import {
   Layers
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import GoogleMapPicker from '@/components/maps/GoogleMapPicker';
 
 interface DeliveryZone {
   id: string;
@@ -55,6 +56,8 @@ interface DeliveryFeeSettings {
   minFee: string;
   maxFee: string;
   freeDeliveryThreshold: string;
+  storeLat?: string;
+  storeLng?: string;
 }
 
 interface GeoZone {
@@ -96,6 +99,7 @@ export default function AdminDeliveryFees() {
   const [activeTab, setActiveTab] = useState('settings');
   const [isAddZoneOpen, setIsAddZoneOpen] = useState(false);
   const [editingZone, setEditingZone] = useState<DeliveryZone | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   // جلب إعدادات رسوم التوصيل
   const { data: settings, isLoading: settingsLoading } = useQuery<DeliveryFeeSettings>({
@@ -196,8 +200,19 @@ export default function AdminDeliveryFees() {
     perKmFee: '2',
     minFee: '3',
     maxFee: '50',
-    freeDeliveryThreshold: '0'
+    freeDeliveryThreshold: '0',
+    storeLat: '24.7136',
+    storeLng: '46.6753'
   });
+
+  const handleLocationSelect = (location: any) => {
+    setFormSettings(prev => ({
+      ...prev,
+      storeLat: location.lat.toString(),
+      storeLng: location.lng.toString()
+    }));
+    setIsMapOpen(false);
+  };
 
   // حالة منطقة جديدة
   const [newZone, setNewZone] = useState({
@@ -394,6 +409,47 @@ export default function AdminDeliveryFees() {
                 <p className="text-xs text-muted-foreground">
                   إذا كان المجموع الفرعي للطلب أكبر من هذا المبلغ، يكون التوصيل مجاني. اتركه 0 لتعطيل هذه الميزة.
                 </p>
+              </div>
+
+              {/* موقع المتجر الرئيسي */}
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">موقع المتجر الرئيسي</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  يتم استخدام هذا الموقع كنقطة انطلاق لحساب مسافة التوصيل للعميل.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>خط العرض (Latitude)</Label>
+                    <Input
+                      type="text"
+                      value={formSettings.storeLat}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>خط الطول (Longitude)</Label>
+                    <Input
+                      type="text"
+                      value={formSettings.storeLng}
+                      readOnly
+                      className="bg-muted"
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsMapOpen(true)}
+                  className="w-full gap-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  تحديد الموقع على الخريطة
+                </Button>
               </div>
 
               {/* معادلة الحساب */}
@@ -612,6 +668,16 @@ export default function AdminDeliveryFees() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <GoogleMapPicker
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        onLocationSelect={handleLocationSelect}
+        initialLocation={{
+          lat: parseFloat(formSettings.storeLat || '24.7136'),
+          lng: parseFloat(formSettings.storeLng || '46.6753')
+        }}
+      />
     </div>
   );
 }
