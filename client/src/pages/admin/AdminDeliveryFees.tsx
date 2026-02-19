@@ -29,7 +29,10 @@ import {
   Edit, 
   Trash2, 
   Save,
-  Calculator
+  Calculator,
+  Percent,
+  ShieldCheck,
+  Layers
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -54,6 +57,39 @@ interface DeliveryFeeSettings {
   freeDeliveryThreshold: string;
 }
 
+interface GeoZone {
+  id: string;
+  name: string;
+  description?: string;
+  coordinates: string; // JSON
+  isActive: boolean;
+}
+
+interface DeliveryRule {
+  id: string;
+  name: string;
+  ruleType: 'distance' | 'order_value' | 'zone';
+  minDistance?: string;
+  maxDistance?: string;
+  minOrderValue?: string;
+  maxOrderValue?: string;
+  geoZoneId?: string;
+  fee: string;
+  isActive: boolean;
+  priority: number;
+}
+
+interface DeliveryDiscount {
+  id: string;
+  name: string;
+  discountType: 'percentage' | 'fixed_amount';
+  discountValue: string;
+  minOrderValue?: string;
+  validFrom?: string;
+  validUntil?: string;
+  isActive: boolean;
+}
+
 export default function AdminDeliveryFees() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -69,6 +105,88 @@ export default function AdminDeliveryFees() {
   // جلب مناطق التوصيل
   const { data: zones = [], isLoading: zonesLoading } = useQuery<DeliveryZone[]>({
     queryKey: ['/api/delivery-fees/zones'],
+  });
+
+  // جلب المناطق الجغرافية الجديدة
+  const { data: geoZones = [], isLoading: geoZonesLoading } = useQuery<GeoZone[]>({
+    queryKey: ['/api/delivery-fees/geo-zones'],
+  });
+
+  // جلب القواعد
+  const { data: deliveryRules = [], isLoading: rulesLoading } = useQuery<DeliveryRule[]>({
+    queryKey: ['/api/delivery-fees/rules'],
+  });
+
+  // جلب الخصومات
+  const { data: discounts = [], isLoading: discountsLoading } = useQuery<DeliveryDiscount[]>({
+    queryKey: ['/api/delivery-fees/discounts'],
+  });
+
+  // حالة النوافذ المنبثقة
+  const [isAddGeoZoneOpen, setIsAddGeoZoneOpen] = useState(false);
+  const [isAddRuleOpen, setIsAddRuleOpen] = useState(false);
+  const [isAddDiscountOpen, setIsAddDiscountOpen] = useState(false);
+
+  // حالة العناصر الجديدة
+  const [newGeoZone, setNewGeoZone] = useState<Partial<GeoZone>>({
+    name: '',
+    description: '',
+    coordinates: '[]',
+    isActive: true
+  });
+
+  const [newRule, setNewRule] = useState<Partial<DeliveryRule>>({
+    name: '',
+    ruleType: 'distance',
+    fee: '',
+    priority: 0,
+    isActive: true
+  });
+
+  const [newDiscount, setNewDiscount] = useState<Partial<DeliveryDiscount>>({
+    name: '',
+    discountType: 'percentage',
+    discountValue: '',
+    isActive: true
+  });
+
+  // Mutations for Geo-Zones
+  const addGeoZoneMutation = useMutation({
+    mutationFn: async (data: Partial<GeoZone>) => {
+      const response = await apiRequest('POST', '/api/delivery-fees/geo-zones', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'تمت إضافة المنطقة الجغرافية بنجاح' });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivery-fees/geo-zones'] });
+      setIsAddGeoZoneOpen(false);
+    }
+  });
+
+  // Mutations for Rules
+  const addRuleMutation = useMutation({
+    mutationFn: async (data: Partial<DeliveryRule>) => {
+      const response = await apiRequest('POST', '/api/delivery-fees/rules', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'تمت إضافة القاعدة بنجاح' });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivery-fees/rules'] });
+      setIsAddRuleOpen(false);
+    }
+  });
+
+  // Mutations for Discounts
+  const addDiscountMutation = useMutation({
+    mutationFn: async (data: Partial<DeliveryDiscount>) => {
+      const response = await apiRequest('POST', '/api/delivery-fees/discounts', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: 'تمت إضافة الخصم بنجاح' });
+      queryClient.invalidateQueries({ queryKey: ['/api/delivery-fees/discounts'] });
+      setIsAddDiscountOpen(false);
+    }
   });
 
   // حالة الإعدادات
@@ -163,14 +281,26 @@ export default function AdminDeliveryFees() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             الإعدادات العامة
           </TabsTrigger>
           <TabsTrigger value="zones" className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            مناطق التوصيل
+            مناطق المسافات
+          </TabsTrigger>
+          <TabsTrigger value="geo-zones" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            المناطق الجغرافية
+          </TabsTrigger>
+          <TabsTrigger value="rules" className="flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            القواعد الديناميكية
+          </TabsTrigger>
+          <TabsTrigger value="discounts" className="flex items-center gap-2">
+            <Percent className="h-4 w-4" />
+            الخصومات
           </TabsTrigger>
         </TabsList>
 
@@ -302,132 +432,178 @@ export default function AdminDeliveryFees() {
           </Card>
         </TabsContent>
 
-        {/* مناطق التوصيل */}
-        <TabsContent value="zones" className="space-y-6">
+        {/* المناطق الجغرافية */}
+        <TabsContent value="geo-zones" className="space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>مناطق التوصيل</CardTitle>
-                <CardDescription>
-                  تحديد رسوم مختلفة حسب المسافة
-                </CardDescription>
+                <CardTitle>المناطق الجغرافية (Geo-Zones)</CardTitle>
+                <CardDescription>تحديد مناطق جغرافية دقيقة باستخدام الإحداثيات</CardDescription>
               </div>
-              <Dialog open={isAddZoneOpen} onOpenChange={setIsAddZoneOpen}>
+              <Dialog open={isAddGeoZoneOpen} onOpenChange={setIsAddGeoZoneOpen}>
                 <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" />
-                    إضافة منطقة
-                  </Button>
+                  <Button><Plus className="h-4 w-4 mr-2" />إضافة منطقة جغرافية</Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>إضافة منطقة توصيل جديدة</DialogTitle>
-                  </DialogHeader>
+                  <DialogHeader><DialogTitle>إضافة منطقة جغرافية جديدة</DialogTitle></DialogHeader>
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label>اسم المنطقة</Label>
-                      <Input
-                        value={newZone.name}
-                        onChange={(e) => setNewZone(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="مثال: المنطقة القريبة"
-                      />
+                      <Input value={newGeoZone.name} onChange={(e) => setNewGeoZone(prev => ({ ...prev, name: e.target.value }))} />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>من (كم)</Label>
-                        <Input
-                          type="number"
-                          value={newZone.minDistance}
-                          onChange={(e) => setNewZone(prev => ({ ...prev, minDistance: e.target.value }))}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>إلى (كم)</Label>
-                        <Input
-                          type="number"
-                          value={newZone.maxDistance}
-                          onChange={(e) => setNewZone(prev => ({ ...prev, maxDistance: e.target.value }))}
-                          placeholder="5"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>الإحداثيات (JSON)</Label>
+                      <Input value={newGeoZone.coordinates} onChange={(e) => setNewGeoZone(prev => ({ ...prev, coordinates: e.target.value }))} placeholder='[{"lat": 15.1, "lng": 44.1}, ...]' />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>رسوم التوصيل (ريال)</Label>
-                        <Input
-                          type="number"
-                          value={newZone.deliveryFee}
-                          onChange={(e) => setNewZone(prev => ({ ...prev, deliveryFee: e.target.value }))}
-                          placeholder="5"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>وقت التوصيل المتوقع</Label>
-                        <Input
-                          value={newZone.estimatedTime}
-                          onChange={(e) => setNewZone(prev => ({ ...prev, estimatedTime: e.target.value }))}
-                          placeholder="15-25 دقيقة"
-                        />
-                      </div>
-                    </div>
-                    <Button 
-                      onClick={() => addZoneMutation.mutate(newZone)}
-                      disabled={addZoneMutation.isPending || !newZone.name || !newZone.maxDistance || !newZone.deliveryFee}
-                      className="w-full"
-                    >
-                      {addZoneMutation.isPending ? 'جاري الإضافة...' : 'إضافة المنطقة'}
-                    </Button>
+                    <Button onClick={() => addGeoZoneMutation.mutate(newGeoZone)} disabled={addGeoZoneMutation.isPending} className="w-full">حفظ المنطقة</Button>
                   </div>
                 </DialogContent>
               </Dialog>
             </CardHeader>
             <CardContent>
-              {zonesLoading ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  جاري التحميل...
-                </div>
-              ) : zones.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <MapPin className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد مناطق توصيل محددة</p>
-                  <p className="text-sm">أضف مناطق لتحديد رسوم مختلفة حسب المسافة</p>
-                </div>
-              ) : (
+              {geoZonesLoading ? <p>جاري التحميل...</p> : (
                 <div className="space-y-4">
-                  {zones.map((zone) => (
-                    <Card key={zone.id} className="border">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-medium">{zone.name}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              المسافة: {zone.minDistance} - {zone.maxDistance} كم
-                            </p>
-                            {zone.estimatedTime && (
-                              <p className="text-sm text-muted-foreground">
-                                الوقت: {zone.estimatedTime}
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-left">
-                              <p className="text-lg font-bold text-primary">
-                                {zone.deliveryFee} ريال
-                              </p>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => deleteZoneMutation.mutate(zone.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
+                  {geoZones.map(zone => (
+                    <Card key={zone.id} className="p-4 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium">{zone.name}</h4>
+                        <p className="text-xs text-muted-foreground">{zone.coordinates.substring(0, 50)}...</p>
+                      </div>
+                      <Button variant="outline" size="icon" onClick={() => apiRequest('DELETE', `/api/delivery-fees/geo-zones/${zone.id}`, {}).then(() => queryClient.invalidateQueries({queryKey: ['/api/delivery-fees/geo-zones']}))}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* القواعد الديناميكية */}
+        <TabsContent value="rules" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>القواعد الديناميكية</CardTitle>
+                <CardDescription>قواعد مخصصة لحساب الرسوم بناءً على شروط معينة</CardDescription>
+              </div>
+              <Dialog open={isAddRuleOpen} onOpenChange={setIsAddRuleOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" />إضافة قاعدة</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>إضافة قاعدة جديدة</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>اسم القاعدة</Label>
+                      <Input value={newRule.name} onChange={(e) => setNewRule(prev => ({ ...prev, name: e.target.value }))} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>نوع القاعدة</Label>
+                      <Select value={newRule.ruleType} onValueChange={(v: any) => setNewRule(prev => ({ ...prev, ruleType: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="distance">حسب المسافة</SelectItem>
+                          <SelectItem value="order_value">حسب قيمة الطلب</SelectItem>
+                          <SelectItem value="zone">حسب المنطقة الجغرافية</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>الرسوم (ريال)</Label>
+                      <Input type="number" value={newRule.fee} onChange={(e) => setNewRule(prev => ({ ...prev, fee: e.target.value }))} />
+                    </div>
+                    {newRule.ruleType === 'zone' && (
+                      <div className="space-y-2">
+                        <Label>المنطقة الجغرافية</Label>
+                        <Select value={newRule.geoZoneId} onValueChange={(v) => setNewRule(prev => ({ ...prev, geoZoneId: v }))}>
+                          <SelectTrigger><SelectValue placeholder="اختر منطقة" /></SelectTrigger>
+                          <SelectContent>
+                            {geoZones.map(z => <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+                    <Button onClick={() => addRuleMutation.mutate(newRule)} disabled={addRuleMutation.isPending} className="w-full">حفظ القاعدة</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              {rulesLoading ? <p>جاري التحميل...</p> : (
+                <div className="space-y-4">
+                  {deliveryRules.map(rule => (
+                    <Card key={rule.id} className="p-4 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium">{rule.name}</h4>
+                        <p className="text-sm text-primary font-bold">{rule.fee} ريال</p>
+                      </div>
+                      <Button variant="outline" size="icon" onClick={() => apiRequest('DELETE', `/api/delivery-fees/rules/${rule.id}`, {}).then(() => queryClient.invalidateQueries({queryKey: ['/api/delivery-fees/rules']}))}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* الخصومات */}
+        <TabsContent value="discounts" className="space-y-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>خصومات التوصيل</CardTitle>
+                <CardDescription>عروض وخصومات على رسوم التوصيل</CardDescription>
+              </div>
+              <Dialog open={isAddDiscountOpen} onOpenChange={setIsAddDiscountOpen}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" />إضافة خصم</Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader><DialogTitle>إضافة خصم جديد</DialogTitle></DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>اسم الخصم</Label>
+                      <Input value={newDiscount.name} onChange={(e) => setNewDiscount(prev => ({ ...prev, name: e.target.value }))} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>نوع الخصم</Label>
+                        <Select value={newDiscount.discountType} onValueChange={(v: any) => setNewDiscount(prev => ({ ...prev, discountType: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="percentage">نسبة مئوية</SelectItem>
+                            <SelectItem value="fixed_amount">مبلغ ثابت</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>القيمة</Label>
+                        <Input type="number" value={newDiscount.discountValue} onChange={(e) => setNewDiscount(prev => ({ ...prev, discountValue: e.target.value }))} />
+                      </div>
+                    </div>
+                    <Button onClick={() => addDiscountMutation.mutate(newDiscount)} disabled={addDiscountMutation.isPending} className="w-full">حفظ الخصم</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+            <CardContent>
+              {discountsLoading ? <p>جاري التحميل...</p> : (
+                <div className="space-y-4">
+                  {discounts.map(discount => (
+                    <Card key={discount.id} className="p-4 flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium">{discount.name}</h4>
+                        <p className="text-sm font-bold text-green-600">
+                          {discount.discountType === 'percentage' ? `${discount.discountValue}%` : `${discount.discountValue} ريال`}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="icon" onClick={() => apiRequest('DELETE', `/api/delivery-fees/discounts/${discount.id}`, {}).then(() => queryClient.invalidateQueries({queryKey: ['/api/delivery-fees/discounts']}))}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </Card>
                   ))}
                 </div>
