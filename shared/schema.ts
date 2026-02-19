@@ -871,6 +871,8 @@ export const deliveryFeeSettings = pgTable("delivery_fee_settings", {
   minFee: decimal("min_fee", { precision: 10, scale: 2 }).default("0"),
   maxFee: decimal("max_fee", { precision: 10, scale: 2 }).default("1000"),
   freeDeliveryThreshold: decimal("free_delivery_threshold", { precision: 10, scale: 2 }).default("0"),
+  storeLat: decimal("store_lat", { precision: 10, scale: 8 }),
+  storeLng: decimal("store_lng", { precision: 11, scale: 8 }),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -915,6 +917,8 @@ export const insertDeliveryFeeSettingsSchema = createInsertSchema(deliveryFeeSet
   minFee: true,
   maxFee: true,
   freeDeliveryThreshold: true,
+  storeLat: true,
+  storeLng: true,
 });
 export const selectDeliveryFeeSettingsSchema = createSelectSchema(deliveryFeeSettings);
 export type DeliveryFeeSetting = z.infer<typeof selectDeliveryFeeSettingsSchema>;

@@ -1494,7 +1494,7 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
     return balance;
   }
 
-  async updateDriverBalance(driverId: string, data: { amount: number; type: string }): Promise<DriverBalance> {
+  async updateDriverBalance(driverId: string, data: { amount: number; type: string; description: string; orderId?: any; }): Promise<DriverBalance> {
     const existingBalance = await this.getDriverBalance(driverId);
     
     if (!existingBalance) {
@@ -1549,7 +1549,9 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
     // تحديث الرصيد أولاً
     await this.updateDriverBalance(data.driverId, { 
       amount: parseFloat(data.amount.toString()), 
-      type: data.type 
+      type: data.type,
+      description: data.description || `عملية رصيد: ${data.type}`,
+      orderId: data.referenceId
     });
     
     const newBalance = await this.getDriverBalance(data.driverId);

@@ -45,6 +45,8 @@ export interface DeliveryFeeSettings {
   minFee: number;
   maxFee: number;
   freeDeliveryThreshold: number;
+  storeLat?: number;
+  storeLng?: number;
 }
 
 /**
@@ -145,18 +147,25 @@ export async function calculateDeliveryFee(
   const activeRules = deliveryRules.filter(r => r.isActive);
   const activeDiscounts = discounts.filter(d => d.isActive);
 
-  // 2. جلب إعدادات المتجر الأساسية (للتوافق)
-  const storeLat = await storage.getUiSetting('store_lat');
-  const storeLng = await storage.getUiSetting('store_lng');
-  const baseFeeSetting = await storage.getUiSetting('delivery_base_fee');
-  const perKmFeeSetting = await storage.getUiSetting('delivery_fee_per_km');
+    // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات القديمة (للتوافق)
+  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
   
-  const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
+  // 2. تحديد موقع المتجر
+  let storeLocation: DeliveryLocation = { lat: 0, lng: 0 };
   
-  let storeLocation: DeliveryLocation = {
-    lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
-    lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
-  };
+  if (feeSettings.storeLat && feeSettings.storeLng) {
+    storeLocation = { lat: feeSettings.storeLat, lng: feeSettings.storeLng };
+  } else {
+    // التوافق مع الإعدادات القديمة
+    const storeLat = await storage.getUiSetting('store_lat');
+    const storeLng = await storage.getUiSetting('store_lng');
+    const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
+    
+    storeLocation = {
+      lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
+      lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
+    };
+  }
 
   // حساب المسافة
   const distance = storeLocation.lat !== 0 ? calculateDistance(customerLocation, storeLocation) : 0;
@@ -204,8 +213,8 @@ export async function calculateDeliveryFee(
   }
 
   // 5. إذا لم تطبق أي قاعدة، نستخدم الحساب الافتراضي
-  let baseFee = baseFeeSetting ? parseFloat(baseFeeSetting.value) : (restaurant ? parseFloat(restaurant.deliveryFee || '0') : DEFAULT_BASE_FEE);
-  let perKmFee = perKmFeeSetting ? parseFloat(perKmFeeSetting.value) : (restaurant ? parseFloat(restaurant.perKmFee || '0') : DEFAULT_PER_KM_FEE);
+  let baseFee = feeSettings.baseFee;
+  let perKmFee = feeSettings.perKmFee;
   
   if (appliedFee === null) {
     appliedFee = baseFee + (distance * perKmFee);
@@ -285,7 +294,9 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
           perKmFee: parseFloat(restaurantSettings.perKmFee || '0'),
           minFee: parseFloat(restaurantSettings.minFee || '0'),
           maxFee: parseFloat(restaurantSettings.maxFee || '100'),
-          freeDeliveryThreshold: parseFloat(restaurantSettings.freeDeliveryThreshold || '0')
+          freeDeliveryThreshold: parseFloat(restaurantSettings.freeDeliveryThreshold || '0'),
+          storeLat: restaurantSettings.storeLat ? parseFloat(restaurantSettings.storeLat) : undefined,
+          storeLng: restaurantSettings.storeLng ? parseFloat(restaurantSettings.storeLng) : undefined
         };
       }
     }
@@ -299,7 +310,9 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
         perKmFee: parseFloat(globalSettings.perKmFee || '0'),
         minFee: parseFloat(globalSettings.minFee || '0'),
         maxFee: parseFloat(globalSettings.maxFee || '100'),
-        freeDeliveryThreshold: parseFloat(globalSettings.freeDeliveryThreshold || '0')
+        freeDeliveryThreshold: parseFloat(globalSettings.freeDeliveryThreshold || '0'),
+        storeLat: globalSettings.storeLat ? parseFloat(globalSettings.storeLat) : undefined,
+        storeLng: globalSettings.storeLng ? parseFloat(globalSettings.storeLng) : undefined
       };
     }
   } catch (error) {

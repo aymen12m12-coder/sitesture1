@@ -112,6 +112,8 @@ router.post("/settings", async (req, res) => {
       minFee: z.string().optional(),
       maxFee: z.string().optional(),
       freeDeliveryThreshold: z.string().optional(),
+      storeLat: z.string().optional(),
+      storeLng: z.string().optional(),
       restaurantId: z.string().optional()
     });
 

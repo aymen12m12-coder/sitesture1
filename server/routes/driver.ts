@@ -192,7 +192,9 @@ router.put("/orders/:id/status", async (req, res) => {
         // تحديث الرصيد
         await storage.updateDriverBalance(driverId, {
           amount: parseFloat(order.driverCommissionAmount) || 0,
-          type: 'commission'
+          type: 'commission',
+          description: `عمولة توصيل الطلب رقم: ${order.orderNumber}`,
+          orderId: order.id
         });
         
         // تحديث الطلب لتمييز أن العمولة تمت معالجتها
@@ -563,7 +565,9 @@ router.post("/withdraw", async (req, res) => {
     // تحديث الرصيد
     await storage.updateDriverBalance(driverId, {
       amount,
-      type: 'withdrawal'
+      type: 'withdrawal',
+      description: `سحب رصيد - طلب رقم: ${withdrawal.id.substring(0, 8)}`,
+      orderId: withdrawal.id
     });
 
     res.json({ 

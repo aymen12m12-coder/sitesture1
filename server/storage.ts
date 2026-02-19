@@ -154,7 +154,7 @@ export interface IStorage {
   
   // إدارة أرصدة السائقين
   getDriverBalance(driverId: string): Promise<DriverBalance | null>;
-  updateDriverBalance(driverId: string, data: { amount: number; type: string }): Promise<DriverBalance>;
+  updateDriverBalance(driverId: string, data: { amount: number; type: string; description: string; orderId?: any; }): Promise<DriverBalance>;
   createDriverBalance(data: InsertDriverBalance): Promise<DriverBalance>;
   
   // معاملات السائقين
@@ -576,7 +576,7 @@ export class MemStorage implements IStorage {
     return balance;
   }
 
-  async updateDriverBalance(driverId: string, data: { amount: number; type: string }): Promise<DriverBalance> {
+  async updateDriverBalance(driverId: string, data: { amount: number; type: string; description: string; orderId?: any; }): Promise<DriverBalance> {
     const balance = await this.getDriverBalance(driverId);
     if (!balance) {
       throw new Error("رصيد السائق غير موجود");
@@ -1081,7 +1081,8 @@ export class MemStorage implements IStorage {
         if (earningsDiff !== 0) {
           await this.updateDriverBalance(id, {
             amount: Math.abs(earningsDiff),
-            type: earningsDiff > 0 ? 'commission' : 'deduction'
+            type: earningsDiff > 0 ? 'commission' : 'deduction',
+            description: `تحديث أرباح السائق: ${earningsDiff > 0 ? 'إضافة' : 'خصم'}`
           });
         }
       }
@@ -1578,7 +1579,7 @@ export class MemStorage implements IStorage {
     return balance;
   }
 
-  async updateDriverBalance(driverId: string, data: { amount: number; type: string }): Promise<DriverBalance> {
+  async updateDriverBalance(driverId: string, data: { amount: number; type: string; description: string; orderId?: any; }): Promise<DriverBalance> {
     const existingBalance = await this.getDriverBalance(driverId);
     
     if (!existingBalance) {
@@ -1630,7 +1631,8 @@ export class MemStorage implements IStorage {
     
     await this.updateDriverBalance(data.driverId, { 
       amount: parseFloat(data.amount.toString()), 
-      type: data.type 
+      type: data.type,
+      description: data.description || `عملية رصيد: ${data.type}`
     });
     
     const newBalance = await this.getDriverBalance(data.driverId);
