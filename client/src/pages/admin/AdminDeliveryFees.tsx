@@ -234,15 +234,31 @@ export default function AdminDeliveryFees() {
   // حفظ الإعدادات
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: DeliveryFeeSettings) => {
-      const response = await apiRequest('POST', '/api/delivery-fees/settings', data);
+      // تحويل جميع الأرقام من strings إلى numbers
+      const normalizedData = {
+        ...data,
+        baseFee: data.baseFee ? parseFloat(data.baseFee).toString() : '0',
+        perKmFee: data.perKmFee ? parseFloat(data.perKmFee).toString() : '0',
+        minFee: data.minFee ? parseFloat(data.minFee).toString() : '0',
+        maxFee: data.maxFee ? parseFloat(data.maxFee).toString() : '0',
+        freeDeliveryThreshold: data.freeDeliveryThreshold ? parseFloat(data.freeDeliveryThreshold).toString() : '0',
+        storeLat: data.storeLat ? parseFloat(data.storeLat).toString() : '',
+        storeLng: data.storeLng ? parseFloat(data.storeLng).toString() : '',
+      };
+      const response = await apiRequest('POST', '/api/delivery-fees/settings', normalizedData);
       return response.json();
     },
     onSuccess: () => {
       toast({ title: 'تم حفظ الإعدادات بنجاح' });
       queryClient.invalidateQueries({ queryKey: ['/api/delivery-fees/settings'] });
     },
-    onError: () => {
-      toast({ title: 'خطأ في حفظ الإعدادات', variant: 'destructive' });
+    onError: (error: any) => {
+      console.error('Error saving settings:', error);
+      toast({ 
+        title: 'خطأ في حفظ الإعدادات', 
+        description: error?.message || 'حدث خطأ أثناء حفظ الإعدادات',
+        variant: 'destructive' 
+      });
     }
   });
 
