@@ -1559,25 +1559,9 @@ export class MemStorage implements IStorage {
 
   // ==================== دوال إدارة أرصدة السائقين ====================
 
-  async getDriverBalance(driverId: string): Promise<DriverBalance | null> {
-    return this.driverBalances.get(driverId) || null;
-  }
 
-  async createDriverBalance(data: InsertDriverBalance): Promise<DriverBalance> {
-    const id = randomUUID();
-    const balance: DriverBalance = {
-      ...data,
-      id,
-      totalBalance: data.totalBalance || "0",
-      availableBalance: data.availableBalance || "0",
-      withdrawnAmount: data.withdrawnAmount || "0",
-      pendingAmount: data.pendingAmount || "0",
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.driverBalances.set(driverId, balance); // Use driverId as key for easy lookup
-    return balance;
-  }
+
+ 
 
   async updateDriverBalance(driverId: string, data: { amount: number; type: string; description: string; orderId?: any; }): Promise<DriverBalance> {
     const existingBalance = await this.getDriverBalance(driverId);
