@@ -12,10 +12,10 @@
 import { storage } from "../storage";
 
 // ثوابت افتراضية
-const DEFAULT_BASE_FEE = 5; // رسوم أساسية
-const DEFAULT_PER_KM_FEE = 2; // رسوم لكل كيلومتر
-const DEFAULT_MIN_FEE = 3; // الحد الأدنى
-const DEFAULT_MAX_FEE = 50; // الحد الأقصى
+const DEFAULT_BASE_FEE = 500; // رسوم أساسية
+const DEFAULT_PER_KM_FEE = 200; // رسوم لكل كيلومتر
+const DEFAULT_MIN_FEE = 3000; // الحد الأدنى
+const DEFAULT_MAX_FEE = 50000; // الحد الأقصى
 const EARTH_RADIUS_KM = 6371; // نصف قطر الأرض بالكيلومتر
 
 export interface DeliveryLocation {
@@ -128,158 +128,6 @@ export function estimateDeliveryTime(distanceKm: number): string {
 }
 
 /**
- * حساب رسوم التوصيل الكاملة
- * Calculate complete delivery fee
- */
-export async function calculateDeliveryFee(
-  customerLocation: DeliveryLocation,
-  restaurantId: string | null,
-  orderSubtotal: number
-): Promise<DeliveryFeeResult> {
-  // 1. جلب المناطق الجغرافية والقواعد والخصومات النشطة
-  const [geoZones, deliveryRules, discounts] = await Promise.all([
-    storage.getGeoZones(),
-    storage.getDeliveryRules(),
-    storage.getDeliveryDiscounts()
-  ]);
-
-  const activeGeoZones = geoZones.filter(z => z.isActive);
-  const activeRules = deliveryRules.filter(r => r.isActive);
-  const activeDiscounts = discounts.filter(d => d.isActive);
-
-    // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات القديمة (للتوافق)
-  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
-  
-  // 2. تحديد موقع المتجر
-  let storeLocation: DeliveryLocation = { lat: 0, lng: 0 };
-  
-  if (feeSettings.storeLat && feeSettings.storeLng) {
-    storeLocation = { lat: feeSettings.storeLat, lng: feeSettings.storeLng };
-  } else {
-    // التوافق مع الإعدادات القديمة
-    const storeLat = await storage.getUiSetting('store_lat');
-    const storeLng = await storage.getUiSetting('store_lng');
-    const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
-    
-    storeLocation = {
-      lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
-      lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
-    };
-  }
-
-  // حساب المسافة
-  const distance = storeLocation.lat !== 0 ? calculateDistance(customerLocation, storeLocation) : 0;
-  const estimatedTime = estimateDeliveryTime(distance);
-
-  // 3. تحديد المنطقة الجغرافية (Geo-Zone)
-  let matchingGeoZoneId: string | null = null;
-  for (const zone of activeGeoZones) {
-    try {
-      const polygon = JSON.parse(zone.coordinates);
-      if (isPointInPolygon(customerLocation, polygon)) {
-        matchingGeoZoneId = zone.id;
-        break; // نأخذ أول منطقة مطابقة
-      }
-    } catch (e) {
-      console.error(`Error parsing coordinates for zone ${zone.name}`, e);
-    }
-  }
-
-  // 4. تطبيق القواعد الديناميكية (Dynamic Rules)
-  // القواعد مرتبة حسب الأولوية (Priority) من الأعلى إلى الأقل
-  let appliedFee: number | null = null;
-  let appliedRuleId: string | undefined;
-
-  for (const rule of activeRules) {
-    let matches = false;
-
-    if (rule.ruleType === 'zone' && rule.geoZoneId === matchingGeoZoneId) {
-      matches = true;
-    } else if (rule.ruleType === 'distance') {
-      const minD = rule.minDistance ? parseFloat(rule.minDistance) : 0;
-      const maxD = rule.maxDistance ? parseFloat(rule.maxDistance) : Infinity;
-      if (distance >= minD && distance <= maxD) matches = true;
-    } else if (rule.ruleType === 'order_value') {
-      const minV = rule.minOrderValue ? parseFloat(rule.minOrderValue) : 0;
-      const maxV = rule.maxOrderValue ? parseFloat(rule.maxOrderValue) : Infinity;
-      if (orderSubtotal >= minV && orderSubtotal <= maxV) matches = true;
-    }
-
-    if (matches) {
-      appliedFee = parseFloat(rule.fee);
-      appliedRuleId = rule.id;
-      break; // نطبق أول قاعدة مطابقة حسب الأولوية
-    }
-  }
-
-  // 5. إذا لم تطبق أي قاعدة، نستخدم الحساب الافتراضي
-  let baseFee = feeSettings.baseFee;
-  let perKmFee = feeSettings.perKmFee;
-  
-  if (appliedFee === null) {
-    appliedFee = baseFee + (distance * perKmFee);
-  }
-
-  // 6. تطبيق الخصومات (Discounts)
-  let isFreeDelivery = false;
-  let freeDeliveryReason: string | undefined;
-  let appliedDiscountId: string | undefined;
-
-  // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات القديمة (للتوافق)
-  const feeSettings = await getDeliveryFeeSettings(restaurantId || undefined);
-  if (feeSettings.freeDeliveryThreshold > 0 && orderSubtotal >= feeSettings.freeDeliveryThreshold) {
-    isFreeDelivery = true;
-    freeDeliveryReason = `توصيل مجاني للطلبات فوق ${feeSettings.freeDeliveryThreshold} ريال`;
-    appliedFee = 0;
-  }
-
-  // تطبيق خصومات التوصيل الجديدة
-  const now = new Date();
-  for (const discount of activeDiscounts) {
-    if (discount.validFrom && new Date(discount.validFrom) > now) continue;
-    if (discount.validUntil && new Date(discount.validUntil) < now) continue;
-    if (discount.minOrderValue && orderSubtotal < parseFloat(discount.minOrderValue)) continue;
-
-    appliedDiscountId = discount.id;
-    if (discount.discountType === 'percentage') {
-      const discountAmount = appliedFee * (parseFloat(discount.discountValue) / 100);
-      appliedFee -= discountAmount;
-      if (parseFloat(discount.discountValue) === 100) {
-        isFreeDelivery = true;
-        freeDeliveryReason = `خصم توصيل مجاني: ${discount.name}`;
-      }
-    } else {
-      appliedFee -= parseFloat(discount.discountValue);
-      if (appliedFee <= 0) {
-        appliedFee = 0;
-        isFreeDelivery = true;
-        freeDeliveryReason = `توصيل مجاني: ${discount.name}`;
-      }
-    }
-    break; // نطبق أول خصم متاح
-  }
-
-  // التأكد من أن الرسوم لا تقل عن صفر ولا تتجاوز الحد الأقصى
-  appliedFee = Math.max(0, Math.min(feeSettings.maxFee, appliedFee));
-  appliedFee = Math.round(appliedFee * 100) / 100;
-
-  return {
-    fee: appliedFee,
-    distance,
-    estimatedTime,
-    feeBreakdown: {
-      baseFee: appliedFee === 0 && isFreeDelivery ? 0 : appliedFee,
-      distanceFee: 0,
-      totalBeforeLimit: appliedFee
-    },
-    isFreeDelivery,
-    freeDeliveryReason,
-    appliedRuleId,
-    appliedDiscountId
-  };
-}
-
-/**
  * جلب إعدادات رسوم التوصيل
  */
 async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFeeSettings> {
@@ -327,6 +175,157 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
     minFee: DEFAULT_MIN_FEE,
     maxFee: DEFAULT_MAX_FEE,
     freeDeliveryThreshold: 0
+  };
+}
+
+/**
+ * حساب رسوم التوصيل الكاملة
+ * Calculate complete delivery fee
+ */
+export async function calculateDeliveryFee(
+  customerLocation: DeliveryLocation,
+  restaurantId: string | null,
+  orderSubtotal: number
+): Promise<DeliveryFeeResult> {
+  // 1. جلب المناطق الجغرافية والقواعد والخصومات النشطة
+  const [geoZones, deliveryRules, discounts] = await Promise.all([
+    storage.getGeoZones(),
+    storage.getDeliveryRules(),
+    storage.getDeliveryDiscounts()
+  ]);
+
+  const activeGeoZones = geoZones.filter(z => z.isActive);
+  const activeRules = deliveryRules.filter(r => r.isActive);
+  const activeDiscounts = discounts.filter(d => d.isActive);
+
+  // 2. جلب إعدادات رسوم التوصيل (تم إصلاح مشكلة التكرار هنا)
+  const deliverySettings = await getDeliveryFeeSettings(restaurantId || undefined);
+  
+  // 3. تحديد موقع المتجر
+  let storeLocation: DeliveryLocation = { lat: 0, lng: 0 };
+  
+  if (deliverySettings.storeLat && deliverySettings.storeLng) {
+    storeLocation = { lat: deliverySettings.storeLat, lng: deliverySettings.storeLng };
+  } else {
+    // التوافق مع الإعدادات القديمة
+    const storeLat = await storage.getUiSetting('store_lat');
+    const storeLng = await storage.getUiSetting('store_lng');
+    const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
+    
+    storeLocation = {
+      lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
+      lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
+    };
+  }
+
+  // حساب المسافة
+  const distance = storeLocation.lat !== 0 ? calculateDistance(customerLocation, storeLocation) : 0;
+  const estimatedTime = estimateDeliveryTime(distance);
+
+  // 4. تحديد المنطقة الجغرافية (Geo-Zone)
+  let matchingGeoZoneId: string | null = null;
+  for (const zone of activeGeoZones) {
+    try {
+      const polygon = JSON.parse(zone.coordinates);
+      if (isPointInPolygon(customerLocation, polygon)) {
+        matchingGeoZoneId = zone.id;
+        break; // نأخذ أول منطقة مطابقة
+      }
+    } catch (e) {
+      console.error(`Error parsing coordinates for zone ${zone.name}`, e);
+    }
+  }
+
+  // 5. تطبيق القواعد الديناميكية (Dynamic Rules)
+  // القواعد مرتبة حسب الأولوية (Priority) من الأعلى إلى الأقل
+  let appliedFee: number | null = null;
+  let appliedRuleId: string | undefined;
+
+  for (const rule of activeRules) {
+    let matches = false;
+
+    if (rule.ruleType === 'zone' && rule.geoZoneId === matchingGeoZoneId) {
+      matches = true;
+    } else if (rule.ruleType === 'distance') {
+      const minD = rule.minDistance ? parseFloat(rule.minDistance) : 0;
+      const maxD = rule.maxDistance ? parseFloat(rule.maxDistance) : Infinity;
+      if (distance >= minD && distance <= maxD) matches = true;
+    } else if (rule.ruleType === 'order_value') {
+      const minV = rule.minOrderValue ? parseFloat(rule.minOrderValue) : 0;
+      const maxV = rule.maxOrderValue ? parseFloat(rule.maxOrderValue) : Infinity;
+      if (orderSubtotal >= minV && orderSubtotal <= maxV) matches = true;
+    }
+
+    if (matches) {
+      appliedFee = parseFloat(rule.fee);
+      appliedRuleId = rule.id;
+      break; // نطبق أول قاعدة مطابقة حسب الأولوية
+    }
+  }
+
+  // 6. إذا لم تطبق أي قاعدة، نستخدم الحساب الافتراضي
+  let baseFee = deliverySettings.baseFee;
+  let perKmFee = deliverySettings.perKmFee;
+  
+  if (appliedFee === null) {
+    appliedFee = baseFee + (distance * perKmFee);
+  }
+
+  // 7. تطبيق الخصومات (Discounts)
+  let isFreeDelivery = false;
+  let freeDeliveryReason: string | undefined;
+  let appliedDiscountId: string | undefined;
+
+  // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات
+  if (deliverySettings.freeDeliveryThreshold > 0 && orderSubtotal >= deliverySettings.freeDeliveryThreshold) {
+    isFreeDelivery = true;
+    freeDeliveryReason = `توصيل مجاني للطلبات فوق ${deliverySettings.freeDeliveryThreshold} ريال`;
+    appliedFee = 0;
+  }
+
+  // تطبيق خصومات التوصيل الجديدة
+  const now = new Date();
+  for (const discount of activeDiscounts) {
+    if (discount.validFrom && new Date(discount.validFrom) > now) continue;
+    if (discount.validUntil && new Date(discount.validUntil) < now) continue;
+    if (discount.minOrderValue && orderSubtotal < parseFloat(discount.minOrderValue)) continue;
+
+    appliedDiscountId = discount.id;
+    if (discount.discountType === 'percentage') {
+      const discountAmount = appliedFee * (parseFloat(discount.discountValue) / 100);
+      appliedFee -= discountAmount;
+      if (parseFloat(discount.discountValue) === 100) {
+        isFreeDelivery = true;
+        freeDeliveryReason = `خصم توصيل مجاني: ${discount.name}`;
+      }
+    } else {
+      appliedFee -= parseFloat(discount.discountValue);
+      if (appliedFee <= 0) {
+        appliedFee = 0;
+        isFreeDelivery = true;
+        freeDeliveryReason = `توصيل مجاني: ${discount.name}`;
+      }
+    }
+    break; // نطبق أول خصم متاح
+  }
+
+  // التأكد من أن الرسوم لا تقل عن صفر ولا تتجاوز الحد الأقصى
+  appliedFee = Math.max(0, Math.min(deliverySettings.maxFee, appliedFee));
+  appliedFee = Math.round(appliedFee * 100) / 100;
+
+  return {
+    fee: appliedFee,
+    distance,
+    estimatedTime,
+    feeBreakdown: {
+      baseFee: appliedFee === 0 && isFreeDelivery ? 0 : appliedFee,
+      distanceFee: 0,
+      totalBeforeLimit: appliedFee
+    },
+    isFreeDelivery,
+    freeDeliveryReason,
+    appliedRuleId,
+    appliedDiscountId
   };
 }
 
