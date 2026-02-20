@@ -135,14 +135,14 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
     // محاولة جلب إعدادات المطعم الخاصة أولاً
     if (restaurantId) {
       const restaurantSettings = await storage.getDeliveryFeeSettings(restaurantId);
-      if (restaurantSettings) {
+      if (restaurantSettings && restaurantSettings.type) {
         return {
           type: restaurantSettings.type as DeliveryFeeSettings['type'],
-          baseFee: parseFloat(restaurantSettings.baseFee || '0'),
-          perKmFee: parseFloat(restaurantSettings.perKmFee || '0'),
-          minFee: parseFloat(restaurantSettings.minFee || '0'),
-          maxFee: parseFloat(restaurantSettings.maxFee || '100'),
-          freeDeliveryThreshold: parseFloat(restaurantSettings.freeDeliveryThreshold || '0'),
+          baseFee: Math.max(0, parseFloat(restaurantSettings.baseFee || '0')),
+          perKmFee: Math.max(0, parseFloat(restaurantSettings.perKmFee || '0')),
+          minFee: Math.max(0, parseFloat(restaurantSettings.minFee || '0')),
+          maxFee: Math.max(DEFAULT_MIN_FEE, parseFloat(restaurantSettings.maxFee || DEFAULT_MAX_FEE.toString())),
+          freeDeliveryThreshold: Math.max(0, parseFloat(restaurantSettings.freeDeliveryThreshold || '0')),
           storeLat: restaurantSettings.storeLat ? parseFloat(restaurantSettings.storeLat) : undefined,
           storeLng: restaurantSettings.storeLng ? parseFloat(restaurantSettings.storeLng) : undefined
         };
@@ -151,14 +151,14 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
 
     // جلب الإعدادات العامة
     const globalSettings = await storage.getDeliveryFeeSettings();
-    if (globalSettings) {
+    if (globalSettings && globalSettings.type) {
       return {
         type: globalSettings.type as DeliveryFeeSettings['type'],
-        baseFee: parseFloat(globalSettings.baseFee || '0'),
-        perKmFee: parseFloat(globalSettings.perKmFee || '0'),
-        minFee: parseFloat(globalSettings.minFee || '0'),
-        maxFee: parseFloat(globalSettings.maxFee || '100'),
-        freeDeliveryThreshold: parseFloat(globalSettings.freeDeliveryThreshold || '0'),
+        baseFee: Math.max(0, parseFloat(globalSettings.baseFee || '0')),
+        perKmFee: Math.max(0, parseFloat(globalSettings.perKmFee || '0')),
+        minFee: Math.max(0, parseFloat(globalSettings.minFee || '0')),
+        maxFee: Math.max(DEFAULT_MIN_FEE, parseFloat(globalSettings.maxFee || DEFAULT_MAX_FEE.toString())),
+        freeDeliveryThreshold: Math.max(0, parseFloat(globalSettings.freeDeliveryThreshold || '0')),
         storeLat: globalSettings.storeLat ? parseFloat(globalSettings.storeLat) : undefined,
         storeLng: globalSettings.storeLng ? parseFloat(globalSettings.storeLng) : undefined
       };
@@ -167,6 +167,7 @@ async function getDeliveryFeeSettings(restaurantId?: string): Promise<DeliveryFe
     console.error('Error fetching delivery fee settings:', error);
   }
 
+  console.warn('Using default delivery fee settings');
   // إعدادات افتراضية
   return {
     type: 'per_km',

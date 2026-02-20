@@ -119,15 +119,46 @@ router.post("/settings", async (req, res) => {
 
     const validatedData = settingsSchema.parse(coercedData);
     
+    // التحقق من صحة القيم الرقمية
+    const validateNumber = (value: string | undefined, fieldName: string): string => {
+      if (!value || value === '') return '0';
+      const num = parseFloat(value);
+      if (isNaN(num)) {
+        throw new Error(`${fieldName} يجب أن يكون رقماً صحيحاً`);
+      }
+      return num.toString();
+    };
+
+    const sanitizedData = {
+      ...validatedData,
+      baseFee: validateNumber(validatedData.baseFee, 'الرسوم الأساسية'),
+      perKmFee: validateNumber(validatedData.perKmFee, 'رسوم لكل كيلومتر'),
+      minFee: validateNumber(validatedData.minFee, 'الحد الأدنى'),
+      maxFee: validateNumber(validatedData.maxFee, 'الحد الأقصى'),
+      freeDeliveryThreshold: validateNumber(validatedData.freeDeliveryThreshold, 'حد التوصيل المجاني'),
+      storeLat: validatedData.storeLat ? validateNumber(validatedData.storeLat, 'خط العرض') : undefined,
+      storeLng: validatedData.storeLng ? validateNumber(validatedData.storeLng, 'خط الطول') : undefined,
+    };
+
+    // التحقق من أن maxFee أكبر من أو يساوي minFee
+    const minFeeNum = parseFloat(sanitizedData.minFee || '0');
+    const maxFeeNum = parseFloat(sanitizedData.maxFee || '1000');
+    if (maxFeeNum < minFeeNum) {
+      return res.status(400).json({
+        error: "بيانات غير صحيحة",
+        details: "الحد الأقصى يجب أن يكون أكبر من أو يساوي الحد الأدنى"
+      });
+    }
+    
     // التحقق من وجود إعدادات سابقة
-    const existing = await storage.getDeliveryFeeSettings(validatedData.restaurantId);
+    const existing = await storage.getDeliveryFeeSettings(sanitizedData.restaurantId);
     
     if (existing) {
-      const updated = await storage.updateDeliveryFeeSettings(existing.id, validatedData);
+      const updated = await storage.updateDeliveryFeeSettings(existing.id, sanitizedData);
       return res.json({ success: true, settings: updated });
     }
 
-    const newSettings = await storage.createDeliveryFeeSettings(validatedData);
+    const newSettings = await storage.createDeliveryFeeSettings(sanitizedData);
     res.status(201).json({ success: true, settings: newSettings });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -137,7 +168,10 @@ router.post("/settings", async (req, res) => {
       });
     }
     console.error('خطأ في حفظ إعدادات رسوم التوصيل:', error);
-    res.status(500).json({ error: "خطأ في الخادم" });
+    res.status(400).json({ 
+      error: "خطأ في البيانات",
+      details: error.message || "بيانات غير صحيحة"
+    });
   }
 });
 
