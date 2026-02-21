@@ -12,7 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import type { SpecialOffer, Restaurant } from '@shared/schema';
+import type { SpecialOffer, Restaurant, Category } from '@shared/schema';
 import {
   Select,
   SelectContent,
@@ -37,6 +37,7 @@ export default function AdminOffers() {
     validUntil: '',
     isActive: true,
     restaurantId: '',
+    categoryId: '',
   });
 
   const { data: offers, isLoading } = useQuery<SpecialOffer[]>({
@@ -47,7 +48,12 @@ export default function AdminOffers() {
     queryKey: ['/api/admin/restaurants'],
   });
 
+  const { data: categoriesData = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
+
   const restaurants = restaurantsResponse?.restaurants || [];
+  const categories = categoriesData || [];
 
   const createOfferMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -123,6 +129,7 @@ export default function AdminOffers() {
       validUntil: '',
       isActive: true,
       restaurantId: '',
+      categoryId: '',
     });
     setEditingOffer(null);
   };
@@ -139,6 +146,7 @@ export default function AdminOffers() {
       validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().slice(0, 16) : '',
       isActive: offer.isActive,
       restaurantId: offer.restaurantId || '',
+      categoryId: offer.categoryId || '',
     });
     setIsDialogOpen(true);
   };
@@ -243,24 +251,46 @@ export default function AdminOffers() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="restaurantId">المتجر المرتبط (اختياري)</Label>
-                <Select
-                  value={formData.restaurantId || "none"}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, restaurantId: value === "none" ? "" : value }))}
-                >
-                  <SelectTrigger id="restaurantId">
-                    <SelectValue placeholder="اختر متجراً" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">عرض عام (لكل المتاجر)</SelectItem>
-                    {restaurants.map((restaurant) => (
-                      <SelectItem key={restaurant.id} value={restaurant.id}>
-                        {restaurant.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="restaurantId">المتجر المرتبط (اختياري)</Label>
+                  <Select
+                    value={formData.restaurantId || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, restaurantId: value === "none" ? "" : value }))}
+                  >
+                    <SelectTrigger id="restaurantId">
+                      <SelectValue placeholder="اختر متجراً" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">عرض عام (لكل المتاجر)</SelectItem>
+                      {restaurants.map((restaurant) => (
+                        <SelectItem key={restaurant.id} value={restaurant.id}>
+                          {restaurant.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="categoryId">التصنيف/القسم (اختياري)</Label>
+                  <Select
+                    value={formData.categoryId || "none"}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value === "none" ? "" : value }))}
+                  >
+                    <SelectTrigger id="categoryId">
+                      <SelectValue placeholder="اختر تصنيفاً" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">عرض عام (لكل التصنيفات)</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div>

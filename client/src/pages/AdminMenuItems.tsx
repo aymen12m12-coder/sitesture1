@@ -43,22 +43,23 @@ export default function AdminMenuItems() {
     isNew: true,
   });
 
-  // جلب جميع المتاجر
+  // جلب متجر طمطوم فقط
   const { data: restaurantsData } = useQuery<{restaurants: Restaurant[]}>({
     queryKey: ['/api/admin/restaurants'],
   });
 
   const restaurants = restaurantsData?.restaurants || [];
+  
+  // متجر طمطوم الافتراضي والوحيد
+  const tamtomStore = restaurants.find(r => r.name.includes('طمطوم')) || restaurants[0];
 
-  // تعيين أول متجر كافتراضي وإخفاء الاختيار إذا كان هناك متجر واحد فقط
+  // تعيين متجر طمطوم كافتراضي
   useEffect(() => {
-    if (restaurants && restaurants.length > 0 && !selectedRestaurant) {
-      // البحث عن متجر طمطوم أو اختيار الأول
-      const tamtomStore = restaurants.find(r => r.name.includes('طمطوم')) || restaurants[0];
+    if (tamtomStore && !selectedRestaurant) {
       setSelectedRestaurant(tamtomStore.id);
       setFormData(prev => ({ ...prev, restaurantId: tamtomStore.id }));
     }
-  }, [restaurants, selectedRestaurant]);
+  }, [tamtomStore?.id, selectedRestaurant]);
 
   // جلب المنتجات الخاصة بالمتجر المحدد
   const { data: menuItems, isLoading } = useQuery<MenuItem[]>({
@@ -380,27 +381,12 @@ export default function AdminMenuItems() {
         <div className="flex items-center gap-3">
           <Package className="h-8 w-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة المنتجات</h1>
-            <p className="text-muted-foreground">إدارة المنتجات والأصناف</p>
+            <h1 className="text-2xl font-bold text-foreground">إدارة المنتجات - طمطوم</h1>
+            <p className="text-muted-foreground">إدارة منتجات متجر طمطوم</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
-          {restaurants.length > 1 && (
-            <Select value={selectedRestaurant} onValueChange={setSelectedRestaurant}>
-              <SelectTrigger className="w-48" data-testid="select-restaurant">
-                <SelectValue placeholder="اختر متجر" />
-              </SelectTrigger>
-              <SelectContent>
-                {restaurants?.map((restaurant) => (
-                  <SelectItem key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 

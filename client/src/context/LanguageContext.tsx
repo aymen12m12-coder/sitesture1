@@ -44,6 +44,56 @@ const translations = {
     'checkout': 'إتمام الطلب',
     'empty_cart': 'سلتك فارغة',
     'empty_favorites': 'قائمة المفضلة فارغة',
+    'start_shopping': 'ابدأ التسوق الآن',
+    'delivery': 'التوصيل',
+    'fresh_daily': 'طازج يومياً',
+    'exclusive_offers': 'عروض حصرية',
+    'best_selling': 'الأكثر مبيعاً',
+    'new_product': 'منتج جديد',
+    'available': 'متوفر',
+    'out_of_stock': 'غير متوفر',
+    'price': 'السعر',
+    'quantity': 'الكمية',
+    'rating': 'التقييم',
+    'reviews': 'التقييمات',
+    'seller': 'البائع',
+    'special_offers': 'العروض الخاصة',
+    'discount': 'خصم',
+    'save': 'حفظ',
+    'delete': 'حذف',
+    'edit': 'تعديل',
+    'cancel': 'إلغاء',
+    'confirm': 'تأكيد',
+    'loading': 'جاري التحميل...',
+    'error': 'خطأ',
+    'success': 'نجاح',
+    'warning': 'تحذير',
+    'info': 'معلومات',
+    'yes': 'نعم',
+    'no': 'لا',
+    'name': 'الاسم',
+    'email': 'البريد الإلكتروني',
+    'phone': 'رقم الهاتف',
+    'address': 'العنوان',
+    'password': 'كلمة المرور',
+    'confirm_password': 'تأكيد كلمة المرور',
+    'remember_me': 'تذكرني',
+    'forgot_password': 'هل نسيت كلمة المرور؟',
+    'create_account': 'إنشاء حساب جديد',
+    'sign_in': 'تسجيل الدخول',
+    'profile': 'الملف الشخصي',
+    'my_orders': 'طلباتي',
+    'order_history': 'سجل الطلبات',
+    'delivery_address': 'عنوان التوصيل',
+    'payment_method': 'طريقة الدفع',
+    'order_total': 'إجمالي الطلب',
+    'estimated_delivery': 'الوقت المتوقع للتوصيل',
+    'order_status': 'حالة الطلب',
+    'pending': 'قيد الانتظار',
+    'processing': 'جاري المعالجة',
+    'shipped': 'تم الشحن',
+    'delivered': 'تم التسليم',
+    'cancelled': 'تم الإلغاء',
   },
   en: {
     'home': 'Home',
@@ -79,6 +129,56 @@ const translations = {
     'checkout': 'Checkout',
     'empty_cart': 'Your cart is empty',
     'empty_favorites': 'Your favorites list is empty',
+    'start_shopping': 'Start Shopping Now',
+    'delivery': 'Delivery',
+    'fresh_daily': 'Fresh Daily',
+    'exclusive_offers': 'Exclusive Offers',
+    'best_selling': 'Best Selling',
+    'new_product': 'New Product',
+    'available': 'Available',
+    'out_of_stock': 'Out of Stock',
+    'price': 'Price',
+    'quantity': 'Quantity',
+    'rating': 'Rating',
+    'reviews': 'Reviews',
+    'seller': 'Seller',
+    'special_offers': 'Special Offers',
+    'discount': 'Discount',
+    'save': 'Save',
+    'delete': 'Delete',
+    'edit': 'Edit',
+    'cancel': 'Cancel',
+    'confirm': 'Confirm',
+    'loading': 'Loading...',
+    'error': 'Error',
+    'success': 'Success',
+    'warning': 'Warning',
+    'info': 'Information',
+    'yes': 'Yes',
+    'no': 'No',
+    'name': 'Name',
+    'email': 'Email',
+    'phone': 'Phone Number',
+    'address': 'Address',
+    'password': 'Password',
+    'confirm_password': 'Confirm Password',
+    'remember_me': 'Remember Me',
+    'forgot_password': 'Forgot Password?',
+    'create_account': 'Create New Account',
+    'sign_in': 'Sign In',
+    'profile': 'Profile',
+    'my_orders': 'My Orders',
+    'order_history': 'Order History',
+    'delivery_address': 'Delivery Address',
+    'payment_method': 'Payment Method',
+    'order_total': 'Order Total',
+    'estimated_delivery': 'Estimated Delivery Time',
+    'order_status': 'Order Status',
+    'pending': 'Pending',
+    'processing': 'Processing',
+    'shipped': 'Shipped',
+    'delivered': 'Delivered',
+    'cancelled': 'Cancelled',
   }
 };
 
@@ -95,8 +195,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   useEffect(() => {
-    // الاتجاه ثابت دائماً لليمين (RTL) بناءً على طلب المستخدم
-    document.documentElement.dir = 'rtl';
+    const direction = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = direction;
     document.documentElement.lang = language;
   }, [language]);
 
@@ -104,7 +204,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return translations[language][key as keyof typeof translations['ar']] || key;
   };
 
-  const dir = 'rtl'; // ثابت دائماً لليمين (RTL) بناءً على طلب المستخدم
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, dir }}>

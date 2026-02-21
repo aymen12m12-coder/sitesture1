@@ -9,7 +9,8 @@ import {
   ShoppingBag,
   Flashlight,
   TrendingUp,
-  Award
+  Award,
+  ArrowLeft
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,9 +18,11 @@ import MenuItemCard from '@/components/MenuItemCard';
 import type { Restaurant, Category, SpecialOffer, MenuItem } from '@shared/schema';
 
 import { useUiSettings } from '@/context/UiSettingsContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { isAuthenticated } = useAuth();
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
   const { getSetting } = useUiSettings();
 
@@ -144,6 +147,28 @@ export default function Home() {
                 />
               ))}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* 1.5. Start Now CTA Button - Only show if not authenticated */}
+      {!isAuthenticated && (
+        <section className="container mx-auto px-4 py-6 md:py-12">
+          <div className="bg-gradient-to-br from-primary/10 to-primary/5 rounded-3xl md:rounded-4xl border-2 border-primary/20 backdrop-blur-sm p-8 md:p-16 text-center">
+            <h2 className="text-3xl md:text-5xl font-black text-gray-900 mb-4 uppercase tracking-tighter italic">
+              ابدأ التسوق الآن
+            </h2>
+            <p className="text-gray-600 font-bold text-lg mb-8 max-w-2xl mx-auto">
+              اكتشف أفضل الفواكه والخضروات الطازجة مباشرة من مزارعنا. سجل حسابك الآن واستمتع بتجربة تسوق سهلة وآمنة.
+            </p>
+            <Button 
+              size="lg"
+              className="gap-2 px-8 md:px-12 h-14 md:h-16 text-base md:text-xl font-black shadow-xl hover:shadow-2xl"
+              onClick={() => setLocation('/auth')}
+            >
+              ابدأ الآن
+              <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
+            </Button>
           </div>
         </section>
       )}

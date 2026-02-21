@@ -234,6 +234,8 @@ export default function AdminDeliveryFees() {
   // حفظ الإعدادات
   const saveSettingsMutation = useMutation({
     mutationFn: async (data: DeliveryFeeSettings) => {
+      console.log('📤 جاري إرسال الإعدادات:', data);
+      
       // تحويل جميع الأرقام من strings إلى numbers
       const normalizedData = {
         ...data,
@@ -245,20 +247,79 @@ export default function AdminDeliveryFees() {
         storeLat: data.storeLat ? parseFloat(data.storeLat).toString() : '',
         storeLng: data.storeLng ? parseFloat(data.storeLng).toString() : '',
       };
+      
+      console.log('✅ البيانات المحضرة للإرسال:', normalizedData);
+      
       const response = await apiRequest('POST', '/api/delivery-fees/settings', normalizedData);
-      return response.json();
+      console.log('📥 الرد من الخادم:', response.status);
+      
+      const jsonData = await response.json();
+      console.log('📋 البيانات المستقبلة:', jsonData);
+      
+      if (!response.ok) {
+        console.error('❌ فشل الحفظ:', jsonData);
+        throw new Error(jsonData.message || jsonData.error || 'فشل حفظ الإعدادات');
+      }
+      
+      return jsonData;
     },
-    onSuccess: () => {
-      toast({ title: 'تم حفظ الإعدادات بنجاح' });
+    onSuccess: (data: any) => {
+      console.log('🎉 تم الحفظ بنجاح!', data);
+      toast({ 
+        title: 'تم حفظ الإعدادات بنجاح ✅',
+        description: data.message || 'تم تطبيق الإعدادات الجديدة',
+        duration: 5000
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/delivery-fees/settings'] });
     },
     onError: (error: any) => {
-      console.error('Error saving settings:', error);
-      toast({ 
-        title: 'خطأ في حفظ الإعدادات', 
-        description: error?.message || 'حدث خطأ أثناء حفظ الإعدادات',
-        variant: 'destructive' 
+      console.error('💥 خطأ في حفظ الإعدادات:', error);
+      
+      let errorMessage = 'حدث خطأ غير متوقع';
+      let errorDetails = '';
+      
+      // محاولة استخراج رسالة الخطأ التفصيلية
+      if (error.response) {
+        const errorData = error.response.data;
+        errorMessage = errorData.message || errorData.error || errorMessage;
+        
+        if (errorData.validationErrors) {
+          errorDetails = errorData.validationErrors
+            .map((e: any) => `• ${e.field}: ${e.message}`)
+            .join('\n');
+        } else if (errorData.details) {
+          if (typeof errorData.details === 'string') {
+            errorDetails = errorData.details;
+          } else if (errorData.details.issue) {
+            errorDetails = errorData.details.issue;
+          }
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      console.error('📋 تفاصيل الخطأ:', {
+        message: errorMessage,
+        details: errorDetails,
+        fullError: error
       });
+      
+      // عرض الخطأ في Toast مع التفاصيل
+      if (errorDetails) {
+        toast({ 
+          title: 'خطأ في حفظ الإعدادات ❌', 
+          description: `${errorMessage}\n\n${errorDetails}`,
+          variant: 'destructive',
+          duration: 8000
+        });
+      } else {
+        toast({ 
+          title: 'خطأ في حفظ الإعدادات ❌', 
+          description: errorMessage,
+          variant: 'destructive',
+          duration: 6000
+        });
+      }
     }
   });
 
