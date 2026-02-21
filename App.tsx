@@ -28,6 +28,7 @@ import TrackOrdersPage from "./pages/TrackOrdersPage";
 import Settings from "./pages/Settings";
 import Privacy from "./pages/Privacy";
 import SearchPage from "./pages/SearchPage";
+import CustomerAuthPage from "./pages/CustomerAuthPage";
 // Admin pages removed - now handled separately
 import NotFound from "@/pages/not-found";
 
@@ -106,6 +107,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/auth" component={CustomerAuthPage} />
       <Route path="/restaurant/:id" component={Restaurant} />
       <Route path="/cart" component={Cart} />
       <Route path="/profile" component={Profile} />

@@ -164,6 +164,7 @@ export const specialOffers = pgTable("special_offers", {
   discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }),
   minimumOrder: decimal("minimum_order", { precision: 10, scale: 2 }).default("0"),
   restaurantId: uuid("restaurant_id").references(() => restaurants.id), // ربط العرض بمطعم محدد
+  categoryId: uuid("category_id").references(() => categories.id), // ربط العرض بتصنيف محدد
   validUntil: timestamp("valid_until"),
   showBadge: boolean("show_badge").default(true), // إظهار أو إخفاء الملصق
   badgeText1: varchar("badge_text_1", { length: 50 }).default("طازج يومياً"), // النص الأول (مثلاً: طازج يومياً)
