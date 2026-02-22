@@ -138,7 +138,8 @@ router.post("/", async (req, res) => {
 
     const order = await storage.createOrder(orderData);
 
-    // إنشاء إشعارات للجميع
+    // إنشاء إشعارات للإدارة والمطعم فقط
+    // الطلب لا يصل للسائقين إلا بعد تعيينه من الإدارة
     try {
       // إشعار للمطعم (إذا وجد)
       if (restaurantId) {
@@ -153,28 +154,11 @@ router.post("/", async (req, res) => {
         });
       }
       
-      // إشعار لجميع السائقين المتاحين
-      const availableDrivers = await storage.getAvailableDrivers();
-      for (const driver of availableDrivers) {
-        const driverRate = parseFloat(driver.commissionRate?.toString() || '70');
-        const potentialEarnings = (deliveryFeeNum * driverRate) / 100;
-        
-        await storage.createNotification({
-          type: 'new_order_available',
-          title: 'طلب جديد متاح للتوصيل',
-          message: `طلب جديد من ${restaurant?.name || 'المتجر الرئيسي'} - رسوم التوصيل: ${formatCurrency(deliveryFeeNum)} - عمولتك: ${formatCurrency(potentialEarnings)}`,
-          recipientType: 'driver',
-          recipientId: driver.id,
-          orderId: order.id,
-          isRead: false
-        });
-      }
-      
-      // إشعار للإدارة
+      // إشعار للإدارة فقط - السائقون سيتلقون إشعار عند تعيينهم للطلب
       await storage.createNotification({
-        type: 'new_order',
-        title: 'طلب جديد',
-        message: `طلب جديد رقم ${orderNumber} تم استلامه`,
+        type: 'new_order_pending_assignment',
+        title: 'طلب جديد في انتظار التعيين',
+        message: `طلب جديد رقم ${orderNumber} من ${customerName} في انتظار تعيين سائق. الموقع: ${deliveryAddress}`,
         recipientType: 'admin',
         recipientId: null,
         orderId: order.id,
