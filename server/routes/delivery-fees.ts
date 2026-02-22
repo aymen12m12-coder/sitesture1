@@ -6,6 +6,7 @@
 import express from "express";
 import { storage } from "../storage";
 import { calculateDeliveryFee, calculateDistance, estimateDeliveryTime } from "../services/deliveryFeeService";
+import { deliveryFeeCache } from "../utils/cache";
 import { z } from "zod";
 import { coerceRequestData } from "../utils/coercion";
 import { 
@@ -16,7 +17,6 @@ import {
 
 const router = express.Router();
 
-// حساب رسوم التوصيل
 router.post("/calculate", async (req, res) => {
   try {
     const { customerLat, customerLng, restaurantId, orderSubtotal } = req.body;
@@ -28,11 +28,27 @@ router.post("/calculate", async (req, res) => {
       });
     }
 
-    const result = await calculateDeliveryFee(
-      { lat: parseFloat(customerLat), lng: parseFloat(customerLng) },
-      restaurantId || null,
-      parseFloat(orderSubtotal || '0')
+    const lat = parseFloat(customerLat);
+    const lng = parseFloat(customerLng);
+    const subtotal = parseFloat(orderSubtotal || '0');
+    
+    const cacheKey = deliveryFeeCache.generateKey(
+      Math.round(lat * 1000),
+      Math.round(lng * 1000),
+      restaurantId,
+      Math.round(subtotal)
     );
+
+    let result = deliveryFeeCache.get(cacheKey);
+    
+    if (!result) {
+      result = await calculateDeliveryFee(
+        { lat, lng },
+        restaurantId || null,
+        subtotal
+      );
+      deliveryFeeCache.set(cacheKey, result);
+    }
 
     res.json({
       success: true,

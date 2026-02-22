@@ -188,34 +188,35 @@ export async function calculateDeliveryFee(
   restaurantId: string | null,
   orderSubtotal: number
 ): Promise<DeliveryFeeResult> {
-  // 1. جلب المناطق الجغرافية والقواعد والخصومات النشطة
-  const [geoZones, deliveryRules, discounts] = await Promise.all([
+  // 1. جلب جميع البيانات المطلوبة بشكل متوازي
+  const [geoZones, deliveryRules, discounts, deliverySettings, storeLat, storeLng, restaurant] = await Promise.all([
     storage.getGeoZones(),
     storage.getDeliveryRules(),
-    storage.getDeliveryDiscounts()
+    storage.getDeliveryDiscounts(),
+    getDeliveryFeeSettings(restaurantId || undefined),
+    storage.getUiSetting('store_lat'),
+    storage.getUiSetting('store_lng'),
+    restaurantId ? storage.getRestaurant(restaurantId) : Promise.resolve(null)
   ]);
 
   const activeGeoZones = geoZones.filter(z => z.isActive);
   const activeRules = deliveryRules.filter(r => r.isActive);
   const activeDiscounts = discounts.filter(d => d.isActive);
 
-  // 2. جلب إعدادات رسوم التوصيل (تم إصلاح مشكلة التكرار هنا)
-  const deliverySettings = await getDeliveryFeeSettings(restaurantId || undefined);
-  
-  // 3. تحديد موقع المتجر
+  // 2. تحديد موقع المتجر بكفاءة
   let storeLocation: DeliveryLocation = { lat: 0, lng: 0 };
   
   if (deliverySettings.storeLat && deliverySettings.storeLng) {
     storeLocation = { lat: deliverySettings.storeLat, lng: deliverySettings.storeLng };
-  } else {
-    // التوافق مع الإعدادات القديمة
-    const storeLat = await storage.getUiSetting('store_lat');
-    const storeLng = await storage.getUiSetting('store_lng');
-    const restaurant = restaurantId ? await storage.getRestaurant(restaurantId) : null;
-    
+  } else if (storeLat && storeLng) {
     storeLocation = {
-      lat: storeLat ? parseFloat(storeLat.value) : (restaurant ? parseFloat(restaurant.latitude || '0') : 0),
-      lng: storeLng ? parseFloat(storeLng.value) : (restaurant ? parseFloat(restaurant.longitude || '0') : 0)
+      lat: parseFloat(storeLat.value),
+      lng: parseFloat(storeLng.value)
+    };
+  } else if (restaurant && restaurant.latitude && restaurant.longitude) {
+    storeLocation = {
+      lat: parseFloat(restaurant.latitude),
+      lng: parseFloat(restaurant.longitude)
     };
   }
 
@@ -264,50 +265,45 @@ export async function calculateDeliveryFee(
     }
   }
 
-  // 6. إذا لم تطبق أي قاعدة، نستخدم الحساب الافتراضي
-  let baseFee = deliverySettings.baseFee;
-  let perKmFee = deliverySettings.perKmFee;
-  
+  // 6. استخدام الحساب الافتراضي إذا لم تطبق أي قاعدة
   if (appliedFee === null) {
-    appliedFee = baseFee + (distance * perKmFee);
+    appliedFee = deliverySettings.baseFee + (distance * deliverySettings.perKmFee);
   }
 
-  // 7. تطبيق الخصومات (Discounts)
+  // 7. تطبيق التوصيل المجاني والخصومات
   let isFreeDelivery = false;
   let freeDeliveryReason: string | undefined;
   let appliedDiscountId: string | undefined;
 
-  // التحقق من الحد الأدنى للتوصيل المجاني من الإعدادات
   if (deliverySettings.freeDeliveryThreshold > 0 && orderSubtotal >= deliverySettings.freeDeliveryThreshold) {
     isFreeDelivery = true;
     freeDeliveryReason = `توصيل مجاني للطلبات فوق ${deliverySettings.freeDeliveryThreshold} ريال`;
     appliedFee = 0;
-  }
+  } else {
+    const now = new Date();
+    for (const discount of activeDiscounts) {
+      if (discount.validFrom && new Date(discount.validFrom) > now) continue;
+      if (discount.validUntil && new Date(discount.validUntil) < now) continue;
+      if (discount.minOrderValue && orderSubtotal < parseFloat(discount.minOrderValue)) continue;
 
-  // تطبيق خصومات التوصيل الجديدة
-  const now = new Date();
-  for (const discount of activeDiscounts) {
-    if (discount.validFrom && new Date(discount.validFrom) > now) continue;
-    if (discount.validUntil && new Date(discount.validUntil) < now) continue;
-    if (discount.minOrderValue && orderSubtotal < parseFloat(discount.minOrderValue)) continue;
-
-    appliedDiscountId = discount.id;
-    if (discount.discountType === 'percentage') {
-      const discountAmount = appliedFee * (parseFloat(discount.discountValue) / 100);
-      appliedFee -= discountAmount;
-      if (parseFloat(discount.discountValue) === 100) {
-        isFreeDelivery = true;
-        freeDeliveryReason = `خصم توصيل مجاني: ${discount.name}`;
+      appliedDiscountId = discount.id;
+      if (discount.discountType === 'percentage') {
+        const discountAmount = appliedFee * (parseFloat(discount.discountValue) / 100);
+        appliedFee -= discountAmount;
+        if (parseFloat(discount.discountValue) === 100) {
+          isFreeDelivery = true;
+          freeDeliveryReason = `خصم توصيل مجاني: ${discount.name}`;
+        }
+      } else {
+        appliedFee -= parseFloat(discount.discountValue);
+        if (appliedFee <= 0) {
+          appliedFee = 0;
+          isFreeDelivery = true;
+          freeDeliveryReason = `توصيل مجاني: ${discount.name}`;
+        }
       }
-    } else {
-      appliedFee -= parseFloat(discount.discountValue);
-      if (appliedFee <= 0) {
-        appliedFee = 0;
-        isFreeDelivery = true;
-        freeDeliveryReason = `توصيل مجاني: ${discount.name}`;
-      }
+      break;
     }
-    break; // نطبق أول خصم متاح
   }
 
   // التأكد من أن الرسوم لا تقل عن صفر ولا تتجاوز الحد الأقصى
