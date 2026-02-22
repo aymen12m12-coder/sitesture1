@@ -3,10 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import DriverMapView from '@/components/maps/DriverMapView';
+import OrderDetailsPage from './OrderDetailsPage';
+import AvailableOrdersPage from './AvailableOrdersPage';
+import ActiveOrdersPage from './ActiveOrdersPage';
+import HistoryPage from './HistoryPage';
+import StatsPage from './StatsPage';
+import ProfilePage from './ProfilePage';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   Truck,
@@ -76,6 +81,7 @@ interface EnhancedDriverDashboardProps {
 
 export default function EnhancedDriverDashboard({ driverId, onLogout }: EnhancedDriverDashboardProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [driverStatus, setDriverStatus] = useState<'available' | 'busy' | 'offline'>('available');
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -295,59 +301,53 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
           </div>
           <div>
             <h2 className="text-lg font-bold">تطبيق السائق</h2>
-            <p className="text-sm text-gray-500">ID: {driverId}</p>
+            <p className="text-sm text-gray-500">ID: {driverId.slice(-6)}</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-2">
           <Button
-            variant={activeTab === 'dashboard' ? 'default' : 'ghost'}
+            variant={activeTab === 'dashboard' && !selectedOrderId ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('dashboard'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('dashboard'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <Activity className="h-5 w-5" />
-            الرئيسية
+            لوحة التحكم
           </Button>
 
           <Button
-            variant={activeTab === 'available' ? 'default' : 'ghost'}
+            variant={activeTab === 'available' && !selectedOrderId ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('available'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('available'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <Bell className="h-5 w-5" />
             الطلبات المتاحة
-            {availableOrders.length > 0 && (
-              <Badge className="mr-auto bg-red-500">{availableOrders.length}</Badge>
-            )}
           </Button>
 
           <Button
-            variant={activeTab === 'active' ? 'default' : 'ghost'}
+            variant={activeTab === 'active' && !selectedOrderId ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('active'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('active'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <Package className="h-5 w-5" />
             الطلبات النشطة
-            {activeOrders.length > 0 && (
-              <Badge className="mr-auto">{activeOrders.length}</Badge>
-            )}
           </Button>
 
           <Button
             variant={activeTab === 'map' ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('map'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('map'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <MapPinned className="h-5 w-5" />
             الخريطة
           </Button>
 
           <Button
-            variant={activeTab === 'history' ? 'default' : 'ghost'}
+            variant={activeTab === 'history' && !selectedOrderId ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('history'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('history'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <History className="h-5 w-5" />
             السجل
@@ -356,7 +356,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
           <Button
             variant={activeTab === 'stats' ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('stats'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('stats'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <TrendingUp className="h-5 w-5" />
             الإحصائيات
@@ -365,7 +365,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
           <Button
             variant={activeTab === 'profile' ? 'default' : 'ghost'}
             className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}
+            onClick={() => { setActiveTab('profile'); setSelectedOrderId(null); setSidebarOpen(false); }}
           >
             <User className="h-5 w-5" />
             الملف الشخصي
@@ -376,7 +376,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       <div className="p-4 border-t">
         <Button
           variant="outline"
-          onClick={onLogout}
+          onClick={() => { onLogout(); setSidebarOpen(false); }}
           className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
         >
           <LogOut className="h-4 w-4" />
@@ -394,6 +394,16 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
           <p className="text-gray-600">جاري تحميل البيانات...</p>
         </div>
       </div>
+    );
+  }
+
+  if (selectedOrderId) {
+    return (
+      <OrderDetailsPage
+        orderId={selectedOrderId}
+        driverId={driverId}
+        onBack={() => setSelectedOrderId(null)}
+      />
     );
   }
 
@@ -433,20 +443,68 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {/* Desktop Header */}
-            <div className="hidden lg:flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-                <p className="text-sm text-gray-500">مرحباً بك في تطبيق السائق</p>
-              </div>
-              <Badge className={getStatusColor(driverStatus)}>
-                {getStatusText(driverStatus)}
-              </Badge>
+          {activeTab === 'available' ? (
+            <AvailableOrdersPage
+              driverId={driverId}
+              onSelectOrder={(orderId) => {
+                setSelectedOrderId(orderId);
+              }}
+            />
+          ) : activeTab === 'active' ? (
+            <ActiveOrdersPage
+              driverId={driverId}
+              onSelectOrder={(orderId) => {
+                setSelectedOrderId(orderId);
+              }}
+            />
+          ) : activeTab === 'history' ? (
+            <HistoryPage
+              driverId={driverId}
+              onSelectOrder={(orderId) => {
+                setSelectedOrderId(orderId);
+              }}
+            />
+          ) : activeTab === 'stats' ? (
+            <StatsPage driverId={driverId} />
+          ) : activeTab === 'profile' ? (
+            <ProfilePage driverId={driverId} onLogout={onLogout} />
+          ) : activeTab === 'map' ? (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPinned className="h-5 w-5" />
+                    خريطة التوصيل
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DriverMapView
+                    orders={ordersForMap}
+                    driverLocation={currentLocation}
+                    height="600px"
+                    onNavigate={(order) => {
+                      if (order.customerLocationLat && order.customerLocationLng) {
+                        const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    onCall={(phone) => window.open(`tel:${phone}`, '_self')}
+                  />
+                </CardContent>
+              </Card>
             </div>
-
-            {/* Dashboard Content */}
-            <TabsContent value="dashboard" className={activeTab === 'dashboard' ? 'block' : 'hidden'}>
+          ) : (
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {/* Desktop Header */}
+              <div className="hidden lg:flex justify-between items-center mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
+                  <p className="text-sm text-gray-500">مرحباً بك في تطبيق السائق</p>
+                </div>
+                <Badge className={getStatusColor(driverStatus)}>
+                  {getStatusText(driverStatus)}
+                </Badge>
+              </div>
               {/* Quick Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <Card>
@@ -1002,8 +1060,57 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-          </div>
+              {/* Available Orders Preview */}
+              {availableOrders.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Bell className="h-5 w-5" />
+                      طلبات متاحة ({availableOrders.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {availableOrders.slice(0, 3).map((order) => (
+                        <div
+                          key={order.id}
+                          className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setSelectedOrderId(order.id)}
+                        >
+                          <div className="flex-1">
+                            <p className="font-bold">طلب #{order.orderNumber}</p>
+                            <p className="text-sm font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
+                            <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
+                            <p className="text-sm text-green-600 font-medium">عمولة: {formatCurrency(order.driverEarnings)}</p>
+                          </div>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrderId(order.id);
+                            }}
+                            className="gap-2 bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            تفاصيل
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {availableOrders.length > 3 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => { setActiveTab('available'); setSelectedOrderId(null); }}
+                        className="w-full mt-3"
+                      >
+                        عرض جميع الطلبات المتاحة ({availableOrders.length})
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </main>
       </div>
     </div>
