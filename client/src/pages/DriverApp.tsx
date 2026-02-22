@@ -1,5 +1,17 @@
 import { useState, useEffect } from 'react';
-import { MapPin, Phone, Clock, CheckCircle, Bell, Package, DollarSign, User, BarChart3, Navigation, LogOut, Wallet } from 'lucide-react';
+import { 
+  MapPin, Phone, Clock, CheckCircle, Bell, Package, DollarSign, User, 
+  BarChart3, Navigation, LogOut, Wallet, Menu, X, ChevronRight,
+  TrendingUp, Award, Calendar, Eye, EyeOff, AlertCircle
+} from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: string;
+}
 
 interface Order {
   id: string;
@@ -10,9 +22,12 @@ interface Order {
   totalAmount: string;
   estimatedTime: string;
   status: string;
-  items: string;
+  items: OrderItem[];
   createdAt: string;
   deliveryFee?: string;
+  subtotal?: string;
+  customerLocationLat?: string;
+  customerLocationLng?: string;
 }
 
 interface Driver {
@@ -25,6 +40,25 @@ interface Driver {
   todayOrders?: number;
   weeklyEarnings?: string;
   rating?: number;
+  vehicle?: string;
+  licenseNumber?: string;
+}
+
+interface DriverStats {
+  today: {
+    orders: number;
+    earnings: number;
+    deliveries: number;
+  };
+  week: {
+    orders: number;
+    earnings: number;
+  };
+  total: {
+    orders: number;
+    earnings: number;
+    rating: number;
+  };
 }
 
 interface Notification {
@@ -33,20 +67,39 @@ interface Notification {
   message: string;
   isRead: boolean;
   createdAt: string;
+  type: string;
 }
 
+interface Wallet {
+  balance: number;
+  totalEarnings: number;
+  withdrawn: number;
+  pending: number;
+}
+
+const STEPS = [
+  { id: 'available', label: 'الطلبات المتاحة', icon: Package },
+  { id: 'accepted', label: 'طلباتي', icon: Navigation },
+  { id: 'stats', label: 'الإحصائيات', icon: BarChart3 },
+  { id: 'wallet', label: 'المحفظة', icon: Wallet },
+  { id: 'profile', label: 'الملف الشخصي', icon: User },
+];
+
 export default function DriverApp() {
+  const { toast } = useToast();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('available');
+  const [isLoading, setIsLoading] = useState(false);
+  const [driverId, setDriverId] = useState<string>('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [availableOrders, setAvailableOrders] = useState<Order[]>([]);
   const [myOrders, setMyOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [driver, setDriver] = useState<Driver | null>(null);
-  const [activeTab, setActiveTab] = useState<'available' | 'myorders' | 'profile' | 'stats' | 'wallet'>('available');
-  const [isLoading, setIsLoading] = useState(false);
-  const [driverId, setDriverId] = useState<string>('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [workSession, setWorkSession] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [wallet, setWallet] = useState<any>(null);
+  const [stats, setStats] = useState<DriverStats | null>(null);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [withdrawalAmount, setWithdrawalAmount] = useState<string>('');
 
   useEffect(() => {
@@ -71,89 +124,24 @@ export default function DriverApp() {
   useEffect(() => {
     if (!isAuthenticated || !driverId) return;
 
-    fetchDriverInfo();
-    fetchAvailableOrders();
-    fetchMyOrders();
-    fetchNotifications();
-    fetchDriverStats();
-    fetchDriverWallet();
+    fetchAllData();
     
     const interval = setInterval(() => {
-      fetchAvailableOrders();
-      fetchMyOrders();
-      fetchNotifications();
-      fetchDriverStats();
-      fetchDriverWallet();
+      fetchAllData();
     }, 30000);
 
     return () => clearInterval(interval);
   }, [isAuthenticated, driverId]);
 
-  const fetchDriverStats = async () => {
-    try {
-      const response = await fetchWithAuth(`/api/drivers/${driverId}/stats`);
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.stats);
-      }
-    } catch (error) {
-      console.error('خطأ في جلب الإحصائيات:', error);
-    }
-  };
-
-  const fetchDriverWallet = async () => {
-    try {
-      const response = await fetchWithAuth(`/api/drivers/${driverId}/wallet`);
-      if (response.ok) {
-        const data = await response.json();
-        setWallet(data);
-      }
-    } catch (error) {
-      console.error('خطأ في جلب بيانات المحفظة:', error);
-    }
-  };
-
-  const startWorkSession = async () => {
-    try {
-      const response = await fetchWithAuth(`/api/drivers/work-sessions`, {
-        method: 'POST',
-        body: JSON.stringify({ driverId })
-      });
-      
-      if (response.ok) {
-        const session = await response.json();
-        setWorkSession(session);
-        localStorage.setItem('workSessionId', session.id);
-        alert('تم بدء جلسة العمل بنجاح');
-      }
-    } catch (error) {
-      console.error('خطأ في بدء جلسة العمل:', error);
-      alert('فشل في بدء جلسة العمل');
-    }
-  };
-
-  const endWorkSession = async () => {
-    try {
-      const sessionId = localStorage.getItem('workSessionId');
-      if (!sessionId || !workSession) return;
-
-      const response = await fetchWithAuth(`/api/drivers/work-sessions/${sessionId}/end`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          totalDeliveries: myOrders.filter(o => o.status === 'delivered').length,
-          totalEarnings: stats?.total?.earnings || 0
-        })
-      });
-      
-      if (response.ok) {
-        setWorkSession(null);
-        localStorage.removeItem('workSessionId');
-        alert('تم إنهاء جلسة العمل بنجاح');
-      }
-    } catch (error) {
-      console.error('خطأ في إنهاء جلسة العمل:', error);
-      alert('فشل في إنهاء جلسة العمل');
-    }
+  const fetchAllData = async () => {
+    await Promise.all([
+      fetchDriverInfo(),
+      fetchAvailableOrders(),
+      fetchMyOrders(),
+      fetchNotifications(),
+      fetchDriverStats(),
+      fetchDriverWallet()
+    ]);
   };
 
   const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
@@ -180,7 +168,7 @@ export default function DriverApp() {
       const data = await response.json();
       setDriver(data);
     } catch (error) {
-      console.error('خطأ في جلب معلومات السائق:', error);
+      console.error('Error fetching driver info:', error);
     }
   };
 
@@ -188,29 +176,49 @@ export default function DriverApp() {
     try {
       const response = await fetchWithAuth(`/api/orders?status=confirmed`);
       const data = await response.json();
-      setAvailableOrders(data);
+      setAvailableOrders(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('خطأ في جلب الطلبات المتاحة:', error);
+      console.error('Error fetching available orders:', error);
     }
   };
 
   const fetchMyOrders = async () => {
     try {
-      const response = await fetchWithAuth(`/api/orders?driverId=${driverId}&status=assigned,picked_up,on_way`);
+      const response = await fetchWithAuth(`/api/orders?driverId=${driverId}`);
       const data = await response.json();
-      setMyOrders(data);
+      setMyOrders(Array.isArray(data) ? data.filter((o: Order) => ['assigned', 'picked_up', 'on_way'].includes(o.status)) : []);
     } catch (error) {
-      console.error('خطأ في جلب طلباتي:', error);
+      console.error('Error fetching my orders:', error);
     }
   };
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetchWithAuth(`/api/notifications?recipientType=driver&recipientId=${driverId}&unread=true`);
+      const response = await fetchWithAuth(`/api/notifications?recipientType=driver&recipientId=${driverId}`);
       const data = await response.json();
-      setNotifications(data);
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('خطأ في جلب الإشعارات:', error);
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  const fetchDriverStats = async () => {
+    try {
+      const response = await fetchWithAuth(`/api/drivers/${driverId}/stats`);
+      const data = await response.json();
+      setStats(data.stats || data);
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDriverWallet = async () => {
+    try {
+      const response = await fetchWithAuth(`/api/drivers/${driverId}/wallet`);
+      const data = await response.json();
+      setWallet(data);
+    } catch (error) {
+      console.error('Error fetching wallet:', error);
     }
   };
 
@@ -223,15 +231,18 @@ export default function DriverApp() {
       });
       
       if (response.ok) {
-        fetchAvailableOrders();
-        fetchMyOrders();
-        alert('تم قبول الطلب بنجاح');
-      } else {
-        throw new Error('Failed to accept order');
+        toast({
+          title: "✅ تم قبول الطلب",
+          description: "تم إضافة الطلب إلى قائمة طلباتك",
+        });
+        await fetchAllData();
       }
     } catch (error) {
-      console.error('خطأ في قبول الطلب:', error);
-      alert('فشل في قبول الطلب');
+      toast({
+        title: "❌ خطأ",
+        description: "فشل في قبول الطلب",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -245,12 +256,18 @@ export default function DriverApp() {
       });
       
       if (response.ok) {
-        fetchMyOrders();
-        alert(`تم تحديث حالة الطلب إلى: ${getStatusText(status)}`);
+        toast({
+          title: "✅ تم التحديث",
+          description: `تم تحديث حالة الطلب إلى: ${getStatusText(status)}`,
+        });
+        await fetchAllData();
       }
     } catch (error) {
-      console.error('خطأ في تحديث حالة الطلب:', error);
-      alert('فشل في تحديث حالة الطلب');
+      toast({
+        title: "❌ خطأ",
+        description: "فشل في تحديث حالة الطلب",
+        variant: "destructive",
+      });
     }
   };
 
@@ -264,104 +281,58 @@ export default function DriverApp() {
       });
       
       if (response.ok) {
-        fetchDriverInfo();
-      }
-    } catch (error) {
-      console.error('خطأ في تحديث حالة التوفر:', error);
-    }
-  };
-
-  const requestWithdrawal = async () => {
-    if (!withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
-      alert('الرجاء إدخال مبلغ صحيح');
-      return;
-    }
-
-    if (wallet && parseFloat(withdrawalAmount) > parseFloat(wallet.balance)) {
-      alert('الرصيد غير كافي');
-      return;
-    }
-
-    try {
-      const accountNumber = prompt('أدخل رقم الحساب البنكي:');
-      const bankName = prompt('أدخل اسم البنك:');
-      const accountHolder = prompt('أدخل اسم صاحب الحساب:');
-
-      if (!accountNumber || !bankName || !accountHolder) {
-        alert('يرجى إدخال جميع البيانات المطلوبة');
-        return;
-      }
-
-      const response = await fetchWithAuth(`/api/drivers/${driverId}/withdrawal-request`, {
-        method: 'POST',
-        body: JSON.stringify({
-          amount: parseFloat(withdrawalAmount),
-          accountNumber,
-          bankName,
-          accountHolder
-        })
-      });
-      
-      if (response.ok) {
-        alert('تم تقديم طلب السحب بنجاح');
-        setWithdrawalAmount('');
-        fetchDriverWallet();
-      }
-    } catch (error) {
-      console.error('خطأ في طلب السحب:', error);
-      alert('فشل في تقديم طلب السحب');
-    }
-  };
-
-  const updateLocation = async () => {
-    if (!navigator.geolocation) {
-      alert('لا يدعم تطبيقك الموقع');
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
-      try {
-        const { latitude, longitude } = position.coords;
-        const response = await fetchWithAuth(`/api/drivers/${driverId}/location`, {
-          method: 'POST',
-          body: JSON.stringify({ latitude, longitude })
+        setDriver({ ...driver, isAvailable: !driver.isAvailable });
+        toast({
+          title: driver.isAvailable ? "🔴 تم تعطيل الحالة" : "🟢 تم تفعيل الحالة",
         });
-        
-        if (response.ok) {
-          console.log('تم تحديث الموقع بنجاح');
-        }
-      } catch (error) {
-        console.error('خطأ في تحديث الموقع:', error);
       }
-    });
+    } catch (error) {
+      toast({
+        title: "❌ خطأ",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('driverToken');
     localStorage.removeItem('driverUser');
-    localStorage.removeItem('workSessionId');
     window.location.href = '/driver-login';
   };
 
-  const parseItems = (itemsJson: string) => {
-    try {
-      return JSON.parse(itemsJson);
-    } catch {
-      return [];
+  const parseItems = (items: any): OrderItem[] => {
+    if (typeof items === 'string') {
+      try {
+        return JSON.parse(items);
+      } catch {
+        return [];
+      }
     }
+    return Array.isArray(items) ? items : [];
   };
 
   const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'assigned': '✓ تم التكليف',
+      'picked_up': '📦 تم الاستلام',
+      'on_way': '🚗 في الطريق',
+      'delivered': '✅ تم التسليم',
+      'confirmed': '⏳ قيد الانتظار',
+    };
+    return statusMap[status] || status;
+  };
+
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'assigned': return 'تم التكليف';
-      case 'picked_up': return 'تم الاستلام';
-      case 'on_way': return 'في الطريق';
-      case 'delivered': return 'تم التسليم';
-      default: return status;
+      case 'assigned': return 'bg-blue-50 border-blue-200';
+      case 'picked_up': return 'bg-yellow-50 border-yellow-200';
+      case 'on_way': return 'bg-orange-50 border-orange-200';
+      case 'delivered': return 'bg-green-50 border-green-200';
+      default: return 'bg-gray-50 border-gray-200';
     }
   };
 
-  const getStatusBadgeClass = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'assigned': return 'bg-blue-100 text-blue-800';
       case 'picked_up': return 'bg-yellow-100 text-yellow-800';
@@ -371,508 +342,622 @@ export default function DriverApp() {
     }
   };
 
+  const getNextAction = (status: string) => {
+    switch (status) {
+      case 'assigned': return { action: 'picked_up', label: '📦 تم الاستلام من المطعم' };
+      case 'picked_up': return { action: 'on_way', label: '🚗 في الطريق للعميل' };
+      case 'on_way': return { action: 'delivered', label: '✅ تم التسليم' };
+      default: return null;
+    }
+  };
+
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>جاري التحميل...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">جاري التحميل...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex justify-between items-center flex-col lg:flex-row gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">مرحباً {driver?.name}</h1>
-            <p className="text-gray-600 flex items-center gap-1 text-sm lg:text-base">
-              <DollarSign size={16} />
-              أرباحك اليوم: {stats?.today?.earnings?.toFixed(2) || '0'} شيكل
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Bell className="text-gray-600" size={24} />
-              {notifications.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {notifications.length}
-                </span>
-              )}
-            </div>
-            <button
-              onClick={toggleAvailability}
-              className={`px-4 py-2 rounded-lg font-semibold flex items-center gap-2 ${
-                driver?.isAvailable
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-600 text-white hover:bg-gray-700'
-              }`}
-            >
-              {driver?.isAvailable ? (
-                <>
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  متاح
-                </>
-              ) : (
-                'غير متاح'
-              )}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 rounded-lg font-semibold bg-red-600 text-white hover:bg-red-700 flex items-center gap-2"
-            >
-              <LogOut size={16} />
-              تسجيل الخروج
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex" dir="rtl">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} hidden lg:block bg-white shadow-lg transition-all duration-300 overflow-hidden`}>
+        <SidebarContent activeTab={activeTab} setActiveTab={setActiveTab} />
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex flex-wrap space-x-1 mb-6 bg-white p-2 rounded-lg shadow-sm">
-        <button
-          onClick={() => setActiveTab('available')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm ${
-            activeTab === 'available'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Package size={18} />
-          <span className="hidden sm:inline">الطلبات المتاحة</span>
-          <span className="sm:hidden">({availableOrders.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('myorders')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm ${
-            activeTab === 'myorders'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Navigation size={18} />
-          <span className="hidden sm:inline">طلباتي</span>
-          <span className="sm:hidden">({myOrders.length})</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('stats')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm ${
-            activeTab === 'stats'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <BarChart3 size={18} />
-          <span className="hidden sm:inline">الإحصائيات</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('wallet')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm ${
-            activeTab === 'wallet'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <Wallet size={18} />
-          <span className="hidden sm:inline">المحفظة</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-sm ${
-            activeTab === 'profile'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          }`}
-        >
-          <User size={18} />
-          <span className="hidden sm:inline">الملف الشخصي</span>
-        </button>
+      {/* Mobile Sidebar */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 lg:hidden z-40" onClick={() => setSidebarOpen(false)} />
+      )}
+      <div className={`fixed top-0 right-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 z-50 lg:hidden ${
+        sidebarOpen ? 'translate-x-0' : 'translate-x-full'
+      }`}>
+        <SidebarContent activeTab={activeTab} setActiveTab={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Available Orders Tab */}
-      {activeTab === 'available' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-800">الطلبات المتاحة</h2>
-          {!driver?.isAvailable && (
-            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-              يجب تفعيل حالة "متاح" لرؤية الطلبات الجديدة
-            </div>
-          )}
-          {availableOrders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              لا توجد طلبات متاحة حالياً
-            </div>
-          ) : (
-            availableOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{order.customerName}</h3>
-                    <p className="text-gray-600 flex items-center gap-1">
-                      <Phone size={16} />
-                      {order.customerPhone}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">{order.totalAmount} شيكل</p>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Clock size={14} />
-                      {order.estimatedTime}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-gray-700 flex items-start gap-1">
-                    <MapPin size={16} className="mt-1 flex-shrink-0" />
-                    {order.deliveryAddress}
-                  </p>
-                  {order.notes && (
-                    <p className="text-sm text-gray-600 mt-2">ملاحظات: {order.notes}</p>
-                  )}
-                </div>
-
-                <div className="mb-4">
-                  <h4 className="font-medium text-gray-800 mb-2">الأصناف:</h4>
-                  <div className="space-y-1">
-                    {parseItems(order.items).map((item: any, index: number) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span>{item.name} × {item.quantity}</span>
-                        <span>{(item.price * item.quantity).toFixed(2)} شيكل</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => acceptOrder(order.id)}
-                  disabled={isLoading || !driver?.isAvailable}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <CheckCircle size={20} />
-                  {isLoading ? 'جاري المعالجة...' : 'قبول الطلب'}
-                </button>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* My Orders Tab */}
-      {activeTab === 'myorders' && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-800">طلباتي الحالية</h2>
-          {myOrders.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              لا توجد طلبات حالية
-            </div>
-          ) : (
-            myOrders.map((order) => (
-              <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{order.customerName}</h3>
-                    <p className="text-gray-600 flex items-center gap-1">
-                      <Phone size={16} />
-                      {order.customerPhone}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-green-600">{order.totalAmount} شيكل</p>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeClass(order.status)}`}>
-                      {getStatusText(order.status)}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <p className="text-gray-700 flex items-start gap-1">
-                    <MapPin size={16} className="mt-1 flex-shrink-0" />
-                    {order.deliveryAddress}
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  {order.status === 'assigned' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'picked_up')}
-                      className="flex-1 bg-yellow-600 text-white py-2 rounded-lg font-semibold hover:bg-yellow-700"
-                    >
-                      تم الاستلام من المطعم
-                    </button>
-                  )}
-                  {order.status === 'picked_up' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'on_way')}
-                      className="flex-1 bg-orange-600 text-white py-2 rounded-lg font-semibold hover:bg-orange-700"
-                    >
-                      في الطريق للعميل
-                    </button>
-                  )}
-                  {order.status === 'on_way' && (
-                    <button
-                      onClick={() => updateOrderStatus(order.id, 'delivered')}
-                      className="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700"
-                    >
-                      تم التسليم
-                    </button>
-                  )}
-                  <a
-                    href={`tel:${order.customerPhone}`}
-                    className="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center gap-1"
-                  >
-                    <Phone size={16} />
-                    اتصال
-                  </a>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Stats Tab */}
-      {activeTab === 'stats' && driver && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-800">الإحصائيات والأرباح</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Package className="text-blue-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{stats?.today?.orders || 0}</h3>
-              <p className="text-gray-600">طلبات اليوم</p>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <DollarSign className="text-green-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{stats?.today?.earnings?.toFixed(2) || '0'} شيكل</h3>
-              <p className="text-gray-600">أرباح اليوم</p>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6 text-center">
-              <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="text-purple-600" size={24} />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800">{stats?.week?.earnings?.toFixed(2) || '0'} شيكل</h3>
-              <p className="text-gray-600">أرباح الأسبوع</p>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">ملخص الأداء</h3>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center pb-2 border-b">
-                <span className="text-gray-700">إجمالي الطلبات</span>
-                <span className="font-bold text-gray-900">{stats?.total?.orders || 0}</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b">
-                <span className="text-gray-700">الطلبات المكتملة</span>
-                <span className="font-bold text-green-600">{stats?.total?.completed || 0}</span>
-              </div>
-              <div className="flex justify-between items-center pb-2 border-b">
-                <span className="text-gray-700">إجمالي الأرباح</span>
-                <span className="font-bold text-green-600">{stats?.total?.earnings?.toFixed(2) || '0'} شيكل</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">معدل الإنجاز</span>
-                <span className="font-bold text-blue-600">
-                  {stats?.total?.orders ? ((stats?.total?.completed / stats?.total?.orders) * 100).toFixed(1) : '0'}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Wallet Tab */}
-      {activeTab === 'wallet' && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-800">محفظتي</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-lg shadow-md p-6 text-white">
-              <p className="text-green-100 text-sm mb-1">الرصيد الحالي</p>
-              <h3 className="text-3xl font-bold">{wallet?.balance?.toFixed(2) || '0'} شيكل</h3>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <p className="text-gray-600 text-sm mb-1">إجمالي الأرباح</p>
-              <h3 className="text-3xl font-bold text-gray-800">{wallet?.totalEarnings?.toFixed(2) || '0'} شيكل</h3>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <p className="text-gray-600 text-sm mb-1">المبالغ المسحوبة</p>
-              <h3 className="text-3xl font-bold text-red-600">{wallet?.withdrawn?.toFixed(2) || '0'} شيكل</h3>
-            </div>
-          </div>
-
-          {/* Withdrawal Request Section */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">طلب سحب جديد</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">المبلغ المطلوب سحبه (شيكل)</label>
-                <input
-                  type="number"
-                  value={withdrawalAmount}
-                  onChange={(e) => setWithdrawalAmount(e.target.value)}
-                  placeholder="أدخل المبلغ"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-600"
-                />
-                <p className="text-xs text-gray-600 mt-1">الرصيد المتاح: {wallet?.balance?.toFixed(2) || '0'} شيكل</p>
-              </div>
-              <button
-                onClick={requestWithdrawal}
-                disabled={!withdrawalAmount || parseFloat(withdrawalAmount) <= 0}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="px-4 sm:px-6 py-4">
+            <div className="flex items-center justify-between gap-4">
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               >
-                <DollarSign size={20} />
-                طلب سحب الآن
+                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
+
+              <div className="flex-1 min-w-0">
+                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                  مرحباً {driver?.name}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  {driver?.isAvailable ? '🟢 متاح حالياً' : '🔴 غير متاح'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="relative">
+                  <Bell className="text-gray-600 cursor-pointer" size={20} />
+                  {notifications.filter(n => !n.isRead).length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      {notifications.filter(n => !n.isRead).length}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  onClick={toggleAvailability}
+                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                    driver?.isAvailable
+                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  {driver?.isAvailable ? '✓ متاح' : 'غير متاح'}
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                  title="تسجيل الخروج"
+                >
+                  <LogOut size={20} />
+                </button>
+              </div>
             </div>
           </div>
+        </div>
 
-          {/* Withdrawal History */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">سجل طلبات السحب</h3>
-            {!wallet?.withdrawalRequests || wallet.withdrawalRequests.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">لا توجد طلبات سحب حتى الآن</p>
-            ) : (
-              <div className="space-y-3">
-                {wallet.withdrawalRequests.map((request: any) => (
-                  <div key={request.id} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium text-gray-800">{request.amount?.toFixed(2)} شيكل</p>
-                        <p className="text-sm text-gray-600">رقم الحساب: {request.accountNumber}</p>
-                        <p className="text-sm text-gray-600">{request.bankName}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          request.status === 'approved' ? 'bg-green-100 text-green-800' :
-                          request.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                          'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {request.status === 'approved' ? 'موافق عليه' :
-                           request.status === 'rejected' ? 'مرفوض' :
-                           'قيد الانتظار'}
-                        </span>
-                        <p className="text-xs text-gray-400 mt-2">
-                          {new Date(request.createdAt).toLocaleDateString('ar')}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+            {activeTab === 'available' && (
+              <AvailableOrdersSection orders={availableOrders} isLoading={isLoading} onAccept={acceptOrder} driver={driver} />
+            )}
+            {activeTab === 'accepted' && (
+              <MyOrdersSection orders={myOrders} onStatusUpdate={updateOrderStatus} selectedOrder={selectedOrder} setSelectedOrder={setSelectedOrder} />
+            )}
+            {activeTab === 'stats' && (
+              <StatsSection stats={stats} driver={driver} />
+            )}
+            {activeTab === 'wallet' && (
+              <WalletSection wallet={wallet} withdrawalAmount={withdrawalAmount} setWithdrawalAmount={setWithdrawalAmount} driverId={driverId} fetchWallet={fetchDriverWallet} />
+            )}
+            {activeTab === 'profile' && (
+              <ProfileSection driver={driver} />
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
 
-          {/* Work Session Management */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">إدارة جلسات العمل</h3>
-            <div className="space-y-3">
-              {!workSession ? (
-                <button
-                  onClick={startWorkSession}
-                  className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center gap-2"
-                >
-                  <Clock size={20} />
-                  بدء جلسة عمل جديدة
-                </button>
-              ) : (
-                <div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-3">
-                    <p className="text-green-800 font-medium">جلسة عمل نشطة</p>
-                    <p className="text-sm text-green-600 mt-1">عدد التسليمات: {myOrders.filter(o => o.status === 'delivered').length}</p>
-                    <p className="text-sm text-green-600">الأرباح: {stats?.total?.earnings?.toFixed(2) || '0'} شيكل</p>
-                  </div>
-                  <button
-                    onClick={endWorkSession}
-                    className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700"
-                  >
-                    إنهاء جلسة العمل
-                  </button>
-                </div>
-              )}
+  function SidebarContent({ activeTab, setActiveTab }: any) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <h2 className="text-xl font-bold text-gray-900">📍 تطبيق السائق</h2>
+          <p className="text-sm text-gray-600">طمطوم للتوصيل</p>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+          {STEPS.map((step) => {
+            const Icon = step.icon;
+            const isActive = activeTab === step.id;
+            return (
+              <button
+                key={step.id}
+                onClick={() => {
+                  setActiveTab(step.id);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-right ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <ChevronRight size={18} className={isActive ? 'translate-x-1' : ''} />
+                <Icon size={20} />
+                <span className="flex-1">{step.label}</span>
+                {step.id === 'available' && availableOrders.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-2 py-1 font-bold">
+                    {availableOrders.length}
+                  </span>
+                )}
+                {step.id === 'accepted' && myOrders.length > 0 && (
+                  <span className="bg-orange-500 text-white text-xs rounded-full px-2 py-1 font-bold">
+                    {myOrders.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="p-4 border-t bg-gray-50">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">أرباح اليوم:</span>
+              <span className="font-bold text-green-600">{stats?.today?.earnings.toFixed(2) || '0'} ر.ي</span>
             </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">الطلبات اليوم:</span>
+              <span className="font-bold text-blue-600">{stats?.today?.orders || 0}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">التقييم:</span>
+              <span className="font-bold text-yellow-600">⭐ {stats?.total?.rating?.toFixed(1) || '0'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+function AvailableOrdersSection({ orders, isLoading, onAccept, driver }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">📦 الطلبات المتاحة</h2>
+        <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full font-bold text-sm">
+          {orders.length} طلب
+        </span>
+      </div>
+
+      {!driver?.isAvailable && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+          <div className="flex gap-3">
+            <AlertCircle className="text-yellow-600 flex-shrink-0" size={20} />
+            <p className="text-yellow-800">
+              <strong>تنبيه:</strong> يجب تفعيل حالة "متاح" لرؤية الطلبات الجديدة
+            </p>
           </div>
         </div>
       )}
 
-      {/* Profile Tab */}
-      {activeTab === 'profile' && driver && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-800">ملفي الشخصي</h2>
-          
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
-                <p className="text-lg text-gray-900">{driver.name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
-                <p className="text-lg text-gray-900">{driver.phone}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">إجمالي الأرباح</label>
-                <p className="text-2xl font-bold text-green-600">{driver.earnings} شيكل</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">الحالة</label>
-                <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                  driver.isAvailable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                }`}>
-                  {driver.isAvailable ? 'متاح للعمل' : 'غير متاح'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Notifications */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">الإشعارات الحديثة</h3>
-            {notifications.length === 0 ? (
-              <p className="text-gray-500">لا توجد إشعارات جديدة</p>
-            ) : (
-              <div className="space-y-3">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="border-l-4 border-blue-500 pl-4 py-2">
-                    <h4 className="font-medium text-gray-800">{notification.title}</h4>
-                    <p className="text-sm text-gray-600">{notification.message}</p>
-                    <p className="text-xs text-gray-400 mt-1">
-                      {new Date(notification.createdAt).toLocaleString('ar')}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Location Update */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">الموقع</h3>
-            <button
-              onClick={updateLocation}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center gap-2"
-            >
-              <MapPin size={20} />
-              تحديث موقعي الحالي
-            </button>
-            <p className="text-sm text-gray-600 mt-3 text-center">
-              سيتم إرسال موقعك الحالي إلى الخادم لتحسين خدمة التوصيل
-            </p>
-          </div>
+      {orders.length === 0 ? (
+        <div className="text-center py-12">
+          <Package className="mx-auto text-gray-300 mb-4" size={48} />
+          <p className="text-gray-500 font-medium">لا توجد طلبات متاحة حالياً</p>
+          <p className="text-gray-400 text-sm">تحقق لاحقاً من الطلبات الجديدة</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          {orders.map((order: Order) => (
+            <OrderCard key={order.id} order={order} isLoading={isLoading} onAccept={onAccept} actionType="accept" />
+          ))}
         </div>
       )}
     </div>
   );
+}
+
+function MyOrdersSection({ orders, onStatusUpdate, selectedOrder, setSelectedOrder }: any) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">🚗 طلباتي الحالية</h2>
+        <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-bold text-sm">
+          {orders.length} طلب
+        </span>
+      </div>
+
+      {orders.length === 0 ? (
+        <div className="text-center py-12">
+          <Navigation className="mx-auto text-gray-300 mb-4" size={48} />
+          <p className="text-gray-500 font-medium">لا توجد طلبات حالية</p>
+          <p className="text-gray-400 text-sm">اقبل طلباً من قسم الطلبات المتاحة</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {orders.map((order: Order) => (
+            <OrderCard 
+              key={order.id} 
+              order={order} 
+              onStatusUpdate={onStatusUpdate} 
+              actionType="status"
+              isSelected={selectedOrder?.id === order.id}
+              onSelect={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isSelected, onSelect }: any) {
+  const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
+  const nextAction = actionType === 'status' ? getNextAction(order.status) : null;
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'assigned': return 'text-blue-600';
+      case 'picked_up': return 'text-yellow-600';
+      case 'on_way': return 'text-orange-600';
+      case 'delivered': return 'text-green-600';
+      default: return 'text-gray-600';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: Record<string, string> = {
+      'assigned': '✓ تم التكليف',
+      'picked_up': '📦 تم الاستلام',
+      'on_way': '🚗 في الطريق',
+      'delivered': '✅ تم التسليم',
+      'confirmed': '⏳ قيد الانتظار',
+    };
+    return statusMap[status] || status;
+  };
+
+  return (
+    <div className={`bg-white rounded-lg border-2 transition-all cursor-pointer ${
+      isSelected ? 'border-blue-500 shadow-lg' : 'border-gray-200 hover:border-gray-300'
+    }`}>
+      <div className="p-4 sm:p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 mb-4" onClick={onSelect}>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg font-bold text-gray-900 truncate">{order.customerName}</h3>
+            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+              <Phone size={16} />
+              <a href={`tel:${order.customerPhone}`} className="hover:text-blue-600">
+                {order.customerPhone}
+              </a>
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <div className="text-2xl font-bold text-green-600">{order.totalAmount}</div>
+            <p className="text-xs text-gray-500 font-medium">ر.ي</p>
+            {actionType === 'status' && (
+              <span className={`text-sm font-bold mt-2 block ${getStatusColor(order.status)}`}>
+                {getStatusText(order.status)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Location */}
+        <div className="mb-4">
+          <div className="flex gap-3">
+            <MapPin className="text-red-500 flex-shrink-0 mt-1" size={18} />
+            <div className="flex-1">
+              <p className="text-gray-700 font-medium">{order.deliveryAddress}</p>
+              {order.notes && (
+                <p className="text-sm text-gray-600 mt-2">📝 {order.notes}</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Items */}
+        {isSelected && items.length > 0 && (
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h4 className="font-bold text-gray-900 mb-3">📋 تفاصيل الطلب:</h4>
+            <div className="space-y-2">
+              {items.map((item: any, idx: number) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="text-gray-700">
+                    {item.name} × <span className="font-bold">{item.quantity}</span>
+                  </span>
+                  <span className="font-bold text-gray-900">
+                    {(parseFloat(item.price) * item.quantity).toFixed(2)} ر.ي
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 flex-wrap">
+          {actionType === 'accept' ? (
+            <button
+              onClick={() => onAccept(order.id)}
+              disabled={isLoading}
+              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={20} />
+              {isLoading ? 'جاري...' : 'قبول الطلب'}
+            </button>
+          ) : nextAction ? (
+            <>
+              <button
+                onClick={() => onStatusUpdate(order.id, nextAction.action)}
+                className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold hover:bg-orange-700 transition-colors"
+              >
+                {nextAction.label}
+              </button>
+              <a
+                href={`tel:${order.customerPhone}`}
+                className="bg-blue-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <Phone size={18} />
+                اتصال
+              </a>
+            </>
+          ) : (
+            <div className="w-full bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">
+              <p className="text-green-800 font-bold">✅ تم تسليم الطلب</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatsSection({ stats, driver }: any) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">📊 الإحصائيات والأرباح</h2>
+
+      {/* Today Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatCard
+          title="طلبات اليوم"
+          value={stats?.today?.orders || 0}
+          icon={<Package className="text-blue-600" size={28} />}
+          bgColor="bg-blue-50"
+        />
+        <StatCard
+          title="أرباح اليوم"
+          value={`${stats?.today?.earnings?.toFixed(2) || 0} ر.ي`}
+          icon={<DollarSign className="text-green-600" size={28} />}
+          bgColor="bg-green-50"
+        />
+        <StatCard
+          title="التقييم"
+          value={`⭐ ${stats?.total?.rating?.toFixed(1) || 0}`}
+          icon={<Award className="text-yellow-600" size={28} />}
+          bgColor="bg-yellow-50"
+        />
+      </div>
+
+      {/* Weekly Stats */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <Calendar size={20} />
+          إحصائيات الأسبوع
+        </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-gray-50 rounded-lg border">
+            <p className="text-gray-600 text-sm">الطلبات</p>
+            <p className="text-3xl font-bold text-gray-900">{stats?.week?.orders || 0}</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-lg border">
+            <p className="text-gray-600 text-sm">الأرباح</p>
+            <p className="text-3xl font-bold text-green-600">{stats?.week?.earnings?.toFixed(2) || 0}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Total Stats */}
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-lg p-6">
+        <h3 className="font-bold mb-4 text-lg">📈 الإجمالي</h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-blue-100 text-sm">الطلبات</p>
+            <p className="text-2xl font-bold">{stats?.total?.orders || 0}</p>
+          </div>
+          <div>
+            <p className="text-blue-100 text-sm">الأرباح</p>
+            <p className="text-2xl font-bold">{stats?.total?.earnings?.toFixed(2) || 0} ر.ي</p>
+          </div>
+          <div>
+            <p className="text-blue-100 text-sm">التقييم</p>
+            <p className="text-2xl font-bold">⭐ {stats?.total?.rating?.toFixed(1) || 0}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, bgColor }: any) {
+  return (
+    <div className={`${bgColor} rounded-lg p-6 border border-gray-200`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-gray-600 text-sm font-medium">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+        </div>
+        {icon}
+      </div>
+    </div>
+  );
+}
+
+function WalletSection({ wallet, withdrawalAmount, setWithdrawalAmount, driverId, fetchWallet }: any) {
+  const { toast } = useToast();
+
+  const handleWithdrawal = async () => {
+    if (!withdrawalAmount || parseFloat(withdrawalAmount) <= 0) {
+      toast({
+        title: "❌ خطأ",
+        description: "الرجاء إدخال مبلغ صحيح",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (wallet && parseFloat(withdrawalAmount) > wallet.balance) {
+      toast({
+        title: "❌ خطأ",
+        description: "الرصيد غير كافي",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const accountNumber = prompt('أدخل رقم الحساب البنكي:');
+      const bankName = prompt('أدخل اسم البنك:');
+      const accountHolder = prompt('أدخل اسم صاحب الحساب:');
+
+      if (!accountNumber || !bankName || !accountHolder) {
+        return;
+      }
+
+      const response = await fetch(`/api/drivers/${driverId}/withdrawal-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: parseFloat(withdrawalAmount),
+          accountNumber,
+          bankName,
+          accountHolder
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "✅ نجاح",
+          description: "تم تقديم طلب السحب بنجاح",
+        });
+        setWithdrawalAmount('');
+        await fetchWallet();
+      }
+    } catch (error) {
+      toast({
+        title: "❌ خطأ",
+        description: "فشل في تقديم طلب السحب",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">💰 المحفظة</h2>
+
+      {/* Wallet Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatCard
+          title="الرصيد الحالي"
+          value={`${wallet?.balance?.toFixed(2) || 0} ر.ي`}
+          icon={<Wallet className="text-blue-600" size={28} />}
+          bgColor="bg-blue-50"
+        />
+        <StatCard
+          title="إجمالي الأرباح"
+          value={`${wallet?.totalEarnings?.toFixed(2) || 0} ر.ي`}
+          icon={<TrendingUp className="text-green-600" size={28} />}
+          bgColor="bg-green-50"
+        />
+        <StatCard
+          title="المسحوب"
+          value={`${wallet?.withdrawn?.toFixed(2) || 0} ر.ي`}
+          icon={<Eye className="text-orange-600" size={28} />}
+          bgColor="bg-orange-50"
+        />
+        <StatCard
+          title="المعلق"
+          value={`${wallet?.pending?.toFixed(2) || 0} ر.ي`}
+          icon={<Clock className="text-yellow-600" size={28} />}
+          bgColor="bg-yellow-50"
+        />
+      </div>
+
+      {/* Withdrawal Form */}
+      <div className="bg-white rounded-lg shadow-sm border p-6">
+        <h3 className="font-bold text-gray-900 mb-4">🏦 طلب السحب</h3>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">المبلغ (ر.ي)</label>
+            <input
+              type="number"
+              value={withdrawalAmount}
+              onChange={(e) => setWithdrawalAmount(e.target.value)}
+              max={wallet?.balance || 0}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="أدخل المبلغ المراد سحبه"
+            />
+            <p className="text-xs text-gray-500 mt-1">الحد الأقصى: {wallet?.balance?.toFixed(2) || 0} ر.ي</p>
+          </div>
+          <button
+            onClick={handleWithdrawal}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+          >
+            طلب السحب
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileSection({ driver }: any) {
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-900">👤 الملف الشخصي</h2>
+
+      <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">الاسم</label>
+          <p className="text-lg font-bold text-gray-900">{driver?.name}</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">رقم الهاتف</label>
+          <a href={`tel:${driver?.phone}`} className="text-blue-600 hover:underline font-medium">
+            {driver?.phone}
+          </a>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">المركبة</label>
+          <p className="text-gray-900">{driver?.vehicle || 'غير محدد'}</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">رقم الرخصة</label>
+          <p className="text-gray-900">{driver?.licenseNumber || 'غير محدد'}</p>
+        </div>
+
+        <div className="border-t pt-4">
+          <p className="text-sm text-gray-600">
+            <strong>حالة الحساب:</strong> {driver?.isAvailable ? '🟢 نشط' : '🔴 معطل'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function getNextAction(status: string) {
+  switch (status) {
+    case 'assigned': return { action: 'picked_up', label: '📦 تم الاستلام من المطعم' };
+    case 'picked_up': return { action: 'on_way', label: '🚗 في الطريق للعميل' };
+    case 'on_way': return { action: 'delivered', label: '✅ تم التسليم' };
+    default: return null;
+  }
 }
