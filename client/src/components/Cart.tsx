@@ -70,46 +70,62 @@ export function Cart({ isOpen, onClose }: CartProps) {
     enabled: !!state.restaurantId,
   });
 
-  // حساب رسوم التوصيل بناءً على الموقع والمطعم من السيرفر
   useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
     const fetchDeliveryFee = async () => {
-      if (selectedLocation && state.restaurantId) {
-        setIsCalculatingFee(true);
-        try {
-          const response = await fetch('/api/delivery-fees/calculate', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              customerLat: selectedLocation.lat,
-              customerLng: selectedLocation.lng,
-              restaurantId: state.restaurantId,
-              orderSubtotal: state.subtotal
-            }),
-          });
-          
-          const data = await response.json();
-          if (data.success) {
-            setDeliveryFee(data.fee);
-            setDeliveryDetails(data);
-            setContextDeliveryFee(data.fee);
-          }
-        } catch (error) {
+      if (!selectedLocation?.lat || !selectedLocation?.lng || !state.restaurantId) {
+        return;
+      }
+
+      setIsCalculatingFee(true);
+      try {
+        const response = await fetch('/api/delivery-fees/calculate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            customerLat: selectedLocation.lat,
+            customerLng: selectedLocation.lng,
+            restaurantId: state.restaurantId,
+            orderSubtotal: state.subtotal || 0
+          }),
+          signal: abortController.signal
+        });
+        
+        if (!response.ok) throw new Error('فشل في حساب رسوم التوصيل');
+        
+        const data = await response.json();
+        if (isMounted && data.success) {
+          setDeliveryFee(data.fee);
+          setDeliveryDetails(data);
+          setContextDeliveryFee(data.fee);
+        }
+      } catch (error: any) {
+        if (isMounted && error.name !== 'AbortError') {
           console.error('Failed to calculate delivery fee:', error);
           toast({
             title: "خطأ في حساب الرسوم",
-            description: "فشل في الاتصال بالسيرفر لحساب رسوم التوصيل",
+            description: "فشل في الاتصال بالسيرفر",
             variant: "destructive",
           });
-        } finally {
+        }
+      } finally {
+        if (isMounted) {
           setIsCalculatingFee(false);
         }
       }
     };
 
     fetchDeliveryFee();
-  }, [selectedLocation, state.restaurantId, state.subtotal, setContextDeliveryFee, toast]);
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [selectedLocation?.lat, selectedLocation?.lng, state.restaurantId, state.subtotal]);
 
   // الحصول على موقع المطعم للحساب
   const getRestaurantLocation = () => {
