@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { 
@@ -19,6 +20,7 @@ import {
   DollarSign,
   Shield
 } from 'lucide-react';
+import type { UiSettings } from '@shared/schema';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -27,6 +29,20 @@ interface AdminLayoutProps {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [, setLocation] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const { data: uiSettings } = useQuery<UiSettings[]>({
+    queryKey: ['/api/admin/ui-settings'],
+  });
+
+  const getLogoUrl = () => {
+    const logoSetting = uiSettings?.find(s => s.key === 'header_logo_url');
+    return logoSetting?.value || '';
+  };
+
+  const getSidebarImageUrl = () => {
+    const sidebarSetting = uiSettings?.find(s => s.key === 'sidebar_image_url');
+    return sidebarSetting?.value || '';
+  };
 
   const menuItems = [
     { 
@@ -131,18 +147,35 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white">
-      {/* Header */}
-      <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-orange-100">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-            <BarChart3 className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">لوحة التحكم</h2>
-            <p className="text-sm text-gray-600">طمطوم</p>
+      {/* Header with Sidebar Image */}
+      {getSidebarImageUrl() ? (
+        <div className="w-full h-40 border-b overflow-hidden">
+          <img 
+            src={getSidebarImageUrl()} 
+            alt="قائمة جانبية" 
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-orange-100">
+          <div className="flex items-center gap-3">
+            {getLogoUrl() ? (
+              <img 
+                src={getLogoUrl()} 
+                alt="طمطوم" 
+                className="h-10 object-contain"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-white" />
+              </div>
+            )}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">لوحة التحكم</h2>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* User Info */}
       <div className="p-4 border-b bg-gray-50">
@@ -220,12 +253,19 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
+            {getLogoUrl() ? (
+              <img 
+                src={getLogoUrl()} 
+                alt="طمطوم" 
+                className="h-8 object-contain"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-white" />
+              </div>
+            )}
             <div>
               <h1 className="font-bold text-gray-900">لوحة التحكم</h1>
-              <p className="text-xs text-gray-500">طمطوم</p>
             </div>
           </div>
           
