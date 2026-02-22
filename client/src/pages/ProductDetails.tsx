@@ -241,21 +241,15 @@ export default function ProductDetails() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 mb-10">
+            {/* Action Button */}
+            <div className="mb-10">
               <Button 
-                className="flex-[2] h-14 rounded-none bg-black text-white hover:bg-gray-900 font-black text-lg gap-3"
+                className="w-full h-14 rounded-none bg-black text-white hover:bg-gray-900 font-black text-lg gap-3"
                 onClick={handleAddToCart}
                 disabled={!product.isAvailable}
               >
                 <ShoppingBag className="h-6 w-6" />
                 {product.isAvailable ? 'إضافة إلى الحقيبة' : 'غير متوفر حالياً'}
-              </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1 h-14 rounded-none border-black text-black hover:bg-gray-50 font-bold"
-              >
-                شراء الآن
               </Button>
             </div>
 
