@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt, Truck } from 'lucide-react';
+import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt, Truck, MessageCircle, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/context/AuthContext';
-import type { User as UserType } from '@shared/schema';
+import type { User as UserType, UiSettings } from '@shared/schema';
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -19,6 +19,10 @@ export default function Profile() {
   const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
   
   const userId = currentUser?.id;
+
+  const { data: uiSettings } = useQuery<UiSettings[]>({
+    queryKey: ['/api/admin/ui-settings'],
+  });
   
   const [profile, setProfile] = useState({
     username: '',
@@ -135,6 +139,15 @@ export default function Profile() {
     }
   };
 
+  const getSetting = (key: string, defaultValue: string = '') => {
+    return uiSettings?.find(s => s.key === key)?.value || defaultValue;
+  };
+
+  const supportWhatsapp = getSetting('support_whatsapp', '');
+  const supportPhone = getSetting('support_phone', '');
+  const shareUrl = getSetting('share_url', '');
+  const shareText = getSetting('share_text', 'انضم إلى تطبيق طمطوم الآن!');
+
   const profileStats = [
     { icon: Receipt, label: 'إجمالي الطلبات', value: '42', color: 'text-primary' },
     { icon: Star, label: 'التقييم', value: '4.8', color: 'text-yellow-500' },
@@ -146,6 +159,36 @@ export default function Profile() {
     { icon: Truck, label: 'تطبيق الدلفري', path: '/driver', description: 'انتقال إلى تطبيق السائقين', testId: 'profile-delivery-app', onClick: () => { window.location.href = '/driver'; } },
     { icon: MapPin, label: 'العناوين المحفوظة', path: '/addresses', description: 'إدارة عناوين التوصيل', testId: 'profile-addresses' },
     { icon: Settings, label: 'الإعدادات', path: '/settings', description: 'إعدادات التطبيق والحساب', testId: 'profile-settings' },
+    ...(supportWhatsapp ? [{
+      icon: MessageCircle,
+      label: 'دعم واتساب',
+      path: '#',
+      description: 'تواصل معنا عبر واتساب',
+      testId: 'profile-whatsapp',
+      onClick: () => { window.open(`https://wa.me/${supportWhatsapp.replace(/\D/g, '')}`, '_blank'); }
+    }] : []),
+    ...(supportPhone ? [{
+      icon: Phone,
+      label: 'اتصل بنا',
+      path: '#',
+      description: 'اتصل برقم الدعم المباشر',
+      testId: 'profile-call',
+      onClick: () => { window.open(`tel:${supportPhone}`, '_blank'); }
+    }] : []),
+    ...(shareUrl ? [{
+      icon: Share2,
+      label: 'مشاركة التطبيق',
+      path: '#',
+      description: 'شارك التطبيق مع أصدقائك',
+      testId: 'profile-share',
+      onClick: () => {
+        if (navigator.share) {
+          navigator.share({ title: 'طمطوم', text: shareText, url: shareUrl });
+        } else {
+          toast({ title: 'نسخ الرابط', description: shareUrl });
+        }
+      }
+    }] : []),
     { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy', description: 'سياسة الخصوصية وشروط الاستخدام', testId: 'profile-privacy' },
   ];
 

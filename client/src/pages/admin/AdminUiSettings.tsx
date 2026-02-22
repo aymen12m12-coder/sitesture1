@@ -24,9 +24,9 @@ interface SettingItem {
 const settingsConfig: SettingItem[] = [
   // Branding Settings
   { key: 'app_name', label: 'اسم التطبيق', type: 'text', description: 'اسم التطبيق الذي يظهر للمستخدمين', category: 'الهوية البصرية' },
-  { key: 'header_logo_url', label: 'صورة شعار الهيدر', type: 'image', description: 'يتم عرضه في الشريط العلوي بدلاً من النص', category: 'الهوية البصرية' },
+  { key: 'header_logo_url', label: 'صورة شعار الهيدر', type: 'image', description: 'يتم عرضه في الشريط العلوي والرأس بدلاً من النص طمطوم', category: 'الهوية البصرية' },
   { key: 'app_theme', label: 'لون الموضوع', type: 'text', description: 'اللون الأساسي للتطبيق (hex color)', category: 'الهوية البصرية' },
-  { key: 'sidebar_image_url', label: 'صورة القائمة الجانبية', type: 'image', description: 'الصورة التي تظهر في أعلى السايد بار', category: 'الهوية البصرية' },
+  { key: 'sidebar_image_url', label: 'صورة خلفية القائمة الجانبية', type: 'image', description: 'صورة الخلفية الكاملة التي تظهر في أعلى القائمة الجانبية', category: 'الهوية البصرية' },
 
   // Home Page Content
   { key: 'show_hero_section', label: 'عرض قسم البانر الرئيسي', type: 'boolean', description: 'عرض شريط العروض المتحرك في أعلى الصفحة', category: 'محتوى الصفحة الرئيسية' },
@@ -43,16 +43,11 @@ const settingsConfig: SettingItem[] = [
   { key: 'show_orders_page', label: 'عرض صفحة الطلبات', type: 'boolean', description: 'عرض صفحة الطلبات في التنقل', category: 'التنقل' },
   { key: 'show_track_orders_page', label: 'عرض صفحة تتبع الطلبات', type: 'boolean', description: 'عرض صفحة تتبع الطلبات في التنقل', category: 'التنقل' },
   
-  // Store Settings
-  { key: 'store_name', label: 'اسم المتجر الرئيسي', type: 'text', description: 'اسم المتجر الرئيسي الذي سيتم عرضه', category: 'إعدادات المتجر' },
-  { key: 'store_address', label: 'عنوان المتجر', type: 'text', description: 'عنوان المتجر الرئيسي بالتفصيل', category: 'إعدادات المتجر' },
-  { key: 'minimum_order_default', label: 'الحد الأدنى للطلب', type: 'text', description: 'الحد الأدنى لقيمة الطلب (ريال)', category: 'إعدادات المتجر' },
-  
   // Support & Contact Settings
-  { key: 'support_whatsapp', label: 'رقم واتساب الدعم', type: 'text', description: 'رابط واتساب للتواصل المباشر (https://wa.me/...)', category: 'الدعم والمراسلة' },
-  { key: 'support_phone', label: 'رقم الهاتف', type: 'text', description: 'رقم الهاتف للاتصال المباشر (tel:+...)', category: 'الدعم والمراسلة' },
-  { key: 'share_text', label: 'نص المشاركة', type: 'text', description: 'النص الافتراضي عند مشاركة التطبيق', category: 'الدعم والمراسلة' },
-  { key: 'share_url', label: 'رابط المشاركة', type: 'text', description: 'الرابط الذي سيتم مشاركته للتطبيق', category: 'الدعم والمراسلة' },
+  { key: 'support_whatsapp', label: 'رقم واتساب الدعم', type: 'text', description: 'رقم الهاتف للتواصل عبر واتساب (مثال: 966501234567)', category: 'الدعم والمراسلة' },
+  { key: 'support_phone', label: 'رقم الهاتف للاتصال المباشر', type: 'text', description: 'رقم الهاتف للاتصال المباشر (مثال: +966501234567)', category: 'الدعم والمراسلة' },
+  { key: 'share_text', label: 'نص المشاركة', type: 'textarea', description: 'النص الافتراضي عند مشاركة التطبيق', category: 'الدعم والمراسلة' },
+  { key: 'share_url', label: 'رابط المشاركة', type: 'text', description: 'الرابط الذي سيتم مشاركته للتطبيق (مثال: https://app.example.com)', category: 'الدعم والمراسلة' },
   
   // Privacy & Legal
   { key: 'privacy_policy_text', label: 'نص سياسة الخصوصية', type: 'textarea', description: 'نص سياسة الخصوصية الذي يظهر للمستخدمين', category: 'قانوني' },
@@ -293,19 +288,19 @@ export default function AdminUiSettings() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div>
-              <h4 className="font-medium mb-2">إعدادات المتجر</h4>
+              <h4 className="font-medium mb-2">إعدادات الهوية البصرية</h4>
               <ul className="space-y-1 text-muted-foreground">
-                <li>المتجر: {getCurrentValue('store_name') || 'غير محدد'}</li>
-                <li>العنوان: {getCurrentValue('store_address') || 'غير محدد'}</li>
-                <li>الحد الأدنى للطلب: {getCurrentValue('minimum_order_default') || '25'} ريال</li>
+                <li>اسم التطبيق: {getCurrentValue('app_name') || 'طمطوم'}</li>
+                <li>الشعار: {getCurrentValue('header_logo_url') ? '✓ مرفوع' : '✗ غير محدد'}</li>
+                <li>صورة القائمة الجانبية: {getCurrentValue('sidebar_image_url') ? '✓ مرفوعة' : '✗ غير محددة'}</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-medium mb-2">إعدادات التطبيق</h4>
+              <h4 className="font-medium mb-2">إعدادات الدعم والتواصل</h4>
               <ul className="space-y-1 text-muted-foreground">
-                <li>اسم التطبيق: {getCurrentValue('app_name') || 'طمطوم'}</li>
-                <li>لون الموضوع: {getCurrentValue('app_theme') || '#007bff'}</li>
-                <li>التصنيفات: {getCurrentValue('show_categories') === 'true' ? '✓ مفعل' : '✗ معطل'}</li>
+                <li>واتساب: {getCurrentValue('support_whatsapp') ? '✓ محدد' : '✗ غير محدد'}</li>
+                <li>الهاتف: {getCurrentValue('support_phone') ? '✓ محدد' : '✗ غير محدد'}</li>
+                <li>المشاركة: {getCurrentValue('share_url') ? '✓ محددة' : '✗ غير محددة'}</li>
               </ul>
             </div>
           </div>

@@ -16,6 +16,8 @@ export default function Privacy() {
   };
 
   const dynamicPrivacyText = getSetting('privacy_policy_text', '');
+  const supportWhatsapp = getSetting('support_whatsapp', '');
+  const supportPhone = getSetting('support_phone', '');
 
   const privacySections = [
     {
@@ -61,8 +63,8 @@ export default function Privacy() {
   ];
 
   const contactInfo = [
-    { icon: Mail, label: 'البريد الإلكتروني', value: 'privacy@alsarie-one.com' },
-    { icon: Phone, label: 'رقم الهاتف', value: '+967-1-234567' },
+    ...(supportPhone ? [{ icon: Phone, label: 'رقم الهاتف', value: supportPhone }] : []),
+    ...(supportWhatsapp ? [{ icon: Phone, label: 'واتساب', value: supportWhatsapp }] : []),
   ];
 
   return (

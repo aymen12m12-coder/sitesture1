@@ -5,6 +5,7 @@ import {
   TrendingUp, Award, Calendar, Eye, EyeOff, AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/lib/utils';
 
 interface OrderItem {
   id: string;
@@ -504,7 +505,7 @@ export default function DriverApp() {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">أرباح اليوم:</span>
-              <span className="font-bold text-green-600">{stats?.today?.earnings.toFixed(2) || '0'} ر.ي</span>
+              <span className="font-bold text-green-600">{formatCurrency(stats?.today?.earnings || 0)}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">الطلبات اليوم:</span>
@@ -635,8 +636,7 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-2xl font-bold text-green-600">{order.totalAmount}</div>
-            <p className="text-xs text-gray-500 font-medium">ر.ي</p>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(order.totalAmount)}</div>
             {actionType === 'status' && (
               <span className={`text-sm font-bold mt-2 block ${getStatusColor(order.status)}`}>
                 {getStatusText(order.status)}
@@ -669,7 +669,7 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
                     {item.name} × <span className="font-bold">{item.quantity}</span>
                   </span>
                   <span className="font-bold text-gray-900">
-                    {(parseFloat(item.price) * item.quantity).toFixed(2)} ر.ي
+                    {formatCurrency(parseFloat(item.price) * item.quantity)}
                   </span>
                 </div>
               ))}
@@ -730,7 +730,7 @@ function StatsSection({ stats, driver }: any) {
         />
         <StatCard
           title="أرباح اليوم"
-          value={`${stats?.today?.earnings?.toFixed(2) || 0} ر.ي`}
+          value={formatCurrency(stats?.today?.earnings || 0)}
           icon={<DollarSign className="text-green-600" size={28} />}
           bgColor="bg-green-50"
         />
@@ -755,7 +755,7 @@ function StatsSection({ stats, driver }: any) {
           </div>
           <div className="p-4 bg-gray-50 rounded-lg border">
             <p className="text-gray-600 text-sm">الأرباح</p>
-            <p className="text-3xl font-bold text-green-600">{stats?.week?.earnings?.toFixed(2) || 0}</p>
+            <p className="text-3xl font-bold text-green-600">{formatCurrency(stats?.week?.earnings || 0)}</p>
           </div>
         </div>
       </div>
@@ -770,7 +770,7 @@ function StatsSection({ stats, driver }: any) {
           </div>
           <div>
             <p className="text-blue-100 text-sm">الأرباح</p>
-            <p className="text-2xl font-bold">{stats?.total?.earnings?.toFixed(2) || 0} ر.ي</p>
+            <p className="text-2xl font-bold">{formatCurrency(stats?.total?.earnings || 0)}</p>
           </div>
           <div>
             <p className="text-blue-100 text-sm">التقييم</p>
@@ -863,25 +863,25 @@ function WalletSection({ wallet, withdrawalAmount, setWithdrawalAmount, driverId
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
           title="الرصيد الحالي"
-          value={`${wallet?.balance?.toFixed(2) || 0} ر.ي`}
+          value={formatCurrency(wallet?.balance || 0)}
           icon={<Wallet className="text-blue-600" size={28} />}
           bgColor="bg-blue-50"
         />
         <StatCard
           title="إجمالي الأرباح"
-          value={`${wallet?.totalEarnings?.toFixed(2) || 0} ر.ي`}
+          value={formatCurrency(wallet?.totalEarnings || 0)}
           icon={<TrendingUp className="text-green-600" size={28} />}
           bgColor="bg-green-50"
         />
         <StatCard
           title="المسحوب"
-          value={`${wallet?.withdrawn?.toFixed(2) || 0} ر.ي`}
+          value={formatCurrency(wallet?.withdrawn || 0)}
           icon={<Eye className="text-orange-600" size={28} />}
           bgColor="bg-orange-50"
         />
         <StatCard
           title="المعلق"
-          value={`${wallet?.pending?.toFixed(2) || 0} ر.ي`}
+          value={formatCurrency(wallet?.pending || 0)}
           icon={<Clock className="text-yellow-600" size={28} />}
           bgColor="bg-yellow-50"
         />
@@ -892,7 +892,7 @@ function WalletSection({ wallet, withdrawalAmount, setWithdrawalAmount, driverId
         <h3 className="font-bold text-gray-900 mb-4">🏦 طلب السحب</h3>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">المبلغ (ر.ي)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">المبلغ</label>
             <input
               type="number"
               value={withdrawalAmount}
@@ -901,7 +901,7 @@ function WalletSection({ wallet, withdrawalAmount, setWithdrawalAmount, driverId
               className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="أدخل المبلغ المراد سحبه"
             />
-            <p className="text-xs text-gray-500 mt-1">الحد الأقصى: {wallet?.balance?.toFixed(2) || 0} ر.ي</p>
+            <p className="text-xs text-gray-500 mt-1">الحد الأقصى: {formatCurrency(wallet?.balance || 0)}</p>
           </div>
           <button
             onClick={handleWithdrawal}

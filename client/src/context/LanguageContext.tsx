@@ -120,7 +120,7 @@ const translations = {
     'login': 'Login',
     'register': 'Register',
     'add_to_cart': 'Add to Cart',
-    'currency': 'YER',
+    'currency': 'SAR',
     'whatsapp': 'WhatsApp',
     'direct_call': 'Direct Call',
     'how_can_we_help': 'How can we help?',
