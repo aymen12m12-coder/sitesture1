@@ -364,10 +364,72 @@ export default function DriverApp() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex" dir="rtl">
-      {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} hidden lg:block bg-white shadow-lg transition-all duration-300 overflow-hidden`}>
-        <SidebarContent activeTab={activeTab} setActiveTab={setActiveTab} />
+    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
+      {/* Desktop Top Navigation Bar */}
+      <div className="hidden lg:block bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1">
+            <h1 className="text-2xl font-bold text-gray-900">تطبيق السائق</h1>
+            <div className="h-8 w-px bg-gray-200" />
+            <div className="text-lg font-semibold text-gray-900">
+              مرحباً {driver?.name}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+              driver?.isAvailable 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-gray-100 text-gray-800'
+            }`}>
+              {driver?.isAvailable ? '🟢 متاح' : '🔴 غير متاح'}
+            </div>
+            <button 
+              onClick={toggleAvailability}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                driver?.isAvailable
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              {driver?.isAvailable ? '🔴 تعطيل' : '🟢 تفعيل'}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+              title="تسجيل الخروج"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+        </div>
+        
+        {/* Desktop Navigation Tabs */}
+        <div className="px-6 flex gap-2 border-t border-gray-100 overflow-x-auto">
+          {STEPS.map((step) => {
+            const Icon = step.icon;
+            const isActive = activeTab === step.id;
+            return (
+              <button
+                key={step.id}
+                onClick={() => setActiveTab(step.id)}
+                className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 border-b-2 transition-colors ${
+                  isActive
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Icon size={18} />
+                {step.label}
+                {step.id === 'available' && availableOrders.length > 0 && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 ml-1">
+                    {availableOrders.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Mobile Sidebar */}
@@ -380,80 +442,77 @@ export default function DriverApp() {
         <SidebarContent activeTab={activeTab} setActiveTab={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="px-4 sm:px-6 py-4">
-            <div className="flex items-center justify-between gap-4">
-              <button 
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-sm border-b sticky top-0 z-40">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+
+            <div className="flex-1 min-w-0 text-center">
+              <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
+                مرحباً {driver?.name}
+              </h1>
+              <p className="text-xs text-gray-600">
+                {driver?.isAvailable ? '🟢 متاح حالياً' : '🔴 غير متاح'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="relative">
+                <Bell className="text-gray-600 cursor-pointer" size={20} />
+                {notifications.filter(n => !n.isRead).length > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                    {notifications.filter(n => !n.isRead).length}
+                  </span>
+                )}
+              </div>
+
+              <button
+                onClick={toggleAvailability}
+                className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+                  driver?.isAvailable
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-600 text-white hover:bg-gray-700'
+                }`}
               >
-                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+                {driver?.isAvailable ? '✓ متاح' : 'غير متاح'}
               </button>
 
-              <div className="flex-1 min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">
-                  مرحباً {driver?.name}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  {driver?.isAvailable ? '🟢 متاح حالياً' : '🔴 غير متاح'}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="relative">
-                  <Bell className="text-gray-600 cursor-pointer" size={20} />
-                  {notifications.filter(n => !n.isRead).length > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
-                      {notifications.filter(n => !n.isRead).length}
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  onClick={toggleAvailability}
-                  className={`px-3 sm:px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-                    driver?.isAvailable
-                      ? 'bg-green-600 text-white hover:bg-green-700'
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  {driver?.isAvailable ? '✓ متاح' : 'غير متاح'}
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                  title="تسجيل الخروج"
-                >
-                  <LogOut size={20} />
-                </button>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                title="تسجيل الخروج"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-auto">
-          <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-            {activeTab === 'available' && (
-              <AvailableOrdersSection orders={availableOrders} isLoading={isLoading} onAccept={acceptOrder} driver={driver} />
-            )}
-            {activeTab === 'accepted' && (
-              <MyOrdersSection orders={myOrders} onStatusUpdate={updateOrderStatus} selectedOrder={selectedOrder} setSelectedOrder={setSelectedOrder} />
-            )}
-            {activeTab === 'stats' && (
-              <StatsSection stats={stats} driver={driver} />
-            )}
-            {activeTab === 'wallet' && (
-              <WalletSection wallet={wallet} withdrawalAmount={withdrawalAmount} setWithdrawalAmount={setWithdrawalAmount} driverId={driverId} fetchWallet={fetchDriverWallet} />
-            )}
-            {activeTab === 'profile' && (
-              <ProfileSection driver={driver} />
-            )}
-          </div>
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-auto">
+        <div className="p-4 sm:p-6 max-w-6xl mx-auto">
+          {activeTab === 'available' && (
+            <AvailableOrdersSection orders={availableOrders} isLoading={isLoading} onAccept={acceptOrder} driver={driver} />
+          )}
+          {activeTab === 'accepted' && (
+            <MyOrdersSection orders={myOrders} onStatusUpdate={updateOrderStatus} selectedOrder={selectedOrder} setSelectedOrder={setSelectedOrder} />
+          )}
+          {activeTab === 'stats' && (
+            <StatsSection stats={stats} driver={driver} />
+          )}
+          {activeTab === 'wallet' && (
+            <WalletSection wallet={wallet} withdrawalAmount={withdrawalAmount} setWithdrawalAmount={setWithdrawalAmount} driverId={driverId} fetchWallet={fetchDriverWallet} />
+          )}
+          {activeTab === 'profile' && (
+            <ProfileSection driver={driver} />
+          )}
         </div>
       </div>
     </div>
@@ -658,21 +717,68 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
           </div>
         </div>
 
-        {/* Items */}
+        {/* Items & Financial Details */}
         {isSelected && items.length > 0 && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <h4 className="font-bold text-gray-900 mb-3">📋 تفاصيل الطلب:</h4>
-            <div className="space-y-2">
-              {items.map((item: any, idx: number) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-gray-700">
-                    {item.name} × <span className="font-bold">{item.quantity}</span>
-                  </span>
-                  <span className="font-bold text-gray-900">
-                    {formatCurrency(parseFloat(item.price) * item.quantity)}
-                  </span>
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+            <div>
+              <h4 className="font-bold text-gray-900 mb-3">📋 تفاصيل الطلب:</h4>
+              <div className="space-y-2">
+                {items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex justify-between text-sm">
+                    <span className="text-gray-700">
+                      {item.name} × <span className="font-bold">{item.quantity}</span>
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      {formatCurrency(parseFloat(item.price) * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            {/* Financial Summary */}
+            <div className="border-t border-gray-300 pt-3">
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>المجموع الفرعي:</span>
+                  <span className="font-semibold">{formatCurrency(order.subtotal)}</span>
                 </div>
-              ))}
+                <div className="flex justify-between text-gray-600">
+                  <span>رسوم التوصيل:</span>
+                  <span className="font-semibold text-green-600">{formatCurrency(order.deliveryFee)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-1 mt-1">
+                  <span>عمولتك (70%):</span>
+                  <span className="font-bold text-blue-600">{formatCurrency((parseFloat(order.deliveryFee) * 70) / 100)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Contact & Navigation Section */}
+        {isSelected && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
+            <p className="text-xs font-semibold text-blue-900 mb-2">معلومات الاتصال والتنقل:</p>
+            <div className="flex gap-2 flex-wrap">
+              <a
+                href={`tel:${order.customerPhone}`}
+                className="flex-1 min-w-32 bg-green-600 text-white py-2 px-3 rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 text-sm"
+              >
+                <Phone size={16} />
+                اتصال بالعميل
+              </a>
+              {order.customerLocationLat && order.customerLocationLng && (
+                <a
+                  href={`https://www.google.com/maps?q=${order.customerLocationLat},${order.customerLocationLng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-32 bg-purple-600 text-white py-2 px-3 rounded-lg font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                >
+                  <MapPin size={16} />
+                  تتبع الموقع
+                </a>
+              )}
             </div>
           </div>
         )}
@@ -696,13 +802,6 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
               >
                 {nextAction.label}
               </button>
-              <a
-                href={`tel:${order.customerPhone}`}
-                className="bg-blue-600 text-white py-3 px-4 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Phone size={18} />
-                اتصال
-              </a>
             </>
           ) : (
             <div className="w-full bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">

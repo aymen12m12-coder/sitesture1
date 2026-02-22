@@ -339,20 +339,28 @@ export default function AdminOrders() {
                         )}
                       </div>
 
-                      {/* Actions */}
-                      <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
-                        {order.status === 'confirmed' && !order.driverId && (
-                          <div className="flex items-center gap-2 w-full md:w-auto">
+                      {/* Driver Assignment Section */}
+                      {(order.status === 'confirmed' && (!order.driverId || order.status !== 'delivered')) && (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="font-semibold text-foreground flex items-center gap-2">
+                              <Truck className="h-4 w-4" />
+                              {order.driverId ? 'تغيير السائق' : 'تعيين سائق'}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-2 w-full">
                             <Select 
-                              value={selectedDriver[order.id] || ''} 
+                              value={selectedDriver[order.id] || order.driverId || ''} 
                               onValueChange={(val) => setSelectedDriver(prev => ({ ...prev, [order.id]: val }))}
                             >
-                              <SelectTrigger className="w-48">
+                              <SelectTrigger className="flex-1">
                                 <SelectValue placeholder="اختر سائقاً" />
                               </SelectTrigger>
                               <SelectContent>
                                 {drivers?.filter(d => d.isAvailable).map(driver => (
-                                  <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
+                                  <SelectItem key={driver.id} value={driver.id}>
+                                    {driver.name} {driver.isAvailable ? '(متاح)' : ''}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -362,10 +370,23 @@ export default function AdminOrders() {
                               className="gap-2"
                             >
                               <Truck className="h-4 w-4" />
-                              تعيين سائق
+                              {order.driverId ? 'تحديث' : 'تعيين'}
                             </Button>
                           </div>
-                        )}
+                        </div>
+                      )}
+
+                      {/* Display Assigned Driver */}
+                      {order.driverId && (
+                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                          <p className="text-sm text-green-800">
+                            <span className="font-semibold">السائق المعين:</span> {drivers?.find(d => d.id === order.driverId)?.name}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
 
                         {nextStatus && order.status !== 'delivered' && order.status !== 'cancelled' && (
                           <Button
