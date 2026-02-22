@@ -596,4 +596,45 @@ export function registerAdvancedRoutes(app: express.Express) {
       res.status(500).json({ error: "Failed to fetch work sessions" });
     }
   });
+
+  // Driver withdrawal request endpoint (for driver app)
+  app.post("/api/drivers/:driverId/withdrawal-request", async (req, res) => {
+    try {
+      const { driverId } = req.params;
+      const { amount, accountNumber, bankName, accountHolder } = req.body;
+
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      // Check driver balance
+      const balance = await dbStorage.getDriverBalance(driverId);
+      const available = parseFloat(balance?.availableBalance?.toString() || "0");
+      
+      if (available < parseFloat(amount)) {
+        return res.status(400).json({ error: "Insufficient balance" });
+      }
+
+      // Create withdrawal request
+      const request = await advancedDb.createWithdrawalRequest({
+        entityType: "driver",
+        entityId: driverId,
+        amount: amount.toString(),
+        accountNumber,
+        bankName,
+        accountHolder,
+        requestedBy: driverId,
+        status: "pending"
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "تم تقديم طلب السحب بنجاح",
+        request
+      });
+    } catch (error) {
+      console.error("Error creating driver withdrawal request:", error);
+      res.status(500).json({ error: "Failed to create withdrawal request" });
+    }
+  });
 }
