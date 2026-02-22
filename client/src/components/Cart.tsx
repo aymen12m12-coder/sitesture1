@@ -7,6 +7,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button'; // أضف استيراد Button
+import { formatCurrency } from '@/lib/utils';
 
 interface CartProps {
   isOpen: boolean;
@@ -279,7 +280,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                       <div className="flex-1">
                         <h4 className="font-medium">{item.name}</h4>
                         <p className="text-sm text-gray-600">{item.description}</p>
-                        <p className="text-red-500 font-medium">{item.price} ر.ي</p>
+                        <p className="text-red-500 font-medium">{formatCurrency(item.price)}</p>
                       </div>
                       <button
                         onClick={() => removeItem(item.id)}
@@ -307,7 +308,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                         </button>
                       </div>
                       <span className="font-medium">
-                        {(parseFloat(item.price) * item.quantity).toFixed(2)} ر.ي
+                        {formatCurrency(parseFloat(item.price) * item.quantity)}
                       </span>
                     </div>
 
@@ -330,7 +331,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
                       <span>المجموع الفرعي:</span>
-                      <span>{state.subtotal.toFixed(2)} ر.ي</span>
+                      <span>{formatCurrency(state.subtotal)}</span>
                     </div>
                     <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl border border-gray-100">
                       <div className="flex justify-between items-center">
@@ -343,7 +344,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                           ) : (
                             <div className="flex items-center gap-1">
                               <span className={`text-sm font-black ${deliveryDetails?.isFreeDelivery ? "line-through text-gray-400" : "text-gray-900"}`}>
-                                {deliveryFee.toFixed(2)} ر.ي
+                                {formatCurrency(deliveryFee)}
                               </span>
                               {deliveryDetails?.isFreeDelivery && (
                                 <span className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0.5 rounded font-black">مجاني</span>
@@ -368,7 +369,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
                     <div className="flex justify-between font-bold text-lg border-t pt-2">
                       <span>المجموع الكلي:</span>
                       <span className="text-red-500">
-                        {selectedLocation ? (state.subtotal + deliveryFee).toFixed(2) : state.subtotal.toFixed(2)} ر.ي
+                        {formatCurrency(selectedLocation ? state.subtotal + deliveryFee : state.subtotal)}
                       </span>
                     </div>
                   </div>

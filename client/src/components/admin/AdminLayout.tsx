@@ -149,27 +149,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div className="flex flex-col h-full bg-white">
       {/* Header with Sidebar Image */}
       {getSidebarImageUrl() ? (
-        <div className="w-full h-40 border-b overflow-hidden">
+        <div className="w-full h-48 border-b overflow-hidden">
           <img 
             src={getSidebarImageUrl()} 
-            alt="قائمة جانبية" 
+            alt="خلفية القائمة الجانبية" 
             className="w-full h-full object-cover"
           />
         </div>
       ) : (
         <div className="p-6 border-b bg-gradient-to-r from-orange-50 to-orange-100">
           <div className="flex items-center gap-3">
-            {getLogoUrl() ? (
-              <img 
-                src={getLogoUrl()} 
-                alt="طمطوم" 
-                className="h-10 object-contain"
-              />
-            ) : (
-              <div className="w-10 h-10 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-white" />
-              </div>
-            )}
             <div>
               <h2 className="text-lg font-bold text-gray-900">لوحة التحكم</h2>
             </div>
@@ -250,23 +239,39 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
+        {/* Desktop Header */}
+        <div className="hidden lg:block bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {getLogoUrl() ? (
+              <img 
+                src={getLogoUrl()} 
+                alt="شعار التطبيق" 
+                className="h-10 object-contain"
+              />
+            ) : (
+              <h1 className="font-bold text-gray-900 text-xl">طمطوم</h1>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm">
+              <Bell className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {getLogoUrl() ? (
               <img 
                 src={getLogoUrl()} 
-                alt="طمطوم" 
+                alt="شعار التطبيق" 
                 className="h-8 object-contain"
               />
             ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-white" />
-              </div>
+              <h1 className="font-bold text-gray-900">طمطوم</h1>
             )}
-            <div>
-              <h1 className="font-bold text-gray-900">لوحة التحكم</h1>
-            </div>
           </div>
           
           <div className="flex items-center gap-2">

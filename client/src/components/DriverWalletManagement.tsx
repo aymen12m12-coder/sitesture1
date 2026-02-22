@@ -185,7 +185,7 @@ export const DriverWalletManagement: React.FC<DriverWalletManagementProps> = ({
 
           <div className="space-y-4">
             <div>
-              <Label>المبلغ (ر.ي)</Label>
+              <Label>المبلغ</Label>
               <Input
                 type="number"
                 placeholder="أدخل المبلغ"

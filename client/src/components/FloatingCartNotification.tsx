@@ -3,6 +3,7 @@ import { useCart } from '../contexts/CartContext';
 import { ShoppingBag, ChevronLeft, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatCurrency } from '@/lib/utils';
 
 export default function FloatingCartNotification() {
   const { state } = useCart();
@@ -53,7 +54,7 @@ export default function FloatingCartNotification() {
             <div className="flex-1 min-w-0" onClick={openCart}>
               <h4 className="text-sm font-black text-gray-900 truncate">تم إضافة {lastItemName}</h4>
               <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-                لديك {itemCount} عناصر في السلة • المجموع: {state.subtotal.toFixed(2)} ر.ي
+                لديك {itemCount} عناصر في السلة • المجموع: {formatCurrency(state.subtotal)}
               </p>
             </div>
             
