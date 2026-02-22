@@ -133,7 +133,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const handleNavigation = (path: string) => {
     setLocation(path);
-    setIsSidebarOpen(false);
+    if (window.innerWidth < 1024) {
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleLogout = () => {
