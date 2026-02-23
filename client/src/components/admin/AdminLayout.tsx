@@ -226,23 +226,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex" dir="rtl">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-80 bg-white shadow-lg">
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row" dir="rtl">
+      {/* Desktop Sidebar - Always visible on lg+ screens */}
+      <aside className="hidden lg:block w-80 bg-white shadow-lg overflow-y-auto max-h-screen">
         <SidebarContent />
-      </div>
-
-      {/* Mobile Sidebar */}
-      <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-        <SheetContent side="right" className="w-80 p-0">
-          <SidebarContent />
-        </SheetContent>
-      </Sheet>
+      </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-h-screen lg:min-h-auto">
         {/* Desktop Header */}
-        <div className="hidden lg:block bg-white border-b p-4 flex items-center justify-between">
+        <header className="hidden lg:block bg-white border-b p-4 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-3">
             {getLogoUrl() ? (
               <img 
@@ -260,10 +253,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <Bell className="h-5 w-5" />
             </Button>
           </div>
-        </div>
+        </header>
 
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-white border-b p-4 flex items-center justify-between">
+        {/* Mobile Header with Sidebar Toggle */}
+        <header className="lg:hidden bg-white border-b p-4 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-3">
             {getLogoUrl() ? (
               <img 
@@ -286,14 +279,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
+              <SheetContent side="right" className="w-80 p-0">
+                <SidebarContent />
+              </SheetContent>
             </Sheet>
           </div>
-        </div>
+        </header>
 
         {/* Page Content */}
-        <div className="flex-1">
+        <main className="flex-1 overflow-y-auto">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   );
