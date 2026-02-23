@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Package, CheckCircle, XCircle, Phone, MapPin, Filter, Navigation, Search, Truck } from 'lucide-react';
+import { Package, CheckCircle, XCircle, Phone, MapPin, Filter, Navigation, Search, Truck, AlertCircle, Clock, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,27 +17,75 @@ export default function AdminOrders() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDriver, setSelectedDriver] = useState<Record<string, string>>({});
+  const [assigningOrderId, setAssigningOrderId] = useState<string | null>(null);
+  const [socket, setSocket] = useState<WebSocket | null>(null);
 
   const { data: orders, isLoading } = useQuery<Order[]>({
     queryKey: statusFilter !== 'all' ? ['/api/orders', statusFilter] : ['/api/orders'],
+    refetchInterval: 10000,
   });
 
   const { data: drivers } = useQuery<Driver[]>({
     queryKey: ['/api/drivers'],
+    refetchInterval: 15000,
   });
+
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        type: 'auth',
+        payload: { userId: 'admin_dashboard' }
+      }));
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message.type === 'order_update' || message.type === 'driver_assigned') {
+          queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+        }
+      } catch (err) {
+        console.error('Failed to parse WS message:', err);
+      }
+    };
+
+    setSocket(ws);
+
+    return () => {
+      ws.close();
+    };
+  }, [queryClient]);
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await apiRequest('PUT', `/api/orders/${id}`, { status });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      const statusLabels: Record<string, string> = {
+        confirmed: 'مؤكد',
+        preparing: 'قيد التحضير',
+        on_way: 'في الطريق',
+        delivered: 'مكتمل',
+        cancelled: 'ملغي'
+      };
       toast({
-        title: "تم تحديث حالة الطلب",
-        description: "تم تحديث حالة الطلب بنجاح",
+        title: "✅ تم تحديث الطلب",
+        description: `تغيرت حالة الطلب إلى ${statusLabels[status] || status}`,
       });
     },
+    onError: () => {
+      toast({
+        title: "❌ خطأ",
+        description: "فشل تحديث الطلب",
+        variant: "destructive"
+      });
+    }
   });
 
   const assignDriverMutation = useMutation({
@@ -45,13 +93,33 @@ export default function AdminOrders() {
       const response = await apiRequest('PUT', `/api/orders/${id}/assign-driver`, { driverId });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, { id, driverId }) => {
+      const driver = drivers?.find(d => d.id === driverId);
       queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/drivers'] });
+      setAssigningOrderId(null);
+      setSelectedDriver(prev => ({ ...prev, [id]: '' }));
+      
       toast({
-        title: "تم تعيين السائق",
-        description: "تم توجيه الطلب للسائق بنجاح",
+        title: "✅ تم تعيين السائق",
+        description: `تم توجيه الطلب للسائق ${driver?.name} بنجاح`,
       });
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: 'driver_assigned',
+          payload: { orderId: id, driverId, driverName: driver?.name }
+        }));
+      }
     },
+    onError: () => {
+      toast({
+        title: "❌ خطأ",
+        description: "فشل تعيين السائق",
+        variant: "destructive"
+      });
+      setAssigningOrderId(null);
+    }
   });
 
   const getOrderItems = (itemsString: string) => {
@@ -290,7 +358,14 @@ export default function AdminOrders() {
                           <h4 className="font-semibold text-foreground mb-2">عنوان التوصيل</h4>
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                            <span className="text-sm text-muted-foreground">{order.deliveryAddress}</span>
+                            <div className="flex-1">
+                              <span className="text-sm text-muted-foreground block">{order.deliveryAddress}</span>
+                              {order.customerLocationLat && order.customerLocationLng && (
+                                <span className="text-xs text-muted-foreground/70 mt-1 block">
+                                  📍 {order.customerLocationLat}, {order.customerLocationLng}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -340,50 +415,63 @@ export default function AdminOrders() {
                       </div>
 
                       {/* Driver Assignment Section */}
-                      {(order.status === 'confirmed' && (!order.driverId || order.status !== 'delivered')) && (
-                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      {(order.status !== 'delivered' && order.status !== 'cancelled') && (
+                        <div className={`p-4 rounded-lg border ${order.driverId ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
                           <div className="flex items-center justify-between mb-3">
                             <h4 className="font-semibold text-foreground flex items-center gap-2">
                               <Truck className="h-4 w-4" />
-                              {order.driverId ? 'تغيير السائق' : 'تعيين سائق'}
+                              {order.driverId ? 'السائق المعين' : 'تعيين سائق'}
                             </h4>
+                            {!order.driverId && (
+                              <Badge variant="destructive" className="flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                مطلوب تعيين
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 w-full">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
                             <Select 
-                              value={selectedDriver[order.id] || order.driverId || ''} 
-                              onValueChange={(val) => setSelectedDriver(prev => ({ ...prev, [order.id]: val }))}
+                              value={assigningOrderId === order.id ? (selectedDriver[order.id] || '') : (order.driverId || '')} 
+                              onValueChange={(val) => {
+                                setAssigningOrderId(order.id);
+                                setSelectedDriver(prev => ({ ...prev, [order.id]: val }));
+                              }}
+                              disabled={assigningOrderId !== null && assigningOrderId !== order.id}
                             >
                               <SelectTrigger className="flex-1">
                                 <SelectValue placeholder="اختر سائقاً" />
                               </SelectTrigger>
                               <SelectContent>
-                                {drivers?.filter(d => d.isAvailable).map(driver => (
+                                {drivers?.map(driver => (
                                   <SelectItem key={driver.id} value={driver.id}>
-                                    {driver.name} {driver.isAvailable ? '(متاح)' : ''}
+                                    <span className="flex items-center gap-2">
+                                      {driver.name}
+                                      {driver.isAvailable && <Badge variant="outline" className="text-xs">متاح</Badge>}
+                                    </span>
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                             <Button
-                              onClick={() => assignDriverMutation.mutate({ id: order.id, driverId: selectedDriver[order.id] })}
-                              disabled={!selectedDriver[order.id] || assignDriverMutation.isPending}
-                              className="gap-2"
+                              onClick={() => {
+                                const driverId = assigningOrderId === order.id ? selectedDriver[order.id] : order.driverId;
+                                if (driverId) {
+                                  assignDriverMutation.mutate({ id: order.id, driverId });
+                                }
+                              }}
+                              disabled={assigningOrderId === order.id 
+                                ? (!selectedDriver[order.id] || assignDriverMutation.isPending) 
+                                : assignDriverMutation.isPending}
+                              className="gap-2 w-full sm:w-auto"
                             >
                               <Truck className="h-4 w-4" />
-                              {order.driverId ? 'تحديث' : 'تعيين'}
+                              {assigningOrderId === order.id ? 'تأكيد التعيين' : (order.driverId ? 'تغيير' : 'تعيين')}
                             </Button>
                           </div>
                         </div>
                       )}
 
-                      {/* Display Assigned Driver */}
-                      {order.driverId && (
-                        <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                          <p className="text-sm text-green-800">
-                            <span className="font-semibold">السائق المعين:</span> {drivers?.find(d => d.id === order.driverId)?.name}
-                          </p>
-                        </div>
-                      )}
+
 
                       {/* Actions */}
                       <div className="flex flex-wrap gap-2 pt-4 border-t border-border">

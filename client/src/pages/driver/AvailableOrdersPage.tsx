@@ -31,6 +31,7 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
 
   const { data: availableOrders = [], isLoading, refetch } = useQuery<Order[]>({
     queryKey: ['/api/orders/available'],
@@ -63,16 +64,19 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, orderId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/orders/available'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
+      setAcceptingOrderId(null);
       toast({
-        title: "تم قبول الطلب ✅",
-        description: "تم إضافة الطلب إلى قائمتك"
+        title: "✅ تم قبول الطلب",
+        description: "تم إضافة الطلب إلى قائمتك",
       });
     },
     onError: (error: Error) => {
+      setAcceptingOrderId(null);
       toast({
-        title: "خطأ",
+        title: "❌ خطأ في قبول الطلب",
         description: error.message,
         variant: "destructive"
       });
@@ -162,7 +166,7 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-3 border-t">
+                  <div className="flex gap-2 pt-3 border-t flex-wrap">
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -178,14 +182,15 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
+                        setAcceptingOrderId(order.id);
                         acceptOrderMutation.mutate(order.id);
                       }}
-                      disabled={acceptOrderMutation.isPending}
+                      disabled={acceptingOrderId !== null && acceptingOrderId !== order.id || acceptOrderMutation.isPending}
                       size="sm"
-                      className="gap-2 bg-green-600 hover:bg-green-700 mr-auto"
+                      className="gap-2 bg-green-600 hover:bg-green-700 ml-auto"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      {acceptOrderMutation.isPending ? 'جاري...' : 'قبول'}
+                      {acceptingOrderId === order.id && acceptOrderMutation.isPending ? 'جاري...' : 'قبول'}
                     </Button>
                   </div>
                 </CardContent>

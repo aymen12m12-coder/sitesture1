@@ -408,9 +408,9 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
       {/* Mobile Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-10 lg:hidden">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40 lg:hidden">
         <div className="flex justify-between items-center h-16 px-4">
           <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
             <SheetTrigger asChild>
@@ -425,7 +425,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
 
           <div className="flex items-center gap-3">
             <Truck className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">تطبيق السائق</h1>
+            <h1 className="text-lg font-bold">السائق</h1>
           </div>
 
           <Badge className={getStatusColor(driverStatus)}>
@@ -435,7 +435,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       </header>
 
       {/* Desktop Layout */}
-      <div className="flex h-screen">
+      <div className="flex flex-1 h-[calc(100vh-4rem)] lg:h-screen">
         {/* Desktop Sidebar */}
         <aside className="hidden lg:block w-64 bg-white border-l">
           <Sidebar />
