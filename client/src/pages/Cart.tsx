@@ -39,10 +39,12 @@ export default function Cart() {
   // حساب الرسوم تلقائياً عند توفر الموقع
   useEffect(() => {
     if (userLocation.position && !orderForm.locationData) {
+      const lat = userLocation.position.coords.latitude;
+      const lng = userLocation.position.coords.longitude;
       const location = {
-        lat: userLocation.position.coords.latitude,
-        lng: userLocation.position.coords.longitude,
-        address: 'موقعي الحالي'
+        lat,
+        lng,
+        address: `موقعي: ${lat.toFixed(6)}, ${lng.toFixed(6)}`
       };
       handleLocationSelect(location);
     }

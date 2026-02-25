@@ -14,6 +14,8 @@ import AdminHRManagement from "./AdminHRManagement";
 import AdminSecurity from "./AdminSecurity"; 
 import AdminDriversAdvanced from "./AdminDriversAdvanced";
 import AdminRestaurantsAdvanced from "./AdminRestaurantsAdvanced";
+import AdvancedReports from "./admin/AdvancedReports";
+import RestaurantReports from "./admin/RestaurantReports";
 import AdminDashboard from "./admin/AdminDashboard";
 import AdminDeliveryFees from "./admin/AdminDeliveryFees";
 import RatingsManagement from "./RatingsManagement";
@@ -47,6 +49,9 @@ export const AdminApp: React.FC<AdminAppProps> = () => {
         <Route path="/admin/ui-settings" component={AdminUiSettings} />
         <Route path="/admin/ratings" component={RatingsManagement} />
         <Route path="/admin/wallet" component={WalletManagement} />
+        <Route path="/admin/advanced-reports" component={AdvancedReports} />
+        <Route path="/admin/restaurant-reports" component={RestaurantReports} />
+        <Route path="/admin/restaurants-advanced" component={AdminRestaurantsAdvanced} />
         <Route component={NotFound} />
       </Switch>
     </AdminLayout>

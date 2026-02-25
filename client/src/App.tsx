@@ -29,7 +29,7 @@ import AdminRestaurantsAdvanced from "./pages/AdminRestaurantsAdvanced";
 import AdminSecurity from "./pages/AdminSecurity";
 import RatingsManagement from "./pages/RatingsManagement";
 import WalletManagement from "./pages/WalletManagement";
-import { DriverDashboard } from "./pages/DriverDashboard";
+import { DriverDashboard } from "./pages/driver/DriverDashboard";
 import { useState } from "react";
 import Home from "./pages/Home";
 import Restaurant from "./pages/Restaurant";
@@ -92,24 +92,11 @@ function MainApp() {
   // Handle admin routes
   if (currentLocation.startsWith('/admin')) {
     return (
-      <AdminLayout>
-        <Switch>
-          <Route path="/admin" component={AdminApp} />
-          <Route path="/admin/dashboard" component={AdminDashboard} />
-          <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
-          <Route path="/admin/ui-settings" component={AdminUiSettings} />
-          <Route path="/admin/advanced-reports" component={AdvancedReports} />
-          <Route path="/admin/restaurant-reports" component={RestaurantReports} />
-          <Route path="/admin/drivers-advanced" component={AdminDriversAdvanced} />
-          <Route path="/admin/financial-reports" component={AdminFinancialReports} />
-          <Route path="/admin/hr-management" component={AdminHRManagement} />
-          <Route path="/admin/restaurants-advanced" component={AdminRestaurantsAdvanced} />
-          <Route path="/admin/security" component={AdminSecurity} />
-          <Route path="/admin/ratings" component={RatingsManagement} />
-          <Route path="/admin/wallet" component={WalletManagement} />
-          <Route path="/admin/:rest*" component={AdminApp} />
-        </Switch>
-      </AdminLayout>
+      <AdminApp onLogout={() => {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        window.location.href = '/';
+      }} />
     );
   }
 

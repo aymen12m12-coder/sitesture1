@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -69,6 +70,10 @@ export default function AdminDriversAdvanced() {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedDriver, setSelectedDriver] = useState<DriverStats | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showWalletDialog, setShowWalletDialog] = useState(false);
+  const [walletAmount, setWalletAmount] = useState('');
+  const [walletAction, setWalletAction] = useState<'credit' | 'debit'>('credit');
+  const [walletNote, setWalletNote] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('');
@@ -104,6 +109,31 @@ export default function AdminDriversAdvanced() {
         description: "تم تحديث حالة السائق بنجاح",
       });
     },
+  });
+
+  // 💰 تحديث المحفظة
+  const adjustBalance = useMutation({
+    mutationFn: async ({ driverId, amount, type, description }: { driverId: string; amount: string; type: string; description: string }) => {
+      const response = await apiRequest('POST', `/api/admin/drivers/${driverId}/transactions`, { amount, type, description });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/drivers/stats'] });
+      setShowWalletDialog(false);
+      setWalletAmount('');
+      setWalletNote('');
+      toast({
+        title: "تم تحديث المحفظة",
+        description: "تمت إضافة المعاملة بنجاح وتحديث الرصيد",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "خطأ",
+        description: "فشل تحديث المحفظة",
+        variant: "destructive"
+      });
+    }
   });
 
   // 💰 معالجة طلبات السحب
@@ -395,8 +425,21 @@ export default function AdminDriversAdvanced() {
                                 setShowDetailsDialog(true);
                               }}
                               className="h-8 w-8 p-0"
+                              title="عرض التفاصيل"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDriver(driver);
+                                setShowWalletDialog(true);
+                              }}
+                              className="h-8 w-8 p-0 text-orange-600"
+                              title="إدارة المحفظة"
+                            >
+                              <Wallet className="h-4 w-4" />
                             </Button>
                             <Select
                               value={driver.status}
@@ -631,6 +674,91 @@ export default function AdminDriversAdvanced() {
               </Card>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار إدارة المحفظة */}
+      <Dialog open={showWalletDialog} onOpenChange={setShowWalletDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>إدارة محفظة السائق: {selectedDriver?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4" dir="rtl">
+            <div className="space-y-2">
+              <Label htmlFor="action">نوع العملية</Label>
+              <Select 
+                value={walletAction} 
+                onValueChange={(val: 'credit' | 'debit') => setWalletAction(val)}
+              >
+                <SelectTrigger id="action">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">إضافة رصيد (+)</SelectItem>
+                  <SelectItem value="debit">خصم رصيد (-)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="amount">المبلغ (ريال)</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={walletAmount}
+                onChange={(e) => setWalletAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="note">ملاحظات / سبب العملية</Label>
+              <Textarea
+                id="note"
+                value={walletNote}
+                onChange={(e) => setWalletNote(e.target.value)}
+                placeholder="مثال: مكافأة أداء، تسوية رصيد، إلخ..."
+              />
+            </div>
+
+            <div className="p-3 bg-muted rounded-lg text-sm">
+              <p className="flex justify-between">
+                <span>الرصيد الحالي:</span>
+                <span className="font-bold">{(selectedDriver?.walletBalance || 0).toFixed(2)} ر.ي</span>
+              </p>
+              <p className="flex justify-between mt-1 text-primary">
+                <span>الرصيد المتوقع:</span>
+                <span className="font-bold">
+                  {(
+                    (selectedDriver?.walletBalance || 0) + 
+                    (walletAction === 'credit' ? Number(walletAmount || 0) : -Number(walletAmount || 0))
+                  ).toFixed(2)} ر.ي
+                </span>
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end">
+            <Button 
+              onClick={() => {
+                if (!walletAmount || Number(walletAmount) <= 0) {
+                  toast({ title: "خطأ", description: "يرجى إدخال مبلغ صحيح", variant: "destructive" });
+                  return;
+                }
+                adjustBalance.mutate({
+                  driverId: selectedDriver!.id,
+                  amount: walletAmount,
+                  type: walletAction === 'credit' ? 'bonus' : 'deduction',
+                  description: walletNote || (walletAction === 'credit' ? 'إضافة رصيد يدوية' : 'خصم رصيد يدوي')
+                });
+              }}
+              disabled={adjustBalance.isPending}
+            >
+              {adjustBalance.isPending ? 'جاري الحفظ...' : 'تأكيد العملية'}
+            </Button>
+            <Button variant="outline" onClick={() => setShowWalletDialog(false)}>
+              إلغاء
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

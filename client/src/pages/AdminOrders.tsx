@@ -359,11 +359,17 @@ export default function AdminOrders() {
                           <div className="flex items-start gap-2">
                             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                             <div className="flex-1">
-                              <span className="text-sm text-muted-foreground block">{order.deliveryAddress}</span>
+                              <span className="text-sm text-foreground block font-medium">{order.deliveryAddress}</span>
                               {order.customerLocationLat && order.customerLocationLng && (
-                                <span className="text-xs text-muted-foreground/70 mt-1 block">
-                                  📍 {order.customerLocationLat}, {order.customerLocationLng}
-                                </span>
+                                <a 
+                                  href={`https://www.google.com/maps/search/?api=1&query=${order.customerLocationLat},${order.customerLocationLng}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline mt-1 flex items-center gap-1"
+                                >
+                                  <Navigation className="h-3 w-3" />
+                                  فتح الموقع في الخرائط ({order.customerLocationLat}, {order.customerLocationLng})
+                                </a>
                               )}
                             </div>
                           </div>
