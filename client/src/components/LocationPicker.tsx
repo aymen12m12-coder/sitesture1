@@ -57,7 +57,7 @@ export function LocationPicker({
           const location: LocationData = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            address: `الموقع الحالي (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`,
+            address: `الموقع المختار: (${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)})`,
             area: 'الموقع الحالي',
             city: 'صنعاء'
           };

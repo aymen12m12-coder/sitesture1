@@ -27,7 +27,7 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const { data: uiSettings } = useQuery<UiSettings[]>({
@@ -145,8 +145,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     window.location.href = '/';
   };
 
-  const currentPath = window.location.pathname;
-
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-white">
       {/* Header with Sidebar Image */}
@@ -182,10 +180,10 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPath === item.path;
+          const isActive = location === item.path;
           
           return (
             <button
