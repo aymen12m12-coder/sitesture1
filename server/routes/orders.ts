@@ -252,9 +252,24 @@ router.put("/:id/assign-driver", async (req, res) => {
       return res.status(404).json({ error: "الطلب غير موجود" });
     }
 
-    // التحقق من أن الطلب متاح للتعيين
-    if (order.driverId) {
-      return res.status(400).json({ error: "الطلب مُعيَّن لسائق آخر بالفعل" });
+    // تحرير السائق السابق إذا كان موجوداً
+    if (order.driverId && order.driverId !== driverId) {
+      try {
+        await storage.updateDriver(order.driverId, { isAvailable: true });
+        
+        // إشعار للسائق السابق بإلغاء التعيين
+        await storage.createNotification({
+          type: 'order_unassigned',
+          title: 'إلغاء تعيين الطلب',
+          message: `تم إلغاء تعيينك للطلب رقم ${order.orderNumber} وتحويله لسائق آخر`,
+          recipientType: 'driver',
+          recipientId: order.driverId,
+          orderId: id,
+          isRead: false
+        });
+      } catch (err) {
+        console.error('Error freeing up previous driver:', err);
+      }
     }
 
     // التحقق من وجود السائق
