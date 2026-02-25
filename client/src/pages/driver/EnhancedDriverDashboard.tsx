@@ -82,6 +82,7 @@ interface EnhancedDriverDashboardProps {
 export default function EnhancedDriverDashboard({ driverId, onLogout }: EnhancedDriverDashboardProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
   const [driverStatus, setDriverStatus] = useState<'available' | 'busy' | 'offline'>('available');
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -160,9 +161,11 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/orders`] });
       queryClient.invalidateQueries({ queryKey: [`/api/driver/dashboard`] });
+      setAcceptingOrderId(null);
       toast({ title: 'تم قبول الطلب بنجاح', description: 'يمكنك الآن البدء في التوصيل' });
     },
     onError: (error: any) => {
+      setAcceptingOrderId(null);
       toast({
         title: 'فشل في قبول الطلب',
         description: error.message,
@@ -292,6 +295,16 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       restaurantLng: order.restaurantLongitude || '44.1910',
     }));
 
+  const navItems = [
+    { id: 'dashboard', label: 'لوحة التحكم', icon: Activity },
+    { id: 'available', label: 'الطلبات المتاحة', icon: Bell },
+    { id: 'active', label: 'الطلبات النشطة', icon: Package },
+    { id: 'map', label: 'الخريطة', icon: MapPinned },
+    { id: 'history', label: 'السجل', icon: History },
+    { id: 'stats', label: 'الإحصائيات', icon: TrendingUp },
+    { id: 'profile', label: 'الملف الشخصي', icon: User },
+  ];
+
   const Sidebar = () => (
     <div className="flex flex-col h-full bg-white border-l">
       <div className="p-6 border-b">
@@ -308,68 +321,17 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
 
       <nav className="flex-1 p-4 overflow-y-auto">
         <div className="space-y-2">
-          <Button
-            variant={activeTab === 'dashboard' && !selectedOrderId ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('dashboard'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <Activity className="h-5 w-5" />
-            لوحة التحكم
-          </Button>
-
-          <Button
-            variant={activeTab === 'available' && !selectedOrderId ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('available'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <Bell className="h-5 w-5" />
-            الطلبات المتاحة
-          </Button>
-
-          <Button
-            variant={activeTab === 'active' && !selectedOrderId ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('active'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <Package className="h-5 w-5" />
-            الطلبات النشطة
-          </Button>
-
-          <Button
-            variant={activeTab === 'map' ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('map'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <MapPinned className="h-5 w-5" />
-            الخريطة
-          </Button>
-
-          <Button
-            variant={activeTab === 'history' && !selectedOrderId ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('history'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <History className="h-5 w-5" />
-            السجل
-          </Button>
-
-          <Button
-            variant={activeTab === 'stats' ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('stats'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <TrendingUp className="h-5 w-5" />
-            الإحصائيات
-          </Button>
-
-          <Button
-            variant={activeTab === 'profile' ? 'default' : 'ghost'}
-            className="w-full justify-start gap-3"
-            onClick={() => { setActiveTab('profile'); setSelectedOrderId(null); setSidebarOpen(false); }}
-          >
-            <User className="h-5 w-5" />
-            الملف الشخصي
-          </Button>
+          {navItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id && !selectedOrderId ? 'default' : 'ghost'}
+              className="w-full justify-start gap-3"
+              onClick={() => { setActiveTab(item.id); setSelectedOrderId(null); setSidebarOpen(false); }}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.label}
+            </Button>
+          ))}
         </div>
       </nav>
 
@@ -384,6 +346,50 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
         </Button>
       </div>
     </div>
+  );
+
+  const TopBar = () => (
+    <header className="hidden lg:block bg-white border-b sticky top-0 z-40">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2">
+              <Truck className="h-6 w-6 text-green-600" />
+              <span className="font-bold text-xl">تطبيق السائق</span>
+            </div>
+            
+            <nav className="flex items-center gap-1">
+              {navItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant={activeTab === item.id && !selectedOrderId ? 'secondary' : 'ghost'}
+                  className="gap-2 px-3"
+                  onClick={() => { setActiveTab(item.id); setSelectedOrderId(null); }}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <Badge className={getStatusColor(driverStatus)}>
+              {getStatusText(driverStatus)}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onLogout}
+              className="text-red-600 hover:bg-red-50 gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              خروج
+            </Button>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 
   if (isLoading) {
@@ -409,6 +415,9 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
+      {/* Top Bar for Desktop */}
+      <TopBar />
+
       {/* Mobile Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-40 lg:hidden">
         <div className="flex justify-between items-center h-16 px-4">
@@ -434,13 +443,11 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
         </div>
       </header>
 
-      {/* Desktop Layout */}
-      <div className="flex flex-1 h-[calc(100vh-4rem)] lg:h-screen">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 bg-white border-l">
-          <Sidebar />
-        </aside>
-
+      {/* Main Layout */}
+      <div className="flex flex-1 flex-col lg:flex-row h-full">
+        {/* Desktop Sidebar is now TopBar, so we don't need aside here anymore if we want full width */}
+        {/* But if user wants both, we keep it. However, user said "المحتويات التي تحتوي في القائمه الجانبيه يجب ان تكون في الشريط العلوي" which implies replacing it or moving it. */}
+        
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
           {activeTab === 'available' ? (
@@ -576,7 +583,11 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
                   <CardContent>
                     <div className="space-y-3">
                       {activeOrders.map((order) => (
-                        <div key={order.id} className="bg-white rounded-lg p-4 border">
+                        <div 
+                          key={order.id} 
+                          className="bg-white rounded-lg p-4 border cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => setSelectedOrderId(order.id)}
+                        >
                           <div className="flex justify-between items-start mb-3">
                             <div>
                               <p className="font-bold text-lg">طلب #{order.orderNumber}</p>
@@ -685,7 +696,11 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
                   <CardContent>
                     <div className="space-y-3">
                       {availableOrders.slice(0, 3).map((order) => (
-                        <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50">
+                        <div 
+                          key={order.id} 
+                          className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                          onClick={() => setSelectedOrderId(order.id)}
+                        >
                           <div className="flex-1">
                             <p className="font-bold">طلب #{order.orderNumber}</p>
                             <p className="text-sm font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
@@ -693,12 +708,16 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
                             <p className="text-sm text-green-600 font-medium">عمولة: {formatCurrency(order.driverEarnings)}</p>
                           </div>
                           <Button
-                            onClick={() => acceptOrderMutation.mutate(order.id)}
-                            disabled={acceptOrderMutation.isPending}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setAcceptingOrderId(order.id);
+                              acceptOrderMutation.mutate(order.id);
+                            }}
+                            disabled={(acceptingOrderId !== null && acceptingOrderId !== order.id) || acceptOrderMutation.isPending}
                             className="gap-2 bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="h-4 w-4" />
-                            قبول
+                            {acceptingOrderId === order.id && acceptOrderMutation.isPending ? 'جاري...' : 'قبول'}
                           </Button>
                         </div>
                       ))}
@@ -778,12 +797,15 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
                           </div>
 
                           <Button
-                            onClick={() => acceptOrderMutation.mutate(order.id)}
-                            disabled={acceptOrderMutation.isPending}
+                            onClick={() => {
+                              setAcceptingOrderId(order.id);
+                              acceptOrderMutation.mutate(order.id);
+                            }}
+                            disabled={(acceptingOrderId !== null && acceptingOrderId !== order.id) || acceptOrderMutation.isPending}
                             className="w-full gap-2 bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="h-4 w-4" />
-                            قبول الطلب
+                            {acceptingOrderId === order.id && acceptOrderMutation.isPending ? 'جاري...' : 'قبول الطلب'}
                           </Button>
                         </div>
                       ))}

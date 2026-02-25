@@ -90,7 +90,8 @@ export default function DriverApp() {
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('available');
-  const [isLoading, setIsLoading] = useState(false);
+  const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
   const [driverId, setDriverId] = useState<string>('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -224,7 +225,7 @@ export default function DriverApp() {
   };
 
   const acceptOrder = async (orderId: string) => {
-    setIsLoading(true);
+    setAcceptingOrderId(orderId);
     try {
       const response = await fetchWithAuth(`/api/orders/${orderId}/assign-driver`, {
         method: 'PUT',
@@ -245,11 +246,12 @@ export default function DriverApp() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setAcceptingOrderId(null);
     }
   };
 
   const updateOrderStatus = async (orderId: string, status: string) => {
+    setUpdatingOrderId(orderId);
     try {
       const response = await fetchWithAuth(`/api/orders/${orderId}`, {
         method: 'PUT',
@@ -269,6 +271,8 @@ export default function DriverApp() {
         description: "فشل في تحديث حالة الطلب",
         variant: "destructive",
       });
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -367,68 +371,71 @@ export default function DriverApp() {
     <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
       {/* Desktop Top Navigation Bar */}
       <div className="hidden lg:block bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">تطبيق السائق</h1>
-            <div className="h-8 w-px bg-gray-200" />
-            <div className="text-lg font-semibold text-gray-900">
-              مرحباً {driver?.name}
+        <div className="px-6 py-2 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                <Navigation size={24} />
+              </div>
+              <h1 className="text-xl font-black text-gray-900 tracking-tight">تطبيق السائق</h1>
             </div>
+            
+            <div className="h-10 w-px bg-gray-100 mx-2" />
+            
+            {/* Navigation Tabs Integrated in Top Bar */}
+            <nav className="flex items-center gap-1">
+              {STEPS.map((step) => {
+                const Icon = step.icon;
+                const isActive = activeTab === step.id;
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => setActiveTab(step.id)}
+                    className={`px-4 py-2 rounded-xl font-bold transition-all duration-200 flex items-center gap-2 ${
+                      isActive
+                        ? 'bg-blue-50 text-blue-700 shadow-sm'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
+                    }`}
+                  >
+                    <Icon size={18} />
+                    <span>{step.label}</span>
+                    {step.id === 'available' && availableOrders.length > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] rounded-full px-1.5 py-0.5 font-black">
+                        {availableOrders.length}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-              driver?.isAvailable 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              {driver?.isAvailable ? '🟢 متاح' : '🔴 غير متاح'}
+          <div className="flex items-center gap-4">
+            <div className="text-left">
+              <p className="text-xs text-gray-500 font-bold leading-none mb-1">مرحباً بك</p>
+              <p className="text-sm font-black text-gray-900 leading-none">{driver?.name}</p>
             </div>
+
             <button 
               onClick={toggleAvailability}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all shadow-sm ${
                 driver?.isAvailable
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-green-600 text-white hover:bg-green-700'
+                  ? 'bg-green-100 text-green-700 border border-green-200 hover:bg-green-200'
+                  : 'bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200'
               }`}
             >
-              {driver?.isAvailable ? '🔴 تعطيل' : '🟢 تفعيل'}
+              <div className={`h-2.5 w-2.5 rounded-full animate-pulse ${driver?.isAvailable ? 'bg-green-600' : 'bg-gray-400'}`} />
+              {driver?.isAvailable ? 'متصل ومتاح' : 'غير متصل'}
             </button>
+
             <button
               onClick={handleLogout}
-              className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+              className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-all border border-red-100"
               title="تسجيل الخروج"
             >
               <LogOut size={20} />
             </button>
           </div>
-        </div>
-        
-        {/* Desktop Navigation Tabs */}
-        <div className="px-6 flex gap-2 border-t border-gray-100 overflow-x-auto">
-          {STEPS.map((step) => {
-            const Icon = step.icon;
-            const isActive = activeTab === step.id;
-            return (
-              <button
-                key={step.id}
-                onClick={() => setActiveTab(step.id)}
-                className={`px-4 py-3 font-medium whitespace-nowrap flex items-center gap-2 border-b-2 transition-colors ${
-                  isActive
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                <Icon size={18} />
-                {step.label}
-                {step.id === 'available' && availableOrders.length > 0 && (
-                  <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 ml-1">
-                    {availableOrders.length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -439,7 +446,13 @@ export default function DriverApp() {
       <div className={`fixed top-0 right-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 z-50 lg:hidden ${
         sidebarOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
-        <SidebarContent activeTab={activeTab} setActiveTab={() => setSidebarOpen(false)} />
+        <SidebarContent 
+          activeTab={activeTab} 
+          onTabChange={(tabId: string) => {
+            setActiveTab(tabId);
+            setSidebarOpen(false);
+          }} 
+        />
       </div>
 
       {/* Mobile Header */}
@@ -499,10 +512,10 @@ export default function DriverApp() {
       <div className="flex-1 overflow-auto">
         <div className="p-4 sm:p-6 max-w-6xl mx-auto">
           {activeTab === 'available' && (
-            <AvailableOrdersSection orders={availableOrders} isLoading={isLoading} onAccept={acceptOrder} driver={driver} />
+            <AvailableOrdersSection orders={availableOrders} acceptingOrderId={acceptingOrderId} onAccept={acceptOrder} driver={driver} />
           )}
           {activeTab === 'accepted' && (
-            <MyOrdersSection orders={myOrders} onStatusUpdate={updateOrderStatus} selectedOrder={selectedOrder} setSelectedOrder={setSelectedOrder} />
+            <MyOrdersSection orders={myOrders} onStatusUpdate={updateOrderStatus} updatingOrderId={updatingOrderId} selectedOrder={selectedOrder} setSelectedOrder={setSelectedOrder} />
           )}
           {activeTab === 'stats' && (
             <StatsSection stats={stats} driver={driver} />
@@ -518,7 +531,7 @@ export default function DriverApp() {
     </div>
   );
 
-  function SidebarContent({ activeTab, setActiveTab }: any) {
+  function SidebarContent({ activeTab, onTabChange }: any) {
     return (
       <div className="h-full flex flex-col">
         <div className="p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -533,9 +546,7 @@ export default function DriverApp() {
             return (
               <button
                 key={step.id}
-                onClick={() => {
-                  setActiveTab(step.id);
-                }}
+                onClick={() => onTabChange(step.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all font-medium text-right ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-md'
@@ -581,7 +592,7 @@ export default function DriverApp() {
   }
 }
 
-function AvailableOrdersSection({ orders, isLoading, onAccept, driver }: any) {
+function AvailableOrdersSection({ orders, acceptingOrderId, onAccept, driver }: any) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -611,7 +622,7 @@ function AvailableOrdersSection({ orders, isLoading, onAccept, driver }: any) {
       ) : (
         <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
           {orders.map((order: Order) => (
-            <OrderCard key={order.id} order={order} isLoading={isLoading} onAccept={onAccept} actionType="accept" />
+            <OrderCard key={order.id} order={order} isLoading={acceptingOrderId === order.id} onAccept={onAccept} actionType="accept" />
           ))}
         </div>
       )}
@@ -619,7 +630,7 @@ function AvailableOrdersSection({ orders, isLoading, onAccept, driver }: any) {
   );
 }
 
-function MyOrdersSection({ orders, onStatusUpdate, selectedOrder, setSelectedOrder }: any) {
+function MyOrdersSection({ orders, onStatusUpdate, updatingOrderId, selectedOrder, setSelectedOrder }: any) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -642,6 +653,7 @@ function MyOrdersSection({ orders, onStatusUpdate, selectedOrder, setSelectedOrd
               key={order.id} 
               order={order} 
               onStatusUpdate={onStatusUpdate} 
+              isLoading={updatingOrderId === order.id}
               actionType="status"
               isSelected={selectedOrder?.id === order.id}
               onSelect={() => setSelectedOrder(selectedOrder?.id === order.id ? null : order)}
@@ -656,6 +668,7 @@ function MyOrdersSection({ orders, onStatusUpdate, selectedOrder, setSelectedOrd
 function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isSelected, onSelect }: any) {
   const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items || [];
   const nextAction = actionType === 'status' ? getNextAction(order.status) : null;
+  const adminPhone = "770000000"; // رقم الإدارة الافتراضي
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -663,6 +676,7 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
       case 'picked_up': return 'text-yellow-600';
       case 'on_way': return 'text-orange-600';
       case 'delivered': return 'text-green-600';
+      case 'confirmed': return 'text-blue-500';
       default: return 'text-gray-600';
     }
   };
@@ -674,139 +688,206 @@ function OrderCard({ order, isLoading, onAccept, onStatusUpdate, actionType, isS
       'on_way': '🚗 في الطريق',
       'delivered': '✅ تم التسليم',
       'confirmed': '⏳ قيد الانتظار',
+      'pending': '⏳ بانتظار الموافقة',
     };
     return statusMap[status] || status;
   };
 
   return (
-    <div className={`bg-white rounded-lg border-2 transition-all cursor-pointer ${
-      isSelected ? 'border-blue-500 shadow-lg' : 'border-gray-200 hover:border-gray-300'
+    <div className={`bg-white rounded-xl border-2 transition-all duration-300 ${
+      isSelected 
+        ? 'border-blue-600 shadow-xl scale-[1.02] z-10' 
+        : 'border-gray-100 hover:border-gray-200 shadow-sm'
     }`}>
       <div className="p-4 sm:p-6">
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-4" onClick={onSelect}>
           <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900 truncate">{order.customerName}</h3>
-            <p className="text-sm text-gray-600 flex items-center gap-1 mt-1">
-              <Phone size={16} />
-              <a href={`tel:${order.customerPhone}`} className="hover:text-blue-600">
-                {order.customerPhone}
-              </a>
+            <div className="flex items-center gap-2">
+              <span className="bg-gray-100 text-gray-700 text-xs font-bold px-2 py-1 rounded">#{order.orderNumber?.split('-')[1] || order.id?.substring(0, 8)}</span>
+              <h3 className="text-lg font-bold text-gray-900 truncate">{order.customerName}</h3>
+            </div>
+            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+              <Clock size={14} />
+              {new Date(order.createdAt).toLocaleTimeString('ar-YE', { hour: '2-digit', minute: '2-digit' })}
             </p>
           </div>
           <div className="text-right flex-shrink-0">
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(order.totalAmount)}</div>
-            {actionType === 'status' && (
-              <span className={`text-sm font-bold mt-2 block ${getStatusColor(order.status)}`}>
-                {getStatusText(order.status)}
-              </span>
-            )}
+            <div className="text-2xl font-black text-green-600">{formatCurrency(order.totalAmount)}</div>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${
+              order.status === 'delivered' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-700'
+            }`}>
+              {getStatusText(order.status)}
+            </span>
           </div>
         </div>
 
-        {/* Location */}
-        <div className="mb-4">
-          <div className="flex gap-3">
-            <MapPin className="text-red-500 flex-shrink-0 mt-1" size={18} />
-            <div className="flex-1">
-              <p className="text-gray-700 font-medium">{order.deliveryAddress}</p>
-              {order.notes && (
-                <p className="text-sm text-gray-600 mt-2">📝 {order.notes}</p>
-              )}
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" onClick={onSelect}>
+          <div className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg">
+            <MapPin className="text-red-500 flex-shrink-0 mt-0.5" size={16} />
+            <div>
+              <p className="text-xs text-gray-500 font-bold">العنوان:</p>
+              <p className="text-sm text-gray-800 line-clamp-2">{order.deliveryAddress}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 bg-gray-50 p-2 rounded-lg">
+            <Package className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
+            <div>
+              <p className="text-xs text-gray-500 font-bold">العناصر:</p>
+              <p className="text-sm text-gray-800">{items.length} أصناف مختلفة</p>
             </div>
           </div>
         </div>
 
-        {/* Items & Financial Details */}
-        {isSelected && items.length > 0 && (
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
-            <div>
-              <h4 className="font-bold text-gray-900 mb-3">📋 تفاصيل الطلب:</h4>
+        {/* Detailed View - Opens when selected */}
+        {isSelected && (
+          <div className="mt-4 pt-4 border-t-2 border-dashed border-gray-100 animate-in fade-in slide-in-from-top-4 duration-300">
+            {/* Items List */}
+            <div className="bg-blue-50/50 p-4 rounded-xl mb-4">
+              <h4 className="font-bold text-blue-900 mb-3 flex items-center gap-2">
+                <Package size={18} />
+                محتويات السلة:
+              </h4>
               <div className="space-y-2">
                 {items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <span className="text-gray-700">
-                      {item.name} × <span className="font-bold">{item.quantity}</span>
+                  <div key={idx} className="flex justify-between items-center bg-white p-2 rounded-lg shadow-sm border border-blue-100">
+                    <span className="text-sm font-medium text-gray-800">
+                      {item.name} <span className="text-blue-600 font-bold mx-1">×</span> {item.quantity}
                     </span>
-                    <span className="font-bold text-gray-900">
+                    <span className="text-sm font-bold text-gray-900">
                       {formatCurrency(parseFloat(item.price) * item.quantity)}
                     </span>
                   </div>
                 ))}
               </div>
             </div>
-            
-            {/* Financial Summary */}
-            <div className="border-t border-gray-300 pt-3">
-              <div className="space-y-1 text-sm">
+
+            {/* Financial Details */}
+            <div className="bg-white border-2 border-green-100 p-4 rounded-xl mb-4 shadow-sm">
+              <h4 className="font-bold text-green-900 mb-3 flex items-center gap-2">
+                <DollarSign size={18} />
+                التفاصيل المالية والعمولة:
+              </h4>
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
-                  <span>المجموع الفرعي:</span>
-                  <span className="font-semibold">{formatCurrency(order.subtotal)}</span>
+                  <span>قيمة الطلب:</span>
+                  <span className="font-bold">{formatCurrency(order.subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>رسوم التوصيل:</span>
-                  <span className="font-semibold text-green-600">{formatCurrency(order.deliveryFee)}</span>
+                  <span className="font-bold text-green-600">{formatCurrency(order.deliveryFee)}</span>
                 </div>
-                <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-1 mt-1">
-                  <span>عمولتك (70%):</span>
-                  <span className="font-bold text-blue-600">{formatCurrency((parseFloat(order.deliveryFee) * 70) / 100)}</span>
+                <div className="h-px bg-gray-100 my-2"></div>
+                <div className="flex justify-between items-center bg-green-50 p-2 rounded-lg">
+                  <span className="font-bold text-green-800">نسبة عمولتك (70%):</span>
+                  <span className="text-lg font-black text-green-700">
+                    {formatCurrency((parseFloat(order.deliveryFee) * 70) / 100)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 px-1 mt-1">
+                  <span>المبلغ الإجمالي المطلوب من العميل:</span>
+                  <span className="font-bold text-gray-700">{formatCurrency(order.totalAmount)}</span>
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* Contact & Navigation Section */}
-        {isSelected && (
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
-            <p className="text-xs font-semibold text-blue-900 mb-2">معلومات الاتصال والتنقل:</p>
-            <div className="flex gap-2 flex-wrap">
+            {/* Contact & Map Buttons */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <a
                 href={`tel:${order.customerPhone}`}
-                className="flex-1 min-w-32 bg-green-600 text-white py-2 px-3 rounded-lg font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                className="flex flex-col items-center justify-center gap-2 bg-green-600 text-white p-4 rounded-xl font-bold hover:bg-green-700 transition-all shadow-md active:scale-95"
               >
-                <Phone size={16} />
-                اتصال بالعميل
+                <Phone size={24} />
+                <span>اتصال بالعميل</span>
+              </a>
+              <a
+                href={`tel:${adminPhone}`}
+                className="flex flex-col items-center justify-center gap-2 bg-gray-800 text-white p-4 rounded-xl font-bold hover:bg-gray-900 transition-all shadow-md active:scale-95"
+              >
+                <User size={24} />
+                <span>اتصال بالإدارة</span>
               </a>
               {order.customerLocationLat && order.customerLocationLng && (
                 <a
                   href={`https://www.google.com/maps?q=${order.customerLocationLat},${order.customerLocationLng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 min-w-32 bg-purple-600 text-white py-2 px-3 rounded-lg font-bold hover:bg-purple-700 transition-colors flex items-center justify-center gap-1 text-sm"
+                  className="col-span-2 flex items-center justify-center gap-3 bg-blue-600 text-white p-4 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-95"
                 >
-                  <MapPin size={16} />
-                  تتبع الموقع
+                  <Navigation size={24} />
+                  <span>تتبع موقع العميل على الخريطة</span>
                 </a>
               )}
             </div>
+
+            {order.notes && (
+              <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs font-bold text-yellow-800 mb-1">📝 ملاحظات العميل:</p>
+                <p className="text-sm text-yellow-900">{order.notes}</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 flex-wrap">
+        {/* Quick Action Buttons */}
+        <div className="flex gap-2">
           {actionType === 'accept' ? (
             <button
               onClick={() => onAccept(order.id)}
               disabled={isLoading}
-              className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className={`flex-1 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-md ${
+                isLoading 
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                  : 'bg-green-600 text-white hover:bg-green-700 active:scale-[0.98]'
+              }`}
             >
-              <CheckCircle size={20} />
-              {isLoading ? 'جاري...' : 'قبول الطلب'}
+              {isLoading ? (
+                <div className="h-5 w-5 border-2 border-gray-400 border-t-transparent animate-spin rounded-full"></div>
+              ) : (
+                <>
+                  <CheckCircle size={20} />
+                  <span>قبول الطلب وتوصيله</span>
+                </>
+              )}
             </button>
           ) : nextAction ? (
-            <>
-              <button
-                onClick={() => onStatusUpdate(order.id, nextAction.action)}
-                className="flex-1 bg-orange-600 text-white py-3 rounded-lg font-bold hover:bg-orange-700 transition-colors"
-              >
-                {nextAction.label}
-              </button>
-            </>
-          ) : (
-            <div className="w-full bg-green-50 border-2 border-green-300 rounded-lg p-3 text-center">
-              <p className="text-green-800 font-bold">✅ تم تسليم الطلب</p>
+            <button
+              onClick={() => onStatusUpdate(order.id, nextAction.action)}
+              disabled={isLoading}
+              className={`flex-1 py-4 rounded-xl font-black text-lg transition-all flex items-center justify-center gap-3 shadow-lg ${
+                isLoading
+                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-orange-600 text-white hover:bg-orange-700 active:scale-[0.98] animate-pulse'
+              }`}
+            >
+              {isLoading ? (
+                <div className="h-6 w-6 border-3 border-white border-t-transparent animate-spin rounded-full"></div>
+              ) : (
+                <>
+                  {nextAction.action === 'picked_up' && <Package size={24} />}
+                  {nextAction.action === 'on_way' && <Navigation size={24} />}
+                  {nextAction.action === 'delivered' && <CheckCircle size={24} />}
+                  <span>{nextAction.label}</span>
+                </>
+              )}
+            </button>
+          ) : order.status === 'delivered' ? (
+            <div className="w-full bg-green-50 border-2 border-green-200 rounded-xl p-3 text-center">
+              <p className="text-green-800 font-bold flex items-center justify-center gap-2">
+                <CheckCircle size={20} />
+                تم تسليم الطلب بنجاح
+              </p>
             </div>
+          ) : null}
+          
+          {!isSelected && actionType === 'status' && (
+            <button
+              onClick={onSelect}
+              className="px-4 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all flex items-center justify-center"
+            >
+              <Eye size={20} />
+            </button>
           )}
         </div>
       </div>

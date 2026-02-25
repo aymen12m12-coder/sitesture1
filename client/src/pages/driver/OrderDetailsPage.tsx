@@ -262,13 +262,40 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
             </div>
             <div className="flex gap-4 text-sm">
               <div>
-                <p className="text-gray-600">عمولتك</p>
+                <p className="text-gray-600">عمولتك (70%)</p>
                 <p className="font-bold text-lg text-green-700">{formatCurrency(order.driverEarnings)}</p>
               </div>
               <div>
                 <p className="text-gray-600">رسم التوصيل</p>
                 <p className="font-bold">{formatCurrency(order.deliveryFee)}</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Administration Contact */}
+        <Card className="mb-4 border-blue-100 bg-blue-50">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              تواصل مع الإدارة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 pb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium">{order.adminName || 'مدير العمليات'}</p>
+                <p className="text-xs text-gray-500">للمساعدة في أي مشكلة تخص الطلب</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open(`tel:${order.adminPhone || '00000000'}`)}
+                className="gap-2 bg-white"
+              >
+                <Phone className="h-4 w-4" />
+                اتصال بالإدارة
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -300,10 +327,23 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
 
             <div className="border-t pt-4">
               <p className="text-sm text-gray-600 mb-2">عنوان التوصيل</p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-4">
                 <MapPin className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <p className="font-medium">{order.deliveryAddress}</p>
               </div>
+              {order.customerLocationLat && order.customerLocationLng && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
+                    window.open(url, '_blank');
+                  }}
+                  className="w-full gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                >
+                  <Navigation className="h-4 w-4" />
+                  تتبع موقع العميل على الخرائط
+                </Button>
+              )}
             </div>
 
             {order.notes && (

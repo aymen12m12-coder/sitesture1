@@ -11,6 +11,7 @@ import { UiSettingsProvider, useUiSettings } from "./context/UiSettingsContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { LocationPermissionModal } from "./components/LocationPermissionModal";
 import Layout from "./components/Layout";
+import { AdminLayout } from "./components/admin/AdminLayout";
 import FloatingCartNotification from "./components/FloatingCartNotification";
 import { LoginPage } from "./pages/LoginPage";
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
@@ -47,8 +48,8 @@ import NotFound from "@/pages/not-found";
 import SplashScreen from "./components/SplashScreen";
 
 function MainApp() {
-  const { location } = useUserLocation();
-  const [, setLocation] = useWouterLocation();
+  const { location: userLocation } = useUserLocation();
+  const [currentLocation, setLocation] = useWouterLocation();
   const [showLocationModal, setShowLocationModal] = useState(true);
   const [showSplash, setShowSplash] = useState(() => {
     return !sessionStorage.getItem('splash_seen');
@@ -70,48 +71,50 @@ function MainApp() {
   }
 
   // If not authenticated and not guest, redirect to auth (unless already on auth or login pages)
-  const isAuthPage = window.location.pathname === '/auth' || 
-                     window.location.pathname === '/admin-login' || 
-                     window.location.pathname === '/driver-login';
+  const isAuthPage = currentLocation === '/auth' || 
+                     currentLocation === '/admin-login' || 
+                     currentLocation === '/driver-login';
 
-  if (!isAuthenticated && !isGuest && !isAuthPage && !window.location.pathname.startsWith('/admin') && !window.location.pathname.startsWith('/driver')) {
+  if (!isAuthenticated && !isGuest && !isAuthPage && !currentLocation.startsWith('/admin') && !currentLocation.startsWith('/driver')) {
     setLocation('/auth');
     return null;
   }
 
   // Handle login pages first (without layout)
-  if (window.location.pathname === '/admin-login') {
+  if (currentLocation === '/admin-login') {
     return <AdminLoginPage />;
   }
   
-  if (window.location.pathname === '/driver-login') {
+  if (currentLocation === '/driver-login') {
     return <DriverLoginPage />;
   }
 
-  // Handle admin routes (direct access without authentication)
-  if (window.location.pathname.startsWith('/admin')) {
+  // Handle admin routes
+  if (currentLocation.startsWith('/admin')) {
     return (
-      <Switch>
-        <Route path="/admin" component={AdminApp} />
-        <Route path="/admin/dashboard" component={AdminDashboard} />
-        <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
-        <Route path="/admin/ui-settings" component={AdminUiSettings} />
-        <Route path="/admin/advanced-reports" component={AdvancedReports} />
-        <Route path="/admin/restaurant-reports" component={RestaurantReports} />
-        <Route path="/admin/drivers-advanced" component={AdminDriversAdvanced} />
-        <Route path="/admin/financial-reports" component={AdminFinancialReports} />
-        <Route path="/admin/hr-management" component={AdminHRManagement} />
-        <Route path="/admin/restaurants-advanced" component={AdminRestaurantsAdvanced} />
-        <Route path="/admin/security" component={AdminSecurity} />
-        <Route path="/admin/ratings" component={RatingsManagement} />
-        <Route path="/admin/wallet" component={WalletManagement} />
-        <Route path="/admin/:rest*" component={AdminApp} />
-      </Switch>
+      <AdminLayout>
+        <Switch>
+          <Route path="/admin" component={AdminApp} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
+          <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
+          <Route path="/admin/ui-settings" component={AdminUiSettings} />
+          <Route path="/admin/advanced-reports" component={AdvancedReports} />
+          <Route path="/admin/restaurant-reports" component={RestaurantReports} />
+          <Route path="/admin/drivers-advanced" component={AdminDriversAdvanced} />
+          <Route path="/admin/financial-reports" component={AdminFinancialReports} />
+          <Route path="/admin/hr-management" component={AdminHRManagement} />
+          <Route path="/admin/restaurants-advanced" component={AdminRestaurantsAdvanced} />
+          <Route path="/admin/security" component={AdminSecurity} />
+          <Route path="/admin/ratings" component={RatingsManagement} />
+          <Route path="/admin/wallet" component={WalletManagement} />
+          <Route path="/admin/:rest*" component={AdminApp} />
+        </Switch>
+      </AdminLayout>
     );
   }
 
-  // Handle driver routes (direct access without authentication)  
-  if (window.location.pathname.startsWith('/driver')) {
+  // Handle driver routes
+  if (currentLocation.startsWith('/driver')) {
     // التحقق من تسجيل الدخول للسائق
     const driverToken = localStorage.getItem('driver_token');
     const driverUser = localStorage.getItem('driver_user');
@@ -137,7 +140,7 @@ function MainApp() {
       </Layout>
       <FloatingCartNotification />
       
-      {showLocationModal && !location.hasPermission && (
+      {showLocationModal && !userLocation.hasPermission && (
         <LocationPermissionModal
           onPermissionGranted={(position) => {
             console.log('تم منح الإذن للموقع:', position);
