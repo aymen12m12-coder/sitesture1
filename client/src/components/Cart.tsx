@@ -52,7 +52,7 @@ export function Cart({ isOpen, onClose }: CartProps) {
       setSelectedLocation({
         lat: latitude,
         lng: longitude,
-        address: `موقعي: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        address: 'موقعي الحالي (GPS)',
         area: 'تحديد تلقائي'
       });
       
