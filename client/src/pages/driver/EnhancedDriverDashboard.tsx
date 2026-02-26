@@ -296,13 +296,13 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     }));
 
   const navItems = [
-    { id: 'dashboard', label: 'الرئيسية', icon: Activity },
-    { id: 'available', label: 'طلبات جديدة', icon: Bell },
-    { id: 'active', label: 'طلباتي', icon: Package },
+    { id: 'dashboard', label: 'لوحة التحكم', icon: Activity },
+    { id: 'available', label: 'الطلبات المتاحة', icon: Bell },
+    { id: 'active', label: 'الطلبات النشطة', icon: Package },
     { id: 'map', label: 'الخريطة', icon: MapPinned },
     { id: 'history', label: 'السجل', icon: History },
     { id: 'stats', label: 'الإحصائيات', icon: TrendingUp },
-    { id: 'profile', label: 'حسابي', icon: User },
+    { id: 'profile', label: 'الملف الشخصي', icon: User },
   ];
 
   const Sidebar = () => (
@@ -419,33 +419,27 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       <TopBar />
 
       {/* Mobile Header */}
-      <header className="bg-white shadow-md border-b sticky top-0 z-50 lg:hidden">
+      <header className="bg-white shadow-sm border-b sticky top-0 z-40 lg:hidden">
         <div className="flex justify-between items-center h-16 px-4">
-          <div className="flex items-center gap-2">
-            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-gray-700">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="p-0 w-72">
-                <Sidebar />
-              </SheetContent>
-            </Sheet>
-            <div className="flex items-center gap-1">
-              <Truck className="h-6 w-6 text-green-600" />
-              <h1 className="text-lg font-black tracking-tighter">
-                <span className="text-green-600">طمطوم</span>
-                <span className="text-gray-900 ml-1">دلفري</span>
-              </h1>
-            </div>
-          </div>
+          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="p-0 w-80">
+              <Sidebar />
+            </SheetContent>
+          </Sheet>
 
           <div className="flex items-center gap-3">
-            <Badge className={`${getStatusColor(driverStatus)} border-none shadow-sm`}>
-              {getStatusText(driverStatus)}
-            </Badge>
+            <Truck className="h-6 w-6 text-green-600" />
+            <h1 className="text-lg font-bold">السائق</h1>
           </div>
+
+          <Badge className={getStatusColor(driverStatus)}>
+            {getStatusText(driverStatus)}
+          </Badge>
         </div>
       </header>
 

@@ -86,7 +86,6 @@ export default function Profile() {
         email: profile.email,
         address: profile.address,
       });
-      // تحديث البيانات في السياق أيضاً إذا كان ذلك ممكناً
     }
   };
 
