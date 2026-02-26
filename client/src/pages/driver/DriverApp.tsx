@@ -6,8 +6,8 @@ export default function DriverApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('driverToken');
-    const driverData = localStorage.getItem('driverUser');
+    const token = localStorage.getItem('driver_token');
+    const driverData = localStorage.getItem('driver_user');
 
     if (token && driverData) {
       try {
@@ -24,8 +24,8 @@ export default function DriverApp() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('driverToken');
-    localStorage.removeItem('driverUser');
+    localStorage.removeItem('driver_token');
+    localStorage.removeItem('driver_user');
     window.location.href = '/driver-login';
   };
 

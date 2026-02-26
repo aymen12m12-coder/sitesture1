@@ -29,7 +29,7 @@ import AdminRestaurantsAdvanced from "./pages/AdminRestaurantsAdvanced";
 import AdminSecurity from "./pages/AdminSecurity";
 import RatingsManagement from "./pages/RatingsManagement";
 import WalletManagement from "./pages/WalletManagement";
-import { DriverDashboard } from "./pages/driver/DriverDashboard";
+import DriverApp from "./pages/driver/DriverApp";
 import { useState } from "react";
 import Home from "./pages/Home";
 import Restaurant from "./pages/Restaurant";
@@ -112,11 +112,7 @@ function MainApp() {
       return null;
     }
     
-    return <DriverDashboard onLogout={() => {
-      localStorage.removeItem('driver_token');
-      localStorage.removeItem('driver_user');
-      window.location.href = '/';
-    }} />;
+    return <DriverApp />;
   }
 
   // Default customer app

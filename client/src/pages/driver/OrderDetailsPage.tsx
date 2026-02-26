@@ -80,7 +80,7 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('driver_token')}`
         },
         body: JSON.stringify({ driverId }),
       });
@@ -116,7 +116,7 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('driver_token')}`
         },
         body: JSON.stringify({ 
           status,

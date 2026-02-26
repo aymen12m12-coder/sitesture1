@@ -15,6 +15,7 @@ interface Order {
   deliveryAddress: string;
   status: string;
   items: string;
+  notes?: string;
   totalAmount: string;
   driverEarnings: string;
   restaurantName?: string;
@@ -52,7 +53,7 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('driver_token')}`
         },
         body: JSON.stringify({ driverId }),
       });
@@ -163,6 +164,30 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-gray-500" />
                       <p className="text-sm text-gray-600">{order.customerName}</p>
+                    </div>
+                  </div>
+
+                  {order.notes && (
+                    <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded text-xs text-blue-800">
+                      <span className="font-bold">ملاحظة:</span> {order.notes}
+                    </div>
+                  )}
+
+                  <div className="mb-3">
+                    <p className="text-xs font-bold text-gray-500 mb-1">الأصناف:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(() => {
+                        try {
+                          const items = JSON.parse(order.items);
+                          return items.map((item: any, i: number) => (
+                            <Badge key={i} variant="outline" className="text-[10px] py-0">
+                              {item.name} x{item.quantity}
+                            </Badge>
+                          ));
+                        } catch {
+                          return <span className="text-[10px]">عرض الأصناف متاح في التفاصيل</span>;
+                        }
+                      })()}
                     </div>
                   </div>
 

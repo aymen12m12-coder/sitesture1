@@ -24,6 +24,11 @@ export async function apiRequest(
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
+  } else {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
   }
 
   const res = await fetch(url, {
@@ -49,6 +54,11 @@ export const getQueryFn: <T>(options: {
     // Add Authorization header for admin API calls
     if (url.startsWith('/api/admin/')) {
       const token = localStorage.getItem('admin_token');
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    } else {
+      const token = localStorage.getItem('auth_token');
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
