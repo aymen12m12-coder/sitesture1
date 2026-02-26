@@ -133,7 +133,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const handleNavigation = (path: string) => {
     setLocation(path);
-    if (window.innerWidth < 1024) {
+    if (window.innerWidth < 768) {
       setIsSidebarOpen(false);
     }
   };
@@ -224,16 +224,16 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row overflow-hidden" dir="rtl">
-      {/* Desktop Sidebar - Always visible on lg+ screens */}
-      <aside className="hidden lg:block w-80 bg-white shadow-lg sticky top-0 h-screen overflow-y-auto z-20">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row overflow-hidden" dir="rtl">
+      {/* Desktop Sidebar - Always visible on md+ screens */}
+      <aside className="hidden md:block w-80 bg-white shadow-xl sticky top-0 h-screen overflow-y-auto z-30 border-l">
         <SidebarContent />
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen lg:h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen md:h-screen overflow-hidden">
         {/* Desktop Header */}
-        <header className="hidden lg:block bg-white border-b p-4 flex items-center justify-between sticky top-0 z-10 shrink-0">
+        <header className="hidden md:flex bg-white border-b p-4 items-center justify-between sticky top-0 z-20 shrink-0">
           <div className="flex items-center gap-3">
             {getLogoUrl() ? (
               <img 
@@ -254,7 +254,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
 
         {/* Mobile Header with Sidebar Toggle */}
-        <header className="lg:hidden bg-white border-b p-4 flex items-center justify-between sticky top-0 z-50">
+        <header className="md:hidden bg-white border-b p-4 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-3">
             {getLogoUrl() ? (
               <img 
