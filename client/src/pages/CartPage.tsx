@@ -15,8 +15,11 @@ import { apiRequest } from '@/lib/queryClient';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 import { calculateDistance, calculateDeliveryFee } from '../utils/location';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function CartPage() {
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
   const { items, subtotal, total, deliveryFee } = state;
   const { toast } = useToast();
@@ -118,6 +121,16 @@ export default function CartPage() {
   });
 
   const handlePlaceOrder = () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "عزيزي العميل",
+        description: "يجب تسجيل الدخول أو فتح حساب أولاً لتتمكن من إتمام الطلب",
+        variant: "destructive",
+      });
+      setLocation('/auth');
+      return;
+    }
+
     if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.deliveryAddress) {
       toast({
         title: "معلومات ناقصة",

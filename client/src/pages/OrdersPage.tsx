@@ -43,21 +43,27 @@ interface OrderItem {
   restaurantName?: string;
 }
 
+import { useAuth } from '@/context/AuthContext';
+
 export default function OrdersPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
 
-  // Get customer info from localStorage
-  const customerPhone = localStorage.getItem('customer_phone');
-  const customerName = localStorage.getItem('customer_name');
+  // Get customer info from Auth or localStorage
+  const customerPhone = user?.phone || localStorage.getItem('customer_phone');
+  const customerId = user?.id;
 
-  // Fetch orders from database using phone number
+  // Fetch orders from database using phone number or ID
   const { data: orders = [], isLoading, error } = useQuery<Order[]>({
-    queryKey: ['orders', customerPhone],
-    enabled: !!customerPhone,
+    queryKey: ['orders', customerPhone, customerId],
+    enabled: !!customerPhone || !!customerId,
     queryFn: async () => {
-      const response = await fetch(`/api/customers/orders/by-phone/${customerPhone}`);
+      const url = customerId 
+        ? `/api/orders/customer-id/${customerId}`
+        : `/api/orders/customer/${customerPhone}`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('فشل في جلب الطلبات');
       }

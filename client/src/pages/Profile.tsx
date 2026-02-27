@@ -63,8 +63,10 @@ export default function Profile() {
     },
   });
 
+  const isGuestMode = !isAuthenticated || !userId;
+
   useEffect(() => {
-    if (user) {
+    if (user && !isGuestMode) {
       setProfile({
         username: (user as UserType).username || '',
         name: (user as UserType).name || '',
@@ -72,8 +74,18 @@ export default function Profile() {
         email: (user as UserType).email || '',
         address: (user as UserType).address || '',
       });
+    } else if (isGuestMode) {
+      const guestProfile = localStorage.getItem('guest_profile');
+      if (guestProfile) {
+        try {
+          const parsedProfile = JSON.parse(guestProfile);
+          setProfile(prev => ({ ...prev, ...parsedProfile }));
+        } catch (error) {
+          console.error('Error loading guest profile:', error);
+        }
+      }
     }
-  }, [user]);
+  }, [user, isGuestMode]);
 
   const handleSave = () => {
     if (isGuestMode) {
@@ -99,22 +111,6 @@ export default function Profile() {
       </div>
     );
   }
-
-  const isGuestMode = !isAuthenticated || !userId;
-
-  useEffect(() => {
-    if (isGuestMode) {
-      const guestProfile = localStorage.getItem('guest_profile');
-      if (guestProfile) {
-        try {
-          const parsedProfile = JSON.parse(guestProfile);
-          setProfile(prev => ({ ...prev, ...parsedProfile }));
-        } catch (error) {
-          console.error('Error loading guest profile:', error);
-        }
-      }
-    }
-  }, [isGuestMode]);
 
   const handleGuestSave = () => {
     try {
