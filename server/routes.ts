@@ -202,6 +202,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Menu item write operations are only available through /api/admin/menu-items
 
   // Orders
+  app.get("/api/orders/customer-id/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const orders = await storage.getOrdersByCustomer(id);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer orders" });
+    }
+  });
+
+  app.get("/api/orders/customer/:phone", async (req, res) => {
+    try {
+      const { phone } = req.params;
+      const orders = await storage.getOrdersByPhone(phone);
+      res.json(orders);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer orders" });
+    }
+  });
+
   app.get("/api/orders", async (req, res) => {
     try {
       const { restaurantId } = req.query;

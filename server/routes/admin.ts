@@ -1421,6 +1421,38 @@ router.get("/ui-settings", async (req, res) => {
   }
 });
 
+// تحديث أو إنشاء إعداد واجهة مستخدم
+router.put("/ui-settings/:key", async (req, res) => {
+  try {
+    const { key } = req.params;
+    const { value } = req.body;
+    
+    // محاولة التحديث أولاً
+    const result = await db.update(schema.systemSettings)
+      .set({ value, updatedAt: new Date() })
+      .where(eq(schema.systemSettings.key, key))
+      .returning();
+    
+    if (result.length > 0) {
+      res.json(result[0]);
+    } else {
+      // إذا لم يكن موجوداً، قم بإنشائه
+      const [newSetting] = await db.insert(schema.systemSettings)
+        .values({
+          key,
+          value,
+          category: 'ui_settings',
+          isActive: true
+        })
+        .returning();
+      res.json(newSetting);
+    }
+  } catch (error) {
+    console.error(`Error updating UI setting ${req.params.key}:`, error);
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // تحديث أوقات العمل
 router.put("/business-hours", async (req, res) => {
   try {

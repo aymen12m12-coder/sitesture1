@@ -372,6 +372,58 @@ export class DatabaseStorage {
     }
   }
 
+  async getOrdersByCustomer(customerId: string): Promise<any[]> {
+    try {
+      const result = await this.db.select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerName: orders.customerName,
+        customerPhone: orders.customerPhone,
+        deliveryAddress: orders.deliveryAddress,
+        status: orders.status,
+        items: orders.items,
+        totalAmount: orders.totalAmount,
+        createdAt: orders.createdAt,
+        restaurantName: restaurants.name,
+      })
+      .from(orders)
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
+      .where(eq(orders.customerId, customerId))
+      .orderBy(desc(orders.createdAt));
+      
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching customer orders:', error);
+      return [];
+    }
+  }
+
+  async getOrdersByPhone(phone: string): Promise<any[]> {
+    try {
+      const result = await this.db.select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerName: orders.customerName,
+        customerPhone: orders.customerPhone,
+        deliveryAddress: orders.deliveryAddress,
+        status: orders.status,
+        items: orders.items,
+        totalAmount: orders.totalAmount,
+        createdAt: orders.createdAt,
+        restaurantName: restaurants.name,
+      })
+      .from(orders)
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
+      .where(eq(orders.customerPhone, phone))
+      .orderBy(desc(orders.createdAt));
+      
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching customer orders by phone:', error);
+      return [];
+    }
+  }
+
   async createOrder(order: InsertOrder): Promise<Order> {
     const [newOrder] = await this.db.insert(orders).values(order).returning();
     return newOrder;
