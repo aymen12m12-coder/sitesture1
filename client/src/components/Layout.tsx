@@ -62,8 +62,11 @@ export default function Layout({ children }: LayoutProps) {
     return uiSettings?.find(s => s.key === key)?.value || defaultValue;
   };
 
-  const whatsappLink = getSetting('support_whatsapp', 'https://wa.me/967777777777');
-  const phoneLink = getSetting('support_phone', 'tel:+967777777777');
+  const rawWhatsapp = getSetting('support_whatsapp', '967777777777');
+  const rawPhone = getSetting('support_phone', '967777777777');
+  
+  const whatsappLink = `https://wa.me/${rawWhatsapp.replace(/\D/g, '')}`;
+  const phoneLink = `tel:${rawPhone.replace(/\s+/g, '')}`;
   const shareText = getSetting('share_text', 'تسوق أفضل الفواكه والخضروات الطازجة من تطبيق طمطوم!');
   const shareUrl = getSetting('share_url', window.location.origin);
   const sidebarImageUrl = getSetting('sidebar_image_url', 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=400');
