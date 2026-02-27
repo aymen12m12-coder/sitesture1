@@ -331,7 +331,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const balance = await storage.getDriverBalance(id);
-      res.json(balance || { availableBalance: 0, totalEarned: 0, withdrawnAmount: 0 });
+      
+      // توحيد المسميات لضمان التوافق مع تطبيقات السائق ولوحة التحكم
+      if (balance) {
+        res.json({
+          ...balance,
+          totalEarned: balance.totalBalance,
+          availableBalance: balance.availableBalance,
+          withdrawnAmount: balance.withdrawnAmount,
+          pendingAmount: balance.pendingAmount
+        });
+      } else {
+        res.json({ 
+          availableBalance: "0", 
+          totalEarned: "0", 
+          totalBalance: "0",
+          withdrawnAmount: "0", 
+          pendingAmount: "0" 
+        });
+      }
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch driver balance" });
     }

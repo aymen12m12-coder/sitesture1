@@ -452,6 +452,14 @@ router.put("/:id", async (req, res) => {
               }
               await advStorage.addDriverWalletBalance(order.driverId, driverEarnings);
               
+              // تحديث الرصيد الجديد الموحد
+              await storage.updateDriverBalance(order.driverId, {
+                amount: driverEarnings,
+                type: 'commission',
+                description: `أرباح الطلب رقم ${order.orderNumber}`,
+                orderId: order.id
+              });
+              
               // تحديث إجمالي الأرباح في جدول السائقين
               const driver = await storage.getDriver(order.driverId);
               const currentEarnings = parseFloat(driver?.earnings?.toString() || '0');
