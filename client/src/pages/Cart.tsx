@@ -16,18 +16,21 @@ import { formatCurrency } from '@/lib/utils';
 import { useUserLocation } from '@/context/LocationContext';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 
+import { useAuth } from '../context/AuthContext';
+
 export default function Cart() {
   const [, setLocation] = useWouterLocation();
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
   const { items, subtotal, total, deliveryFee, restaurantId } = state;
   const { toast } = useToast();
   const { location: userLocation } = useUserLocation();
+  const { isAuthenticated, user } = useAuth();
 
   const [orderForm, setOrderForm] = useState({
-    customerName: localStorage.getItem('customer_name') || '',
-    customerPhone: localStorage.getItem('customer_phone') || '',
-    customerEmail: localStorage.getItem('customer_email') || '',
-    deliveryAddress: '',
+    customerName: user?.name || localStorage.getItem('customer_name') || '',
+    customerPhone: user?.phone || localStorage.getItem('customer_phone') || '',
+    customerEmail: user?.email || localStorage.getItem('customer_email') || '',
+    deliveryAddress: user?.address || '',
     notes: '',
     paymentMethod: 'cash',
     deliveryTime: 'now',
@@ -35,6 +38,21 @@ export default function Cart() {
     deliveryTimeSlot: '',
     locationData: null as LocationData | null,
   });
+
+  const isGuest = !isAuthenticated;
+
+  // تحديث بيانات النموذج عند تغير المستخدم
+  useEffect(() => {
+    if (user) {
+      setOrderForm(prev => ({
+        ...prev,
+        customerName: user.name || prev.customerName,
+        customerPhone: user.phone || prev.customerPhone,
+        customerEmail: user.email || prev.customerEmail,
+        deliveryAddress: user.address || prev.deliveryAddress,
+      }));
+    }
+  }, [user]);
 
   // حساب الرسوم تلقائياً عند توفر الموقع
   useEffect(() => {
@@ -124,6 +142,16 @@ export default function Cart() {
   });
 
   const handlePlaceOrder = () => {
+    if (isGuest) {
+      toast({
+        title: "تنبيه",
+        description: "عزيزي العميل، يجب تسجيل الدخول أو فتح حساب أولاً لتتمكن من إتمام الطلب.",
+        variant: "destructive",
+      });
+      setLocation('/auth');
+      return;
+    }
+
     if (!orderForm.customerName || !orderForm.customerPhone || !orderForm.deliveryAddress) {
       toast({
         title: "معلومات ناقصة",
@@ -184,6 +212,25 @@ export default function Cart() {
             </Button>
           )}
         </div>
+
+        {isGuest && (
+          <div className="mb-8 p-4 bg-orange-50 border-2 border-orange-200 rounded-xl flex items-center gap-4">
+            <div className="bg-orange-100 p-2 rounded-full">
+              <User className="h-6 w-6 text-orange-600" />
+            </div>
+            <div>
+              <p className="font-black text-orange-900">عزيزي العميل، أنت تتسوق كضيف</p>
+              <p className="text-sm text-orange-700 font-bold">يجب تسجيل الدخول أو فتح حساب أولاً لتتمكن من إتمام الطلب وحفظ تاريخ طلباتك.</p>
+            </div>
+            <Button 
+              variant="default" 
+              className="mr-auto bg-orange-600 hover:bg-orange-700 text-white font-black"
+              onClick={() => setLocation('/auth')}
+            >
+              تسجيل الدخول
+            </Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* القسم الأيمن - عناصر السلة والنماذج */}

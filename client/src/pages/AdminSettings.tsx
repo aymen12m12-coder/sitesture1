@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Cog, Save, MessageCircle, Share2, PhoneCall } from 'lucide-react';
+import { Cog, Save, MessageCircle, Share2, PhoneCall, ShieldCheck } from 'lucide-react';
 
 export default function AdminSettings() {
   const { toast } = useToast();
@@ -21,6 +22,7 @@ export default function AdminSettings() {
     support_phone: '',
     share_text: '',
     share_url: '',
+    privacy_policy_text: '',
   });
 
   useEffect(() => {
@@ -125,6 +127,23 @@ export default function AdminSettings() {
                   placeholder="https://tamtom.app"
                 />
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheck className="h-5 w-5 text-purple-600" />
+              <h3 className="font-bold">سياسة الخصوصية</h3>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="privacy_policy_text">نص سياسة الخصوصية</Label>
+              <Textarea 
+                id="privacy_policy_text" 
+                value={settings.privacy_policy_text}
+                onChange={(e) => setSettings(prev => ({ ...prev, privacy_policy_text: e.target.value }))}
+                placeholder="أدخل نص سياسة الخصوصية هنا..."
+                className="min-h-[200px]"
+              />
             </div>
           </div>
 
