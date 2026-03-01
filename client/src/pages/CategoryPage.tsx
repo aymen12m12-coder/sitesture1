@@ -36,6 +36,11 @@ export default function CategoryPage() {
       };
 
       return products.filter((item: MenuItem) => {
+        const isOfferCategory = targetCategory === 'offers' || targetCategory === 'عروض';
+        if (isOfferCategory && item.isSpecialOffer) {
+          return true;
+        }
+
         if (!item.category) return false;
         const itemCat = item.category.trim().toLowerCase();
         

@@ -197,6 +197,7 @@ export default function OrderTrackingPage() {
                   variant="outline" 
                   size="sm"
                   data-testid="button-call-driver"
+                  onClick={() => order.driverPhone && window.open(`tel:${order.driverPhone}`, '_self')}
                 >
                   <Phone className="h-4 w-4 ml-2" />
                   اتصال

@@ -44,11 +44,13 @@ interface OrderItem {
 }
 
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function OrdersPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [selectedTab, setSelectedTab] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
 
   // Get customer info from Auth or localStorage
@@ -65,7 +67,7 @@ export default function OrdersPage() {
         : `/api/orders/customer/${customerPhone}`;
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error('فشل في جلب الطلبات');
+        throw new Error(t('failed_to_fetch_orders'));
       }
       const data = await response.json();
       
@@ -83,7 +85,7 @@ export default function OrdersPage() {
         if (!restaurantName && parsedItems.length > 0 && parsedItems[0].restaurantName) {
           restaurantName = parsedItems[0].restaurantName;
         } else if (!restaurantName) {
-          restaurantName = 'مطعم غير معروف';
+          restaurantName = t('unknown_restaurant');
         }
         
         return {
@@ -104,12 +106,12 @@ export default function OrdersPage() {
 
   const getStatusLabel = (status: string) => {
     const statusMap = {
-      pending: 'قيد المراجعة',
-      confirmed: 'مؤكد',
-      preparing: 'قيد التحضير',
-      on_way: 'في الطريق',
-      delivered: 'تم التوصيل',
-      cancelled: 'ملغي'
+      pending: t('pending'),
+      confirmed: t('confirmed'),
+      preparing: t('preparing'),
+      on_way: t('on_way'),
+      delivered: t('delivered'),
+      cancelled: t('cancelled')
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
@@ -152,16 +154,16 @@ export default function OrdersPage() {
 
   const handleReorder = (order: Order) => {
     toast({
-      title: "جاري إعادة الطلب",
-      description: `سيتم إضافة عناصر طلب ${order.orderNumber} إلى السلة`,
+      title: t('reordering'),
+      description: t('reorder_description').replace('{orderNumber}', order.orderNumber),
     });
   };
 
   const tabs = [
-    { id: 'all', label: 'جميع الطلبات', count: displayOrders.length },
-    { id: 'active', label: 'النشطة', count: displayOrders.filter(o => ['pending', 'confirmed', 'preparing', 'on_way'].includes(o.status)).length },
-    { id: 'completed', label: 'المكتملة', count: displayOrders.filter(o => o.status === 'delivered').length },
-    { id: 'cancelled', label: 'الملغية', count: displayOrders.filter(o => o.status === 'cancelled').length }
+    { id: 'all', label: t('all_orders'), count: displayOrders.length },
+    { id: 'active', label: t('active'), count: displayOrders.filter(o => ['pending', 'confirmed', 'preparing', 'on_way'].includes(o.status)).length },
+    { id: 'completed', label: t('completed'), count: displayOrders.filter(o => o.status === 'delivered').length },
+    { id: 'cancelled', label: t('cancelled'), count: displayOrders.filter(o => o.status === 'cancelled').length }
   ];
 
   // Show loading state
@@ -170,7 +172,7 @@ export default function OrdersPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-red-500" />
-          <p className="text-gray-600">جاري تحميل طلباتك...</p>
+          <p className="text-gray-600">{t('loading_your_orders')}</p>
         </div>
       </div>
     );
@@ -182,9 +184,9 @@ export default function OrdersPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <XCircle className="h-8 w-8 mx-auto mb-4 text-red-500" />
-          <p className="text-red-600 mb-4">حدث خطأ في تحميل الطلبات</p>
+          <p className="text-red-600 mb-4">{t('error_loading_orders')}</p>
           <Button onClick={() => window.location.reload()} className="bg-red-500 hover:bg-red-600">
-            إعادة المحاولة
+            {t('retry')}
           </Button>
         </div>
       </div>
@@ -206,8 +208,8 @@ export default function OrdersPage() {
               <ArrowRight className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">طلباتي</h1>
-              <p className="text-sm text-gray-500">تتبع ومراجعة طلباتك</p>
+              <h1 className="text-xl font-bold text-gray-900">{t('orders')}</h1>
+              <p className="text-sm text-gray-500">{t('track_and_review_orders')}</p>
             </div>
           </div>
         </div>
@@ -239,10 +241,10 @@ export default function OrdersPage() {
               <Card>
                 <CardContent className="text-center py-12">
                   <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">لا توجد طلبات</h3>
-                  <p className="text-gray-500 mb-4">لم تقم بأي طلبات بعد</p>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('no_orders')}</h3>
+                  <p className="text-gray-500 mb-4">{t('no_orders_yet')}</p>
                   <Button onClick={() => setLocation('/')} data-testid="button-start-ordering">
-                    ابدأ الطلب الآن
+                    {t('start_ordering_now')}
                   </Button>
                 </CardContent>
               </Card>
@@ -256,7 +258,7 @@ export default function OrdersPage() {
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-lg font-bold">{order.restaurantName}</CardTitle>
-                          <p className="text-sm text-gray-500">طلب رقم: {order.orderNumber}</p>
+                          <p className="text-sm text-gray-500">{t('order_no')}: {order.orderNumber}</p>
                         </div>
                         <Badge 
                           className={`${getStatusColor(order.status)} text-white`}
@@ -278,7 +280,7 @@ export default function OrdersPage() {
                           </div>
                         )) || (
                           <div className="text-sm text-gray-500">
-                            لا توجد تفاصيل العناصر
+                            {t('no_items_details')}
                           </div>
                         )}
                       </div>
@@ -286,18 +288,18 @@ export default function OrdersPage() {
                       {/* Order Summary */}
                       <div className="border-t pt-3 space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
-                          <span>عدد الأصناف: {order.parsedItems?.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0) || 0}</span>
-                          <span>المجموع: {formatCurrency(order.totalAmount)}</span>
+                          <span>{t('items_count')}: {order.parsedItems?.reduce((sum: number, item: OrderItem) => sum + item.quantity, 0) || 0}</span>
+                          <span>{t('total')}: {formatCurrency(order.totalAmount)}</span>
                         </div>
                         <div className="flex justify-between text-xs text-gray-500">
-                          <span>تاريخ الطلب: {formatDate(order.createdAt)}</span>
+                          <span>{t('order_date')}: {formatDate(order.createdAt)}</span>
                           {order.estimatedTime && (
-                            <span>الوقت المتوقع: {order.estimatedTime}</span>
+                            <span>{t('estimated_time')}: {order.estimatedTime}</span>
                           )}
                         </div>
                         <div className="flex justify-between text-xs text-gray-500">
-                          <span>العنوان: {order.deliveryAddress}</span>
-                          <span>الدفع: {order.paymentMethod === 'cash' ? 'نقدي' : 'إلكتروني'}</span>
+                          <span>{t('address')}: {order.deliveryAddress}</span>
+                          <span>{t('payment')}: {order.paymentMethod === 'cash' ? t('cash') : t('online')}</span>
                         </div>
                       </div>
 
@@ -311,7 +313,7 @@ export default function OrdersPage() {
                           data-testid={`button-view-order-${order.id}`}
                         >
                           <Eye className="w-4 h-4 mr-1" />
-                          تتبع الطلب
+                          {t('track_order')}
                         </Button>
                         
                         {order.status === 'delivered' && (
@@ -321,7 +323,7 @@ export default function OrdersPage() {
                             onClick={() => handleReorder(order)}
                             data-testid={`button-reorder-${order.id}`}
                           >
-                            إعادة الطلب
+                            {t('reorder')}
                           </Button>
                         )}
                       </div>

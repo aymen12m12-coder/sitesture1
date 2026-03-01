@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt, Truck, MessageCircle, Share2 } from 'lucide-react';
+import { ArrowRight, User, Phone, Mail, MapPin, Settings, Shield, Star, Clock, Receipt, Truck, MessageCircle, Share2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import type { User as UserType, UiSettings } from '@shared/schema';
 
 export default function Profile() {
@@ -17,6 +18,7 @@ export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser, isAuthenticated, loading: authLoading } = useAuth();
+  const { t } = useLanguage();
   
   const userId = currentUser?.id;
 
@@ -30,6 +32,7 @@ export default function Profile() {
     phone: '',
     email: '',
     address: '',
+    country: '',
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -42,7 +45,7 @@ export default function Profile() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Partial<UserType>) => {
-      if (!userId) throw new Error('يجب تسجيل الدخول أولاً');
+      if (!userId) throw new Error(t('must_login_first'));
       const response = await apiRequest('PUT', `/api/users/${userId}`, profileData);
       return response.json();
     },
@@ -50,14 +53,14 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['/api/users', userId] });
       setIsEditing(false);
       toast({
-        title: "تم حفظ البيانات",
-        description: "تم تحديث معلومات الملف الشخصي بنجاح",
+        title: t('data_saved'),
+        description: t('profile_updated_success'),
       });
     },
     onError: () => {
       toast({
-        title: "خطأ في الحفظ",
-        description: "حدث خطأ أثناء تحديث البيانات. يرجى المحاولة مرة أخرى.",
+        title: t('save_error'),
+        description: t('update_error_try_again'),
         variant: "destructive",
       });
     },
@@ -73,6 +76,7 @@ export default function Profile() {
         phone: (user as UserType).phone || '',
         email: (user as UserType).email || '',
         address: (user as UserType).address || '',
+        country: (user as any).country || '',
       });
     } else if (isGuestMode) {
       const guestProfile = localStorage.getItem('guest_profile');
@@ -97,7 +101,8 @@ export default function Profile() {
         phone: profile.phone,
         email: profile.email,
         address: profile.address,
-      });
+        country: profile.country,
+      } as any);
     }
   };
 
@@ -106,7 +111,7 @@ export default function Profile() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          <p className="text-muted-foreground">{t('loading_data')}</p>
         </div>
       </div>
     );
@@ -120,16 +125,17 @@ export default function Profile() {
         phone: profile.phone,
         email: profile.email,
         address: profile.address,
+        country: profile.country,
       }));
       setIsEditing(false);
       toast({
-        title: "تم حفظ البيانات محلياً",
-        description: "تم حفظ معلوماتك محلياً. للحفظ الدائم، يمكنك تسجيل حساب جديد.",
+        title: t('data_saved_locally'),
+        description: t('guest_save_description'),
       });
     } catch (error) {
       toast({
-        title: "خطأ في الحفظ",
-        description: "حدث خطأ أثناء حفظ البيانات محلياً",
+        title: t('save_error'),
+        description: t('local_save_error'),
         variant: "destructive",
       });
     }
@@ -145,53 +151,53 @@ export default function Profile() {
   const shareText = getSetting('share_text', 'انضم إلى تطبيق طمطوم الآن!');
 
   const profileStats = [
-    { icon: Receipt, label: 'إجمالي الطلبات', value: '42', color: 'text-primary' },
-    { icon: Star, label: 'التقييم', value: '4.8', color: 'text-yellow-500' },
-    { icon: Clock, label: 'عضو منذ', value: '6 أشهر', color: 'text-green-500' },
+    { icon: Receipt, label: t('total_orders'), value: '42', color: 'text-primary' },
+    { icon: Star, label: t('rating'), value: '4.8', color: 'text-yellow-500' },
+    { icon: Clock, label: t('member_since'), value: t('6_months'), color: 'text-green-500' },
   ];
 
   const menuItems = [
-    { icon: Receipt, label: 'طلباتي', path: '/orders', description: 'عرض تاريخ الطلبات', testId: 'profile-orders' },
-    { icon: Truck, label: 'تطبيق الدلفري', path: '/driver', description: 'انتقال إلى تطبيق السائقين', testId: 'profile-delivery-app', onClick: () => { window.location.href = '/driver'; } },
-    { icon: MapPin, label: 'العناوين المحفوظة', path: '/addresses', description: 'إدارة عناوين التوصيل', testId: 'profile-addresses' },
-    { icon: Settings, label: 'الإعدادات', path: '/settings', description: 'إعدادات التطبيق والحساب', testId: 'profile-settings' },
+    { icon: Receipt, label: t('orders'), path: '/orders', description: t('view_order_history'), testId: 'profile-orders' },
+    { icon: Truck, label: t('delivery_app'), path: '/driver', description: t('switch_to_driver_app'), testId: 'profile-delivery-app', onClick: () => { window.location.href = '/driver'; } },
+    { icon: MapPin, label: t('saved_addresses'), path: '/addresses', description: t('manage_delivery_addresses'), testId: 'profile-addresses' },
+    { icon: Settings, label: t('settings'), path: '/settings', description: t('app_and_account_settings'), testId: 'profile-settings' },
     ...(supportWhatsapp ? [{
       icon: MessageCircle,
-      label: 'دعم واتساب',
+      label: t('whatsapp_support'),
       path: '#',
-      description: 'تواصل معنا عبر واتساب',
+      description: t('contact_us_via_whatsapp'),
       testId: 'profile-whatsapp',
       onClick: () => { window.open(`https://wa.me/${supportWhatsapp.replace(/\D/g, '')}`, '_blank'); }
     }] : []),
     ...(supportPhone ? [{
       icon: Phone,
-      label: 'اتصل بنا',
+      label: t('call_us'),
       path: '#',
-      description: 'اتصل برقم الدعم المباشر',
+      description: t('call_direct_support'),
       testId: 'profile-call',
       onClick: () => { window.open(`tel:${supportPhone}`, '_blank'); }
     }] : []),
     ...(shareUrl ? [{
       icon: Share2,
-      label: 'مشاركة التطبيق',
+      label: t('share_app'),
       path: '#',
-      description: 'شارك التطبيق مع أصدقائك',
+      description: t('share_with_friends'),
       testId: 'profile-share',
       onClick: () => {
         if (navigator.share) {
           navigator.share({ title: 'طمطوم', text: shareText, url: shareUrl });
         } else {
-          toast({ title: 'نسخ الرابط', description: shareUrl });
+          toast({ title: t('copy_link'), description: shareUrl });
         }
       }
     }] : []),
-    { icon: Shield, label: 'سياسة الخصوصية', path: '/privacy', description: 'سياسة الخصوصية وشروط الاستخدام', testId: 'profile-privacy' },
+    { icon: Shield, label: t('privacy_policy'), path: '/privacy', description: t('privacy_and_terms'), testId: 'profile-privacy' },
   ];
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-black uppercase tracking-tighter border-b pb-4 mb-8">حسابي</h1>
+        <h1 className="text-3xl font-black uppercase tracking-tighter border-b pb-4 mb-8">{t('account')}</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
@@ -201,17 +207,17 @@ export default function Profile() {
                   <User className="h-10 w-10 text-primary-foreground" />
                 </div>
                 <CardTitle className="text-xl text-foreground">
-                  {profile.name || (isGuestMode ? 'مستخدم ضيف' : 'المستخدم')}
+                  {profile.name || (isGuestMode ? t('guest_user') : t('user'))}
                 </CardTitle>
                 <Badge variant={isGuestMode ? "outline" : "secondary"} className="mx-auto">
-                  {isGuestMode ? 'مستخدم ضيف' : 'عضو مميز'}
+                  {isGuestMode ? t('guest_user') : t('premium_member')}
                 </Badge>
               </CardHeader>
               <CardContent className="space-y-4">
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name" className="text-foreground">الاسم</Label>
+                      <Label htmlFor="name" className="text-foreground">{t('name')}</Label>
                       <Input
                         id="name"
                         value={profile.name}
@@ -219,7 +225,7 @@ export default function Profile() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="username" className="text-foreground">اسم المستخدم</Label>
+                      <Label htmlFor="username" className="text-foreground">{t('username')}</Label>
                       <Input
                         id="username"
                         value={profile.username}
@@ -227,7 +233,7 @@ export default function Profile() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="phone" className="text-foreground">رقم الهاتف</Label>
+                      <Label htmlFor="phone" className="text-foreground">{t('phone')}</Label>
                       <Input
                         id="phone"
                         value={profile.phone}
@@ -235,7 +241,7 @@ export default function Profile() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email" className="text-foreground">البريد الإلكتروني</Label>
+                      <Label htmlFor="email" className="text-foreground">{t('email')}</Label>
                       <Input
                         id="email"
                         type="email"
@@ -244,18 +250,33 @@ export default function Profile() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="address" className="text-foreground">العنوان</Label>
+                      <Label htmlFor="address" className="text-foreground">{t('address')}</Label>
                       <Input
                         id="address"
                         value={profile.address}
                         onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="country" className="text-foreground">{t('country')}</Label>
+                      <select
+                        id="country"
+                        value={profile.country}
+                        onChange={(e) => setProfile(prev => ({ ...prev, country: e.target.value }))}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="اليمن">اليمن</option>
+                        <option value="السعودية">السعودية</option>
+                        <option value="الإمارات">الإمارات</option>
+                        <option value="مصر">مصر</option>
+                        <option value="الأردن">الأردن</option>
+                      </select>
+                    </div>
                     <div className="flex gap-2">
                       <Button onClick={handleSave} className="flex-1" disabled={!isGuestMode && updateProfileMutation.isPending}>
-                        {!isGuestMode && updateProfileMutation.isPending ? 'جاري الحفظ...' : isGuestMode ? 'حفظ محلياً' : 'حفظ التغييرات'}
+                        {!isGuestMode && updateProfileMutation.isPending ? t('saving') : isGuestMode ? t('save_locally') : t('save_changes')}
                       </Button>
-                      <Button variant="outline" onClick={() => setIsEditing(false)}>إلغاء</Button>
+                      <Button variant="outline" onClick={() => setIsEditing(false)}>{t('cancel')}</Button>
                     </div>
                   </div>
                 ) : (
@@ -276,7 +297,11 @@ export default function Profile() {
                       <MapPin className="h-5 w-5 text-muted-foreground" />
                       <span className="text-foreground">{profile.address}</span>
                     </div>
-                    <Button onClick={() => setIsEditing(true)} className="w-full">تعديل المعلومات</Button>
+                    <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-foreground">{profile.country}</span>
+                    </div>
+                    <Button onClick={() => setIsEditing(true)} className="w-full">{t('edit_info')}</Button>
                   </div>
                 )}
               </CardContent>

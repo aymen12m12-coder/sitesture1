@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Cog, Save, MessageCircle, Share2, PhoneCall, ShieldCheck } from 'lucide-react';
+import { Cog, Save, MessageCircle, Share2, PhoneCall, ShieldCheck, Image as ImageIcon, Maximize } from 'lucide-react';
 
 export default function AdminSettings() {
   const { toast } = useToast();
@@ -23,6 +23,9 @@ export default function AdminSettings() {
     share_text: '',
     share_url: '',
     privacy_policy_text: '',
+    header_logo_url: '',
+    logo_height_mobile: '40',
+    logo_height_desktop: '64',
   });
 
   useEffect(() => {
@@ -79,6 +82,44 @@ export default function AdminSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ImageIcon className="h-5 w-5 text-orange-600" />
+                <h3 className="font-bold">إعدادات الهوية والشعار</h3>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="header_logo_url">رابط الشعار (URL)</Label>
+                <Input 
+                  id="header_logo_url" 
+                  value={settings.header_logo_url}
+                  onChange={(e) => setSettings(prev => ({ ...prev, header_logo_url: e.target.value }))}
+                  placeholder="https://example.com/logo.png"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="logo_height_mobile">ارتفاع الشعار (جوال) بكسل</Label>
+                  <Input 
+                    id="logo_height_mobile" 
+                    type="number"
+                    value={settings.logo_height_mobile}
+                    onChange={(e) => setSettings(prev => ({ ...prev, logo_height_mobile: e.target.value }))}
+                    placeholder="40"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="logo_height_desktop">ارتفاع الشعار (كمبيوتر) بكسل</Label>
+                  <Input 
+                    id="logo_height_desktop" 
+                    type="number"
+                    value={settings.logo_height_desktop}
+                    onChange={(e) => setSettings(prev => ({ ...prev, logo_height_desktop: e.target.value }))}
+                    placeholder="64"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <MessageCircle className="h-5 w-5 text-green-600" />

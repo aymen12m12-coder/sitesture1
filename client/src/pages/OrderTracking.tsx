@@ -32,9 +32,12 @@ interface OrderDetails {
   createdAt: Date;
 }
 
+import { useLanguage } from '@/context/LanguageContext';
+
 export default function OrderTracking() {
   const { orderId } = useParams<{ orderId: string }>();
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
   const [driverLocation, setDriverLocation] = useState<{ lat: number, lng: number } | null>(null);
 
   // Fetch real order data
@@ -116,13 +119,13 @@ export default function OrderTracking() {
 
   const getStatusText = (status: string) => {
     const textMap: Record<string, string> = {
-      pending: 'في الانتظار',
-      confirmed: 'مؤكد',
-      preparing: 'قيد التحضير',
-      picked_up: 'تم الاستلام',
-      on_way: 'في الطريق',
-      delivered: 'تم التوصيل',
-      cancelled: 'ملغي',
+      pending: t('pending'),
+      confirmed: t('confirmed'),
+      preparing: t('preparing'),
+      picked_up: t('picked_up'),
+      on_way: t('on_way'),
+      delivered: t('delivered'),
+      cancelled: t('cancelled'),
     };
     return textMap[status] || status;
   };
@@ -132,7 +135,7 @@ export default function OrderTracking() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-gray-600">جاري تحميل بيانات الطلب...</p>
+          <p className="text-gray-600">{t('loading_order_details')}</p>
         </div>
       </div>
     );
@@ -142,10 +145,10 @@ export default function OrderTracking() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center p-6">
-          <h3 className="text-lg font-bold text-red-600 mb-2">خطأ في التحميل</h3>
-          <p className="text-gray-600 mb-4">تعذر العثور على بيانات الطلب. قد يكون المعرف غير صحيح.</p>
+          <h3 className="text-lg font-bold text-red-600 mb-2">{t('error')}</h3>
+          <p className="text-gray-600 mb-4">{t('error_finding_order')}</p>
           <Button onClick={() => setLocation('/')} className="w-full">
-            العودة للرئيسية
+            {t('back_to_home')}
           </Button>
         </Card>
       </div>
@@ -165,7 +168,7 @@ export default function OrderTracking() {
           >
             <ArrowRight className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-bold text-foreground">تتبع الطلب</h2>
+          <h2 className="text-xl font-bold text-foreground">{t('track_order')}</h2>
         </div>
       </header>
 
@@ -174,7 +177,7 @@ export default function OrderTracking() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">طلب #{order.orderNumber}</CardTitle>
+              <CardTitle className="text-lg">{t('order_no_prefix')}{order.orderNumber}</CardTitle>
               <Badge 
                 className={`${getStatusColor(order.status)} text-white`}
                 data-testid="order-status-badge"
@@ -186,7 +189,7 @@ export default function OrderTracking() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-3">
               <Clock className="h-5 w-5 text-muted-foreground" />
-              <span className="text-foreground">الوقت المتوقع: </span>
+              <span className="text-foreground">{t('estimated_time_desc')}: </span>
               <span className="font-bold text-primary" data-testid="estimated-time">
                 {order.estimatedTime || '30-45 دقيقة'}
               </span>
@@ -194,7 +197,7 @@ export default function OrderTracking() {
             
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">حالة الطلب</span>
+                <span className="text-muted-foreground">{t('order_status')}</span>
                 <span className="text-foreground">{getStatusProgress(order.status)}%</span>
               </div>
               <Progress 
@@ -212,9 +215,9 @@ export default function OrderTracking() {
             <div className="flex items-start gap-3">
               <Package className="h-5 w-5 text-primary mt-1" />
               <div>
-                <h4 className="font-medium text-foreground mb-1">المطعم</h4>
+                <h4 className="font-medium text-foreground mb-1">{t('restaurant')}</h4>
                 <p className="text-sm font-bold text-foreground">
-                  {order.restaurantName || 'مطعم غير معروف'}
+                  {order.restaurantName || t('unknown_restaurant')}
                 </p>
                 {order.restaurantAddress && (
                   <p className="text-xs text-muted-foreground">
@@ -236,9 +239,9 @@ export default function OrderTracking() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium text-foreground" data-testid="driver-name">
-                    {order.driverName || 'سائق التوصيل'}
+                    {order.driverName || t('delivery_driver')}
                   </h4>
-                  <p className="text-sm text-muted-foreground">جاري التوصيل</p>
+                  <p className="text-sm text-muted-foreground">{t('delivering')}</p>
                 </div>
                 {order.driverPhone && (
                   <Button 
@@ -248,14 +251,14 @@ export default function OrderTracking() {
                     data-testid="button-call-driver"
                   >
                     <Phone className="h-4 w-4 ml-2" />
-                    اتصال
+                    {t('call')}
                   </Button>
                 )}
               </div>
               <div className="bg-muted p-3 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Truck className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground">السائق في الطريق إليك</span>
+                  <span className="text-sm text-foreground">{t('driver_on_way')}</span>
                 </div>
               </div>
             </CardContent>
@@ -268,7 +271,7 @@ export default function OrderTracking() {
             <div className="flex items-start gap-3">
               <MapPin className="h-5 w-5 text-primary mt-1" />
               <div>
-                <h4 className="font-medium text-foreground mb-1">عنوان التوصيل</h4>
+                <h4 className="font-medium text-foreground mb-1">{t('delivery_address')}</h4>
                 <p className="text-sm text-foreground" data-testid="delivery-address">
                   {order.deliveryAddress}
                 </p>
@@ -280,7 +283,7 @@ export default function OrderTracking() {
         {/* Order Items */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">تفاصيل الطلب</CardTitle>
+            <CardTitle className="text-lg">{t('order_details')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {parsedItems.map((item: any, index: number) => (
@@ -294,15 +297,15 @@ export default function OrderTracking() {
                   </span>
                 </div>
                 <span className="font-bold text-primary" data-testid={`item-price-${index}`}>
-                  {(item.price * item.quantity).toFixed(2)} ريال
+                  {(item.price * item.quantity).toFixed(2)} {t('currency')}
                 </span>
               </div>
             ))}
             <div className="border-t border-border pt-3 mt-3">
               <div className="flex justify-between items-center font-bold">
-                <span className="text-foreground">الإجمالي</span>
+                <span className="text-foreground">{t('total')}</span>
                 <span className="text-primary" data-testid="order-total">
-                  {order.totalAmount || order.total} ريال
+                  {order.totalAmount || order.total} {t('currency')}
                 </span>
               </div>
             </div>
@@ -312,11 +315,11 @@ export default function OrderTracking() {
         {/* Order Timeline */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">تاريخ الطلب</CardTitle>
+            <CardTitle className="text-lg">{t('order_timeline')}</CardTitle>
           </CardHeader>
           <CardContent>
             {trackingSteps.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">لا توجد تحديثات متاحة حالياً</p>
+              <p className="text-sm text-gray-500 text-center py-4">{t('no_updates_available')}</p>
             ) : (
               <div className="space-y-4">
                 {trackingSteps.map((step, index) => (
@@ -327,7 +330,7 @@ export default function OrderTracking() {
                         {step.message}
                       </p>
                       <p className="text-sm text-muted-foreground" data-testid={`timeline-time-${index}`}>
-                        {new Date(step.createdAt || step.timestamp).toLocaleTimeString('ar-YE', { 
+                        {new Date(step.createdAt || step.timestamp).toLocaleTimeString(language === 'ar' ? 'ar-YE' : 'en-US', { 
                           hour: '2-digit', 
                           minute: '2-digit' 
                         })}
@@ -348,7 +351,7 @@ export default function OrderTracking() {
             onClick={() => window.open('https://wa.me/967770000000', '_blank')}
             data-testid="button-contact-support"
           >
-            تواصل مع الدعم
+            {t('contact_support')}
           </Button>
           
           {['pending', 'confirmed'].includes(order.status) && (
@@ -357,7 +360,7 @@ export default function OrderTracking() {
               className="w-full"
               data-testid="button-cancel-order"
             >
-              إلغاء الطلب
+              {t('cancel_order')}
             </Button>
           )}
         </div>

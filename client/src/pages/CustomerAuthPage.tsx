@@ -26,6 +26,7 @@ export default function CustomerAuthPage() {
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPhone, setRegPhone] = useState('');
+  const [regCountry, setRegCountry] = useState('اليمن');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
@@ -64,6 +65,7 @@ export default function CustomerAuthPage() {
         phone: regPhone,
         email: regEmail,
         password: regPassword,
+        country: regCountry,
       });
 
       if (result.success) {
@@ -254,6 +256,22 @@ export default function CustomerAuthPage() {
                       />
                     </div>
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-country" className="font-bold">الدولة</Label>
+                  <select
+                    id="reg-country"
+                    value={regCountry}
+                    onChange={(e) => setRegCountry(e.target.value)}
+                    required
+                    className="flex h-12 w-full rounded-none border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="اليمن">اليمن</option>
+                    <option value="السعودية">السعودية</option>
+                    <option value="الإمارات">الإمارات</option>
+                    <option value="مصر">مصر</option>
+                    <option value="الأردن">الأردن</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-pass" className="font-bold">كلمة المرور</Label>
