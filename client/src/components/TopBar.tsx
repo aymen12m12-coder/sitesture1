@@ -30,6 +30,8 @@ export const TopBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const logoUrl = getSetting('header_logo_url', '');
+  const mobileHeight = getSetting('header_logo_height_mobile', '40');
+  const desktopHeight = getSetting('header_logo_height_desktop', '64');
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +49,26 @@ export const TopBar: React.FC = () => {
 
   const Logo = () => (
     <div 
-      className="cursor-pointer shrink-0"
+      className="cursor-pointer shrink-0 flex items-center"
       onClick={() => setLocation('/')}
     >
       {logoUrl ? (
-        <img src={logoUrl} alt="طمطوم" className="h-10 md:h-16 w-auto object-contain" />
+        <>
+          <img 
+            src={logoUrl} 
+            alt="Logo" 
+            className="hidden md:block object-contain"
+            style={{ height: `${desktopHeight}px` }}
+          />
+          <img 
+            src={logoUrl} 
+            alt="Logo" 
+            className="block md:hidden object-contain"
+            style={{ height: `${mobileHeight}px` }}
+          />
+        </>
       ) : (
-        <div className="text-2xl md:text-4xl font-black tracking-tighter select-none">
+        <div className="text-3xl md:text-5xl font-black tracking-tighter select-none">
           <span className="text-[#388e3c]">طم</span><span className="text-[#d32f2f]">طوم</span>
         </div>
       )}
@@ -159,7 +174,7 @@ export const TopBar: React.FC = () => {
         </div>
 
         {/* Logo (Left in RTL - using shrink-0 to keep it visible) */}
-        <div className="shrink-0 scale-75 origin-left">
+        <div className="shrink-0 origin-left">
           <Logo />
         </div>
       </div>

@@ -301,7 +301,7 @@ export default function RestaurantManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="deliveryFee">رسوم التوصيل (شيكل)</Label>
+                    <Label htmlFor="deliveryFee">رسوم التوصيل (ريال)</Label>
                     <Input
                       id="deliveryFee"
                       type="number"
@@ -312,7 +312,7 @@ export default function RestaurantManagement() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="minimumOrder">الحد الأدنى للطلب (شيكل)</Label>
+                    <Label htmlFor="minimumOrder">الحد الأدنى للطلب (ريال)</Label>
                     <Input
                       id="minimumOrder"
                       type="number"
