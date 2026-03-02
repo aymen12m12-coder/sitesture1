@@ -22,6 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { formatCurrency } from '@/lib/utils';
 import { DriverManagementPanel } from '@/components/admin/DriverManagementPanel';
 import { RestaurantManagementPanel } from '@/components/admin/RestaurantManagementPanel';
 import AdvancedReports from '@/pages/admin/AdvancedReports';
@@ -67,11 +68,11 @@ export default function AdminDashboard() {
     },
     { 
       title: 'إجمالي المبيعات', 
-      value: `${stats.totalRevenue || 0} ريال`, 
+      value: formatCurrency(stats.totalRevenue || 0), 
       icon: DollarSign, 
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
-      change: stats.todayRevenue ? `اليوم: ${stats.todayRevenue} ريال` : 'إجمالي',
+      change: stats.todayRevenue ? `اليوم: ${formatCurrency(stats.todayRevenue)}` : 'إجمالي',
       changeType: 'neutral'
     },
     { 
@@ -87,7 +88,7 @@ export default function AdminDashboard() {
 
   const todayStats = [
     { title: 'طلبات اليوم', value: stats.todayOrders || 0, icon: Package },
-    { title: 'مبيعات اليوم', value: `${stats.todayRevenue || 0} ريال`, icon: TrendingUp },
+    { title: 'مبيعات اليوم', value: formatCurrency(stats.todayRevenue || 0), icon: TrendingUp },
     { title: 'طلبات معلقة', value: stats.pendingOrders || 0, icon: Clock },
   ];
 
@@ -208,7 +209,7 @@ export default function AdminDashboard() {
                              order.status === 'delivered' ? 'تم التوصيل' :
                              order.status === 'cancelled' ? 'ملغي' : order.status}
                           </Badge>
-                          <p className="text-sm font-medium mt-1">{order.total || 0} ريال</p>
+                          <p className="text-sm font-medium mt-1">{formatCurrency(order.total || 0)}</p>
                         </div>
                       </div>
                     ))}
@@ -292,7 +293,7 @@ export default function AdminDashboard() {
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-left">
-                          <p className="font-medium">{order.total || 0} ريال</p>
+                          <p className="font-medium">{formatCurrency(order.total || 0)}</p>
                           <p className="text-xs text-gray-500">
                             {order.items ? JSON.parse(order.items).length : 0} عنصر
                           </p>

@@ -21,14 +21,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { formatCurrency } from '@/lib/utils';
 
 interface Employee {
   id: string;
   name: string;
   email: string;
   phone: string;
-  position: 'admin' | 'manager' | 'support' | 'accountant' | 'hr';
+  position: 'admin' | 'manager' | 'support' | 'accountant' | 'hr' | 'developer' | 'marketing' | 'sales' | 'operations' | 'logistics';
   department: string;
+  branch: string;
   salary: number;
   hireDate: string;
   status: 'active' | 'inactive' | 'on_leave' | 'terminated';
@@ -71,6 +73,7 @@ export default function AdminHRManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [branchFilter, setBranchFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [showEmployeeDialog, setShowEmployeeDialog] = useState(false);
@@ -84,6 +87,7 @@ export default function AdminHRManagement() {
     phone: '',
     position: 'admin' as Employee['position'],
     department: 'management',
+    branch: 'الفرع الرئيسي',
     salary: '',
     hireDate: new Date(),
     address: '',
@@ -243,9 +247,27 @@ export default function AdminHRManagement() {
                     <SelectContent>
                       <SelectItem value="all">جميع الأقسام</SelectItem>
                       <SelectItem value="management">الإدارة</SelectItem>
+                      <SelectItem value="it">تقنية المعلومات</SelectItem>
+                      <SelectItem value="marketing">التسويق</SelectItem>
+                      <SelectItem value="sales">المبيعات</SelectItem>
+                      <SelectItem value="operations">العمليات</SelectItem>
                       <SelectItem value="support">الدعم الفني</SelectItem>
                       <SelectItem value="accounting">المحاسبة</SelectItem>
                       <SelectItem value="hr">الموارد البشرية</SelectItem>
+                      <SelectItem value="logistics">الخدمات اللوجستية</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="الفرع" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">جميع الفروع</SelectItem>
+                      <SelectItem value="main">الفرع الرئيسي</SelectItem>
+                      <SelectItem value="north">فرع الشمال</SelectItem>
+                      <SelectItem value="south">فرع الجنوب</SelectItem>
+                      <SelectItem value="east">فرع الشرق</SelectItem>
+                      <SelectItem value="west">فرع الغرب</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -257,6 +279,7 @@ export default function AdminHRManagement() {
                   <TableRow>
                     <TableHead>الموظف</TableHead>
                     <TableHead>القسم / المنصب</TableHead>
+                    <TableHead>الفرع</TableHead>
                     <TableHead>الحالة</TableHead>
                     <TableHead>تاريخ التعيين</TableHead>
                     <TableHead>الراتب</TableHead>
@@ -264,7 +287,13 @@ export default function AdminHRManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employees?.map((employee) => (
+                  {employees?.filter(emp => {
+                    const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                        emp.email.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesDept = departmentFilter === 'all' || emp.department === departmentFilter;
+                    const matchesBranch = branchFilter === 'all' || emp.branch === branchFilter;
+                    return matchesSearch && matchesDept && matchesBranch;
+                  }).map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -278,16 +307,19 @@ export default function AdminHRManagement() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>{employee.department}</div>
-                        <div className="text-xs text-gray-500">{employee.position}</div>
+                        <div className="capitalize">{employee.department}</div>
+                        <div className="text-xs text-gray-500 capitalize">{employee.position}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{employee.branch}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={employee.status === 'active' ? 'default' : 'secondary'}>
                           {employee.status === 'active' ? 'نشط' : employee.status === 'on_leave' ? 'في إجازة' : 'غير نشط'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{new Date(employee.hireDate).toLocaleDateString('ar-YE')}</TableCell>
-                      <TableCell>{employee.salary} ر.ي</TableCell>
+                      <TableCell>{new Date(employee.hireDate).toLocaleDateString('ar-SA')}</TableCell>
+                      <TableCell>{formatCurrency(employee.salary)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Button variant="ghost" size="icon"><Eye className="w-4 h-4" /></Button>
@@ -484,6 +516,51 @@ export default function AdminHRManagement() {
                   <SelectItem value="support">موظف دعم</SelectItem>
                   <SelectItem value="accountant">محاسب</SelectItem>
                   <SelectItem value="hr">موظف موارد بشرية</SelectItem>
+                  <SelectItem value="developer">مطور برمجيات</SelectItem>
+                  <SelectItem value="marketing">مسوق</SelectItem>
+                  <SelectItem value="sales">مندوب مبيعات</SelectItem>
+                  <SelectItem value="operations">موظف عمليات</SelectItem>
+                  <SelectItem value="logistics">موظف لوجستيات</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>القسم</Label>
+              <Select 
+                value={employeeForm.department}
+                onValueChange={(v) => setEmployeeForm({...employeeForm, department: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="management">الإدارة</SelectItem>
+                  <SelectItem value="it">تقنية المعلومات</SelectItem>
+                  <SelectItem value="marketing">التسويق</SelectItem>
+                  <SelectItem value="sales">المبيعات</SelectItem>
+                  <SelectItem value="operations">العمليات</SelectItem>
+                  <SelectItem value="support">الدعم الفني</SelectItem>
+                  <SelectItem value="accounting">المحاسبة</SelectItem>
+                  <SelectItem value="hr">الموارد البشرية</SelectItem>
+                  <SelectItem value="logistics">الخدمات اللوجستية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>الفرع</Label>
+              <Select 
+                value={employeeForm.branch}
+                onValueChange={(v) => setEmployeeForm({...employeeForm, branch: v})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="الفرع الرئيسي">الفرع الرئيسي</SelectItem>
+                  <SelectItem value="فرع الشمال">فرع الشمال</SelectItem>
+                  <SelectItem value="فرع الجنوب">فرع الجنوب</SelectItem>
+                  <SelectItem value="فرع الشرق">فرع الشرق</SelectItem>
+                  <SelectItem value="فرع الغرب">فرع الغرب</SelectItem>
                 </SelectContent>
               </Select>
             </div>

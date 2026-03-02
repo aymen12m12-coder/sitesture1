@@ -65,17 +65,17 @@ export default function AdminDrivers() {
     queryKey: ['/api/drivers'],
   });
 
-  const { data: driverBalance } = useQuery<DriverBalance>({
+  const { data: driverBalance, refetch: refetchBalance } = useQuery<DriverBalance>({
     queryKey: ['/api/drivers', selectedDriver?.id, 'balance'],
     enabled: !!selectedDriver,
   });
 
-  const { data: driverTransactions } = useQuery<DriverTransaction[]>({
+  const { data: driverTransactions, refetch: refetchTransactions } = useQuery<DriverTransaction[]>({
     queryKey: ['/api/drivers', selectedDriver?.id, 'transactions'],
     enabled: !!selectedDriver,
   });
 
-  const { data: driverCommissions } = useQuery<DriverCommission[]>({
+  const { data: driverCommissions, refetch: refetchCommissions } = useQuery<DriverCommission[]>({
     queryKey: ['/api/drivers', selectedDriver?.id, 'commissions'],
     enabled: !!selectedDriver,
   });
@@ -273,6 +273,12 @@ export default function AdminDrivers() {
   const handleManageAccount = (driver: Driver) => {
     setSelectedDriver(driver);
     setIsAccountDialogOpen(true);
+    // تحديث البيانات فوراً عند فتح النافذة
+    setTimeout(() => {
+      refetchBalance();
+      refetchTransactions();
+      refetchCommissions();
+    }, 100);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

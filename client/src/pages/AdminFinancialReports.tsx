@@ -25,6 +25,7 @@ import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   BarChart,
   Bar,
@@ -187,7 +188,7 @@ export default function AdminFinancialReports() {
             <Download className="w-4 h-4" />
             تصدير التقارير
           </Button>
-          <Button className="gap-2">
+          <Button className="gap-2" onClick={() => window.print()}>
             <Printer className="w-4 h-4" />
             طباعة
           </Button>
@@ -201,7 +202,7 @@ export default function AdminFinancialReports() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{latestReport?.totalRevenue.toLocaleString() || 0} ر.ي</div>
+            <div className="text-2xl font-bold">{formatCurrency(latestReport?.totalRevenue || 0)}</div>
             <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
               <TrendingUp className="w-3 h-3" />
               +{latestReport?.growthRate || 0}% من الفترة الماضية
@@ -214,7 +215,7 @@ export default function AdminFinancialReports() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{latestReport?.netProfit.toLocaleString() || 0} ر.ي</div>
+            <div className="text-2xl font-bold">{formatCurrency(latestReport?.netProfit || 0)}</div>
             <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
               <TrendingUp className="w-3 h-3" />
               +8.2% من الشهر الماضي
@@ -227,7 +228,7 @@ export default function AdminFinancialReports() {
             <Receipt className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{latestReport?.commissionEarned.toLocaleString() || 0} ر.ي</div>
+            <div className="text-2xl font-bold">{formatCurrency(latestReport?.commissionEarned || 0)}</div>
             <p className="text-xs text-green-500 flex items-center gap-1 mt-1">
               <TrendingUp className="w-3 h-3" />
               +5.4% من الشهر الماضي
@@ -326,8 +327,8 @@ export default function AdminFinancialReports() {
                     <TableRow key={tx.id}>
                       <TableCell className="font-medium">#{tx.id.slice(0, 8)}</TableCell>
                       <TableCell>{tx.type}</TableCell>
-                      <TableCell>{tx.amount} ر.ي</TableCell>
-                      <TableCell>{new Date(tx.createdAt).toLocaleDateString('ar-YE')}</TableCell>
+                      <TableCell>{formatCurrency(tx.amount)}</TableCell>
+                      <TableCell>{formatDate(tx.createdAt)}</TableCell>
                       <TableCell>
                         <Badge variant={tx.status === 'completed' ? 'default' : 'secondary'}>
                           {tx.status}
@@ -365,7 +366,7 @@ export default function AdminFinancialReports() {
                         <div className="font-medium">{request.userName}</div>
                         <div className="text-xs text-gray-500">{request.userType}</div>
                       </TableCell>
-                      <TableCell>{request.amount} ر.ي</TableCell>
+                      <TableCell>{formatCurrency(request.amount)}</TableCell>
                       <TableCell>{request.method}</TableCell>
                       <TableCell>{new Date(request.requestedAt).toLocaleDateString('ar-YE')}</TableCell>
                       <TableCell>

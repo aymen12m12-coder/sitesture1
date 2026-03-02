@@ -15,6 +15,8 @@ import { apiRequest } from '@/lib/queryClient';
 import type { InsertOrder, Restaurant } from '@shared/schema';
 import { calculateDistance, calculateDeliveryFee } from '../utils/location';
 
+import { formatCurrency } from '@/lib/utils';
+
 export default function CartPage() {
   const [, setLocation] = useLocation();
   const { state, removeItem, updateQuantity, clearCart, setDeliveryFee } = useCart();
@@ -251,7 +253,7 @@ export default function CartPage() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">المجموع الفرعي</span>
                 <span className="text-foreground" data-testid="order-subtotal">
-                  {subtotal} ريال
+                  {formatCurrency(subtotal)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -260,7 +262,7 @@ export default function CartPage() {
                   {calculatingFee ? (
                     <span className="text-xs text-muted-foreground animate-pulse">جاري الحساب...</span>
                   ) : deliveryFee > 0 ? (
-                    <span className="text-foreground">{deliveryFee} ريال</span>
+                    <span className="text-foreground">{formatCurrency(deliveryFee)}</span>
                   ) : userLocation.position ? (
                     <span className="text-green-600 font-bold">توصيل مجاني</span>
                   ) : (
@@ -311,7 +313,7 @@ export default function CartPage() {
                 <div className="flex justify-between font-bold">
                   <span className="text-foreground">الإجمالي</span>
                   <span className="text-primary text-lg" data-testid="order-total">
-                    {total} ريال
+                    {formatCurrency(total)}
                   </span>
                 </div>
               </div>
