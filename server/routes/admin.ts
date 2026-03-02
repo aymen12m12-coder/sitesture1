@@ -1294,6 +1294,29 @@ router.post("/special-offers", async (req, res) => {
     
     console.log("Processed special offer data:", offerData);
     
+    // ضمان وجود تصنيف "العروض" وربط العرض به تلقائياً
+    try {
+      const allCategories = await storage.getCategories();
+      let offersCategory = allCategories.find(c => c.name === 'العروض' || c.name === 'Offers');
+      
+      if (!offersCategory) {
+        offersCategory = await storage.createCategory({
+          name: 'العروض',
+          icon: 'fas fa-tags',
+          image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=400',
+          isActive: true,
+          sortOrder: -1, // جعلها تظهر في البداية
+          type: 'primary'
+        });
+      }
+      
+      if (!offerData.categoryId) {
+        offerData.categoryId = offersCategory.id;
+      }
+    } catch (catError) {
+      console.error('Error ensuring Offers category exists:', catError);
+    }
+
     const validatedData = insertSpecialOfferSchema.parse(offerData);
     
     const newOffer = await storage.createSpecialOffer(validatedData);
@@ -1417,38 +1440,6 @@ router.get("/ui-settings", async (req, res) => {
     res.json(settings);
   } catch (error) {
     console.error("خطأ في جلب إعدادات واجهة المستخدم:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// تحديث أو إنشاء إعداد واجهة مستخدم
-router.put("/ui-settings/:key", async (req, res) => {
-  try {
-    const { key } = req.params;
-    const { value } = req.body;
-    
-    // محاولة التحديث أولاً
-    const result = await db.update(schema.systemSettings)
-      .set({ value, updatedAt: new Date() })
-      .where(eq(schema.systemSettings.key, key))
-      .returning();
-    
-    if (result.length > 0) {
-      res.json(result[0]);
-    } else {
-      // إذا لم يكن موجوداً، قم بإنشائه
-      const [newSetting] = await db.insert(schema.systemSettings)
-        .values({
-          key,
-          value,
-          category: 'ui_settings',
-          isActive: true
-        })
-        .returning();
-      res.json(newSetting);
-    }
-  } catch (error) {
-    console.error(`Error updating UI setting ${req.params.key}:`, error);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });

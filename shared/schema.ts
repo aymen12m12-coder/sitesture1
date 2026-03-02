@@ -9,10 +9,10 @@ export const users = pgTable("users", {
   username: varchar("username", { length: 50 }).notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  phone: varchar("phone", { length: 20 }),
+  phone: varchar("phone", { length: 20 }).notNull(),
+  country: varchar("country", { length: 100 }),
   email: varchar("email", { length: 100 }),
   address: text("address"),
-  country: varchar("country", { length: 100 }),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

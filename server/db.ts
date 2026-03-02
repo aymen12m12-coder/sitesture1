@@ -372,58 +372,6 @@ export class DatabaseStorage {
     }
   }
 
-  async getOrdersByCustomer(customerId: string): Promise<any[]> {
-    try {
-      const result = await this.db.select({
-        id: orders.id,
-        orderNumber: orders.orderNumber,
-        customerName: orders.customerName,
-        customerPhone: orders.customerPhone,
-        deliveryAddress: orders.deliveryAddress,
-        status: orders.status,
-        items: orders.items,
-        totalAmount: orders.totalAmount,
-        createdAt: orders.createdAt,
-        restaurantName: restaurants.name,
-      })
-      .from(orders)
-      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
-      .where(eq(orders.customerId, customerId))
-      .orderBy(desc(orders.createdAt));
-      
-      return Array.isArray(result) ? result : [];
-    } catch (error) {
-      console.error('Error fetching customer orders:', error);
-      return [];
-    }
-  }
-
-  async getOrdersByPhone(phone: string): Promise<any[]> {
-    try {
-      const result = await this.db.select({
-        id: orders.id,
-        orderNumber: orders.orderNumber,
-        customerName: orders.customerName,
-        customerPhone: orders.customerPhone,
-        deliveryAddress: orders.deliveryAddress,
-        status: orders.status,
-        items: orders.items,
-        totalAmount: orders.totalAmount,
-        createdAt: orders.createdAt,
-        restaurantName: restaurants.name,
-      })
-      .from(orders)
-      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
-      .where(eq(orders.customerPhone, phone))
-      .orderBy(desc(orders.createdAt));
-      
-      return Array.isArray(result) ? result : [];
-    } catch (error) {
-      console.error('Error fetching customer orders by phone:', error);
-      return [];
-    }
-  }
-
   async createOrder(order: InsertOrder): Promise<Order> {
     const [newOrder] = await this.db.insert(orders).values(order).returning();
     return newOrder;
@@ -1732,64 +1680,6 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
       .where(eq(orders.id, id))
       .returning();
     return updated;
-  }
-
-  // UI Settings Functions
-  async getUiSettings(): Promise<UiSettings[]> {
-    try {
-      const result = await this.db.select().from(systemSettings).where(eq(systemSettings.isActive, true));
-      return Array.isArray(result) ? result : [];
-    } catch (error) {
-      console.error('Error fetching UI settings:', error);
-      return [];
-    }
-  }
-
-  async getUiSetting(key: string): Promise<UiSettings | undefined> {
-    try {
-      const [setting] = await this.db.select().from(systemSettings).where(eq(systemSettings.key, key));
-      return setting;
-    } catch (error) {
-      console.error(`Error fetching UI setting ${key}:`, error);
-      return undefined;
-    }
-  }
-
-  async updateUiSetting(key: string, value: string): Promise<UiSettings | undefined> {
-    try {
-      const existing = await this.getUiSetting(key);
-      if (existing) {
-        const [updated] = await this.db.update(systemSettings)
-          .set({ value, updatedAt: new Date() })
-          .where(eq(systemSettings.key, key))
-          .returning();
-        return updated;
-      } else {
-        const [newSetting] = await this.db.insert(systemSettings)
-          .values({
-            key,
-            value,
-            category: 'general',
-            isActive: true,
-            updatedAt: new Date()
-          })
-          .returning();
-        return newSetting;
-      }
-    } catch (error) {
-      console.error(`Error updating UI setting ${key}:`, error);
-      return undefined;
-    }
-  }
-
-  async createUiSetting(setting: InsertUiSettings): Promise<UiSettings> {
-    const [newSetting] = await this.db.insert(systemSettings).values(setting).returning();
-    return newSetting;
-  }
-
-  async deleteUiSetting(key: string): Promise<boolean> {
-    const result = await this.db.delete(systemSettings).where(eq(systemSettings.key, key));
-    return result.rowCount > 0;
   }
 
   // Geo-Zones methods

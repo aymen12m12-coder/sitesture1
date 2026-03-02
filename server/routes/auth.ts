@@ -75,7 +75,6 @@ router.post('/login', async (req, res) => {
         username: user.username,
         email: user.email,
         phone: user.phone,
-        country: user.country,
         userType: 'customer'
       },
       message: 'تم تسجيل الدخول بنجاح'
@@ -131,7 +130,6 @@ router.post('/register', async (req, res) => {
         username: newUser.username,
         email: newUser.email,
         phone: newUser.phone,
-        country: newUser.country,
         userType: 'customer'
       },
       message: 'تم إنشاء الحساب بنجاح'

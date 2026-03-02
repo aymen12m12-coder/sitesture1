@@ -202,26 +202,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Menu item write operations are only available through /api/admin/menu-items
 
   // Orders
-  app.get("/api/orders/customer-id/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const orders = await storage.getOrdersByCustomer(id);
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch customer orders" });
-    }
-  });
-
-  app.get("/api/orders/customer/:phone", async (req, res) => {
-    try {
-      const { phone } = req.params;
-      const orders = await storage.getOrdersByPhone(phone);
-      res.json(orders);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch customer orders" });
-    }
-  });
-
   app.get("/api/orders", async (req, res) => {
     try {
       const { restaurantId } = req.query;
@@ -252,22 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Orders routes are now handled by the dedicated orders router
-  // app.post("/api/orders", ...) - moved to routes/orders.ts
-
-  app.put("/api/orders/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const validatedData = insertOrderSchema.partial().parse(req.body);
-      const order = await storage.updateOrder(id, validatedData);
-      if (!order) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-      res.json(order);
-    } catch (error) {
-      res.status(400).json({ message: "Invalid order data" });
-    }
-  });
+  // Orders routes are now handled by the dedicated orders router in routes/orders.ts
 
   // Drivers
   app.get("/api/drivers", async (req, res) => {
@@ -351,25 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const balance = await storage.getDriverBalance(id);
-      
-      // توحيد المسميات لضمان التوافق مع تطبيقات السائق ولوحة التحكم
-      if (balance) {
-        res.json({
-          ...balance,
-          totalEarned: balance.totalBalance,
-          availableBalance: balance.availableBalance,
-          withdrawnAmount: balance.withdrawnAmount,
-          pendingAmount: balance.pendingAmount
-        });
-      } else {
-        res.json({ 
-          availableBalance: "0", 
-          totalEarned: "0", 
-          totalBalance: "0",
-          withdrawnAmount: "0", 
-          pendingAmount: "0" 
-        });
-      }
+      res.json(balance || { availableBalance: 0, totalEarned: 0, withdrawnAmount: 0 });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch driver balance" });
     }
@@ -666,65 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Driver-specific endpoints
-  // Get driver available orders
-  app.get("/api/drivers/:id/available-orders", async (req, res) => {
-    try {
-      const orders = await storage.getOrders();
-      const availableOrders = orders.filter(order => 
-        (order.status === 'confirmed' && !order.driverId) ||
-        (order.status === 'pending' && !order.driverId)
-      );
-      res.json(availableOrders);
-    } catch (error) {
-      console.error('Error fetching available orders:', error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Get orders by driverId
-  app.get("/api/orders", async (req, res) => {
-    try {
-      const { driverId } = req.query;
-      const orders = await storage.getOrders();
-      
-      if (driverId) {
-        const driverOrders = orders.filter(order => order.driverId === driverId);
-        return res.json(driverOrders);
-      }
-      
-      res.json(orders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Assign order to driver
-  app.put("/api/orders/:id/assign-driver", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { driverId } = req.body;
-      
-      if (!driverId) {
-        return res.status(400).json({ error: "Driver ID is required" });
-      }
-
-      const updatedOrder = await storage.updateOrder(id, {
-        driverId,
-        status: 'preparing'
-      });
-      
-      if (!updatedOrder) {
-        return res.status(404).json({ error: "Order not found" });
-      }
-      
-      res.json({ success: true, order: updatedOrder });
-    } catch (error) {
-      console.error('Error assigning driver:', error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+  // Driver-specific order endpoints are handled in routes/orders.ts
 
   app.get("/api/drivers/:id/orders", async (req, res) => {
     try {
@@ -768,52 +657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/drivers/:id/accept-order", async (req, res) => {
-    try {
-      const { id: driverId } = req.params;
-      const { orderId } = req.body;
-      
-      // Update order status and assign driver
-      const updatedOrder = await storage.updateOrder(orderId, {
-        driverId: driverId,
-        status: 'accepted',
-      });
-      
-      if (!updatedOrder) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-      
-      // Update driver availability
-      await storage.updateDriver(driverId, { isAvailable: false });
-      
-      res.json(updatedOrder);
-    } catch (error) {
-      res.status(400).json({ message: "Failed to accept order" });
-    }
-  });
-
-  app.post("/api/drivers/:id/complete-order", async (req, res) => {
-    try {
-      const { id: driverId } = req.params;
-      const { orderId } = req.body;
-      
-      // Update order status
-      const updatedOrder = await storage.updateOrder(orderId, {
-        status: 'delivered',
-      });
-      
-      if (!updatedOrder) {
-        return res.status(404).json({ message: "Order not found" });
-      }
-      
-      // Update driver availability
-      await storage.updateDriver(driverId, { isAvailable: true });
-      
-      res.json(updatedOrder);
-    } catch (error) {
-      res.status(400).json({ message: "Failed to complete order" });
-    }
-  });
+  // Driver dashboard routes
 
   app.get("/api/drivers/:id/stats", async (req, res) => {
     try {
@@ -893,31 +737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/drivers/:id/available-orders", async (req, res) => {
-    try {
-      const { id } = req.params;
-      
-      // Get orders that are pending and without assigned driver
-      const allOrders = await storage.getOrders();
-      const availableOrders = allOrders
-        .filter(order => order.status === 'pending' && !order.driverId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 10)
-        .map(order => ({
-          id: order.id,
-          totalAmount: order.totalAmount,
-          status: order.status,
-          createdAt: order.createdAt,
-          deliveryAddress: order.deliveryAddress,
-          restaurantId: order.restaurantId,
-          customerName: order.customerName,
-        }));
-      
-      res.json(availableOrders);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch available orders" });
-    }
-  });
+  // Available orders for drivers are handled in routes/orders.ts
 
   // ================= RESTAURANT SECTIONS API - DISABLED =================
   // Restaurant sections functionality temporarily disabled - would require additional database methods
