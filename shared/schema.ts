@@ -448,6 +448,7 @@ export const employees = pgTable("employees", {
   phone: varchar("phone", { length: 20 }).notNull(),
   position: varchar("position", { length: 50 }).notNull(), // admin, manager, support, accountant, hr
   department: varchar("department", { length: 50 }).notNull(),
+  branch: varchar("branch", { length: 50 }).default("الفرع الرئيسي"), // تمت الإضافة: الفرع
   salary: decimal("salary", { precision: 10, scale: 2 }).notNull(),
   hireDate: timestamp("hire_date").defaultNow().notNull(),
   status: varchar("status", { length: 20 }).default("active").notNull(), // active, inactive, on_leave, terminated
@@ -834,6 +835,7 @@ export const insertEmployeeSchema = createInsertSchema(employees).partial({
   salary: true,
   address: true,
   emergencyContact: true,
+  branch: true,
 });
 export const selectEmployeeSchema = createSelectSchema(employees);
 export type Employee = z.infer<typeof selectEmployeeSchema>;

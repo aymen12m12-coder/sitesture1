@@ -265,9 +265,20 @@ export async function calculateDeliveryFee(
     }
   }
 
-  // 6. استخدام الحساب الافتراضي إذا لم تطبق أي قاعدة
+  // 6. استخدام الحساب الافتراضي إذا لم تطبق أي قاعدة بناءً على نوع الحساب المختار
   if (appliedFee === null) {
-    appliedFee = deliverySettings.baseFee + (distance * deliverySettings.perKmFee);
+    switch (deliverySettings.type) {
+      case 'fixed':
+        appliedFee = deliverySettings.baseFee;
+        break;
+      case 'zone_based':
+        appliedFee = await getZoneBasedFee(distance);
+        break;
+      case 'per_km':
+      default:
+        appliedFee = deliverySettings.baseFee + (distance * deliverySettings.perKmFee);
+        break;
+    }
   }
 
   // 7. تطبيق التوصيل المجاني والخصومات
