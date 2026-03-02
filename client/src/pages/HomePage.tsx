@@ -5,18 +5,15 @@ import {
   Star, 
   ShoppingBag,
   Menu,
-  UtensilsCrossed,
-  Tag
+  UtensilsCrossed
 } from 'lucide-react';
 import TimingBanner from '@/components/TimingBanner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLanguage } from '@/context/LanguageContext';
-import type { Category, Restaurant, SpecialOffer } from '@shared/schema';
+import type { Category, Restaurant } from '@shared/schema';
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
-  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState('all'); // للفئات
   const [selectedTab, setSelectedTab] = useState('all'); // للتبويبات
 
@@ -27,10 +24,6 @@ export default function HomePage() {
 
   const { data: categories } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
-  });
-
-  const { data: specialOffers } = useQuery<SpecialOffer[]>({
-    queryKey: ['/api/special-offers'],
   });
 
   const handleRestaurantClick = (restaurantId: string) => {
@@ -47,7 +40,7 @@ export default function HomePage() {
         {/* Category Grid - Dynamic from API */}
         <section className="mb-6">
           <div className="grid grid-cols-4 gap-3">
-            {categories?.slice(0, 2).map((category) => (
+            {categories?.slice(0, 3).map((category) => (
               <div key={category.id} className="text-center cursor-pointer" onClick={() => { setSelectedCategory(category.id); setSelectedTab('all'); }}>
                 <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                   {category.icon ? (
@@ -60,80 +53,50 @@ export default function HomePage() {
               </div>
             ))}
             
-            {/* Offers Category */}
-            <div className="text-center cursor-pointer" onClick={() => setLocation('/category/offers')}>
-              <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
-                <Tag className="h-8 w-8 text-red-500" />
-              </div>
-              <h4 className="text-xs font-medium text-gray-700">{t('offers')}</h4>
-            </div>
-
             {/* All Categories */}
             <div className="text-center cursor-pointer" onClick={() => { setSelectedCategory('all'); setSelectedTab('all'); }}>
               <div className="w-16 h-16 mx-auto mb-2 bg-white rounded-2xl shadow-sm flex items-center justify-center border border-gray-100">
                 <Menu className="h-8 w-8 text-blue-500" />
               </div>
-              <h4 className="text-xs font-medium text-gray-700">{t('all_categories')}</h4>
+              <h4 className="text-xs font-medium text-gray-700">كل التصنيفات</h4>
             </div>
           </div>
         </section>
 
-        {/* Promotional Banners - Dynamic from Special Offers */}
+        {/* Promotional Banners - Exactly like reference image */}
         <section className="mb-6">
-          <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
-            {specialOffers && specialOffers.length > 0 ? (
-              specialOffers.map((offer) => (
-                <div 
-                  key={offer.id} 
-                  className="relative min-w-[280px] h-40 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow shrink-0"
-                  onClick={() => setLocation('/category/offers')}
-                >
-                  <img src={offer.image} alt={offer.title} className="absolute inset-0 w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/40 p-4 text-white flex flex-col justify-between">
-                    <div>
-                      {offer.showBadge && (
-                        <div className="flex gap-2">
-                          {offer.badgeText1 && <span className="bg-primary px-2 py-0.5 rounded-full text-[10px] font-bold">{offer.badgeText1}</span>}
-                          {offer.badgeText2 && <span className="bg-secondary px-2 py-0.5 rounded-full text-[10px] font-bold">{offer.badgeText2}</span>}
-                        </div>
-                      )}
-                      <h3 className="text-base font-black mt-2 leading-tight">{offer.title}</h3>
-                      <p className="text-xs opacity-90 line-clamp-1">{offer.description}</p>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded">
-                        {offer.discountPercent ? `خصم ${offer.discountPercent}%` : 'عرض حصري'}
-                      </span>
-                      <button className="bg-white text-black px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter hover:bg-primary hover:text-white transition-colors">
-                        تسوق الآن
-                      </button>
-                    </div>
-                  </div>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Special Offer Banner */}
+            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="absolute inset-0 orange-gradient p-4 text-white">
+                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
+                  عرض خاص
                 </div>
-              ))
-            ) : (
-              /* Fallback default banners if no offers found */
-              <>
-                <div className="relative min-w-[280px] h-40 overflow-hidden rounded-2xl cursor-pointer orange-gradient p-4 text-white shrink-0" onClick={() => setLocation('/category/offers')}>
-                   <div className="h-full flex flex-col justify-between">
-                     <div>
-                       <span className="bg-white/20 px-2 py-1 rounded-full text-[10px]">عرض خاص</span>
-                       <h3 className="text-lg font-black mt-2">عرض مجاني طازج</h3>
-                     </div>
-                     <button className="bg-white text-orange-600 self-end px-4 py-1.5 rounded-full text-[10px] font-black">تسوق الآن</button>
-                   </div>
+                <div className="absolute bottom-3 right-3">
+                  <h3 className="text-sm font-bold mb-1">عرض مجاني يصل عبر التطبيق</h3>
+                  <p className="text-xs opacity-90">عند طلب أي اكل من التطبيق</p>
+                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
+                    صالح حتى 15.000 د
+                  </p>
                 </div>
-                <div className="relative min-w-[280px] h-40 overflow-hidden rounded-2xl cursor-pointer red-gradient p-4 text-white shrink-0" onClick={() => setLocation('/category/offers')}>
-                   <div className="h-full flex flex-col justify-between">
-                     <div>
-                       <span className="bg-white/20 px-2 py-1 rounded-full text-[10px]">خصم هائل</span>
-                       <h3 className="text-lg font-black mt-2">عروض المليون</h3>
-                     </div>
-                     <button className="bg-white text-red-600 self-end px-4 py-1.5 rounded-full text-[10px] font-black">تسوق الآن</button>
-                   </div>
+              </div>
+            </div>
+
+            {/* Million Offer Banner */}
+            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
+              <div className="absolute inset-0 red-gradient p-4 text-white">
+                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
+                  1,000,000
                 </div>
-              </>
-            )}
+                <div className="absolute bottom-3 right-3">
+                  <h3 className="text-sm font-bold mb-1">كل العروض</h3>
+                  <p className="text-xs opacity-90">الاطباق الأمريكية</p>
+                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
+                    متاح حتى 15.000 د
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

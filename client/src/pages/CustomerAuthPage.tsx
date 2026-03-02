@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/context/AuthContext';
-import { Loader2, User, UserPlus, Mail, Phone, Lock, ArrowRight } from 'lucide-react';
+import { Loader2, User, UserPlus, Mail, Phone, Lock, ArrowRight, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CustomerAuthPage() {
@@ -24,10 +24,8 @@ export default function CustomerAuthPage() {
 
   // Register form state
   const [regName, setRegName] = useState('');
-  const [regUsername, setRegUsername] = useState('');
   const [regPhone, setRegPhone] = useState('');
-  const [regCountry, setRegCountry] = useState('اليمن');
-  const [regEmail, setRegEmail] = useState('');
+  const [regCountry, setRegCountry] = useState('');
   const [regPassword, setRegPassword] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -61,11 +59,10 @@ export default function CustomerAuthPage() {
     try {
       const result = await register({
         name: regName,
-        username: regUsername,
         phone: regPhone,
-        email: regEmail,
-        password: regPassword,
         country: regCountry,
+        password: regPassword,
+        username: regPhone, // Use phone as username for simplicity as requested
       });
 
       if (result.success) {
@@ -204,74 +201,47 @@ export default function CustomerAuthPage() {
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="reg-name" className="font-bold">الاسم بالكامل</Label>
-                  <Input
-                    id="reg-name"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="مثال: محمد علي"
-                    required
-                    className="h-12 rounded-none border-2 focus-visible:ring-primary"
-                  />
+                  <div className="relative">
+                    <User className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="reg-name"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      placeholder="مثال: محمد علي"
+                      required
+                      className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reg-user" className="font-bold">اسم المستخدم</Label>
-                  <Input
-                    id="reg-user"
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                    placeholder="مثال: mohammed123"
-                    required
-                    className="h-12 rounded-none border-2 focus-visible:ring-primary"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-phone" className="font-bold">رقم الهاتف</Label>
-                    <div className="relative">
-                      <Phone className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="reg-phone"
-                        type="tel"
-                        value={regPhone}
-                        onChange={(e) => setRegPhone(e.target.value)}
-                        placeholder="77XXXXXXX"
-                        required
-                        className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary text-left"
-                        dir="ltr"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-email" className="font-bold">البريد الإلكتروني (اختياري)</Label>
-                    <div className="relative">
-                      <Mail className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="reg-email"
-                        type="email"
-                        value={regEmail}
-                        onChange={(e) => setRegEmail(e.target.value)}
-                        placeholder="name@example.com"
-                        className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary text-left"
-                        dir="ltr"
-                      />
-                    </div>
+                  <Label htmlFor="reg-phone" className="font-bold">رقم الهاتف</Label>
+                  <div className="relative">
+                    <Phone className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="reg-phone"
+                      type="tel"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      placeholder="77XXXXXXX"
+                      required
+                      className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary text-left"
+                      dir="ltr"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-country" className="font-bold">الدولة</Label>
-                  <select
-                    id="reg-country"
-                    value={regCountry}
-                    onChange={(e) => setRegCountry(e.target.value)}
-                    required
-                    className="flex h-12 w-full rounded-none border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="اليمن">اليمن</option>
-                    <option value="السعودية">السعودية</option>
-                    <option value="الإمارات">الإمارات</option>
-                    <option value="مصر">مصر</option>
-                    <option value="الأردن">الأردن</option>
-                  </select>
+                  <div className="relative">
+                    <Globe className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                    <Input
+                      id="reg-country"
+                      value={regCountry}
+                      onChange={(e) => setRegCountry(e.target.value)}
+                      placeholder="اختر الدولة (مثال: اليمن)"
+                      required
+                      className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary"
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-pass" className="font-bold">كلمة المرور</Label>
@@ -282,7 +252,7 @@ export default function CustomerAuthPage() {
                       type="password"
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="اختر كلمة مرور قوية"
+                      placeholder="اختر كلمة مرور"
                       required
                       className="pr-10 h-12 rounded-none border-2 focus-visible:ring-primary"
                     />

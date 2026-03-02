@@ -374,7 +374,7 @@ export default function AdminDrivers() {
   };
 
   const handleWithdrawal = () => {
-    if (!driverBalance || parseFloat(driverBalance.availableBalance || '0') <= 0) {
+    if (!driverBalance || driverBalance.availableBalance <= 0) {
       toast({
         title: "خطأ",
         description: "لا يوجد رصيد متاح للسحب",
@@ -383,7 +383,7 @@ export default function AdminDrivers() {
       return;
     }
 
-    processWithdrawalMutation.mutate(parseFloat(driverBalance.availableBalance));
+    processWithdrawalMutation.mutate(driverBalance.availableBalance);
   };
 
   const toggleDriverStatus = (driver: Driver, field: 'isAvailable' | 'isActive') => {

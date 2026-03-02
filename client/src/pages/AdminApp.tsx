@@ -28,25 +28,28 @@ interface AdminAppProps {
 
 export const AdminApp: React.FC<AdminAppProps> = () => {
   return (
-    <Switch>
-      <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/orders" component={AdminOrders} />
-      <Route path="/admin/menu-items" component={AdminMenuItems} />
-      <Route path="/admin/drivers" component={AdminDrivers} />
-      <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
-      <Route path="/admin/offers" component={AdminOffers} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/categories" component={AdminCategories} />
-      <Route path="/admin/profile" component={AdminProfile} />
-      <Route path="/admin/financial-reports" component={AdminFinancialReports} />
-      <Route path="/admin/hr-management" component={AdminHRManagement} />
-      <Route path="/admin/security" component={AdminSecurity} />
-      <Route path="/admin/ui-settings" component={AdminUiSettings} />
-      <Route path="/admin/ratings" component={RatingsManagement} />
-      <Route path="/admin/wallet" component={WalletManagement} />
-      <Route component={NotFound} />
-    </Switch>
+    <AdminLayout>
+      <Switch>
+        <Route path="/admin" component={AdminDashboard} />
+        <Route path="/admin/dashboard" component={AdminDashboard} />
+        <Route path="/admin/orders" component={AdminOrders} />
+        <Route path="/admin/menu-items" component={AdminMenuItems} />
+        <Route path="/admin/drivers" component={AdminDrivers} />
+        <Route path="/admin/drivers-advanced" component={AdminDriversAdvanced} />
+        <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
+        <Route path="/admin/offers" component={AdminOffers} />
+        <Route path="/admin/users" component={AdminUsers} />
+        <Route path="/admin/categories" component={AdminCategories} />
+        <Route path="/admin/profile" component={AdminProfile} />
+        <Route path="/admin/financial-reports" component={AdminFinancialReports} />
+        <Route path="/admin/hr-management" component={AdminHRManagement} />
+        <Route path="/admin/security" component={AdminSecurity} />
+        <Route path="/admin/ui-settings" component={AdminUiSettings} />
+        <Route path="/admin/ratings" component={RatingsManagement} />
+        <Route path="/admin/wallet" component={WalletManagement} />
+        <Route component={NotFound} />
+      </Switch>
+    </AdminLayout>
   );
 };
 

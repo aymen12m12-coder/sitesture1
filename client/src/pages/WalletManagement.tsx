@@ -364,7 +364,7 @@ export default function WalletManagement() {
                           transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {transaction.type === 'credit' ? '+' : '-'}
-                          {parseFloat(transaction.amount).toFixed(2)} ريال
+                          {parseFloat(transaction.amount).toFixed(2)} شيكل
                         </p>
                       </div>
                     </div>

@@ -93,11 +93,22 @@ function MainApp() {
   if (currentLocation.startsWith('/admin')) {
     return (
       <AdminLayout>
-        <AdminApp onLogout={() => {
-          localStorage.removeItem('admin_token');
-          localStorage.removeItem('admin_user');
-          setLocation('/admin-login');
-        }} />
+        <Switch>
+          <Route path="/admin" component={AdminApp} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
+          <Route path="/admin/delivery-fees" component={AdminDeliveryFees} />
+          <Route path="/admin/ui-settings" component={AdminUiSettings} />
+          <Route path="/admin/advanced-reports" component={AdvancedReports} />
+          <Route path="/admin/restaurant-reports" component={RestaurantReports} />
+          <Route path="/admin/drivers-advanced" component={AdminDriversAdvanced} />
+          <Route path="/admin/financial-reports" component={AdminFinancialReports} />
+          <Route path="/admin/hr-management" component={AdminHRManagement} />
+          <Route path="/admin/restaurants-advanced" component={AdminRestaurantsAdvanced} />
+          <Route path="/admin/security" component={AdminSecurity} />
+          <Route path="/admin/ratings" component={RatingsManagement} />
+          <Route path="/admin/wallet" component={WalletManagement} />
+          <Route path="/admin/:rest*" component={AdminApp} />
+        </Switch>
       </AdminLayout>
     );
   }
