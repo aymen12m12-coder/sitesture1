@@ -62,11 +62,8 @@ export default function Layout({ children }: LayoutProps) {
     return uiSettings?.find(s => s.key === key)?.value || defaultValue;
   };
 
-  const rawWhatsapp = getSetting('support_whatsapp', '967777777777');
-  const rawPhone = getSetting('support_phone', '967777777777');
-  
-  const whatsappLink = `https://wa.me/${rawWhatsapp.replace(/\D/g, '')}`;
-  const phoneLink = `tel:${rawPhone.replace(/\s+/g, '')}`;
+  const whatsappLink = getSetting('support_whatsapp', 'https://wa.me/967777777777');
+  const phoneLink = getSetting('support_phone', 'tel:+967777777777');
   const shareText = getSetting('share_text', 'تسوق أفضل الفواكه والخضروات الطازجة من تطبيق طمطوم!');
   const shareUrl = getSetting('share_url', window.location.origin);
   const sidebarImageUrl = getSetting('sidebar_image_url', 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?q=80&w=400');
@@ -235,17 +232,17 @@ export default function Layout({ children }: LayoutProps) {
           className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <Home className={`h-6 w-6 ${location === '/' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">{t('home')}</span>
+          <span className="text-[10px] font-black uppercase tracking-tighter">الرئيسية</span>
           {location === '/' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
         </button>
 
         <button 
-          onClick={() => setLocation('/favorites')}
-          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/favorites' ? 'text-[#d32f2f] scale-110' : 'text-gray-400 hover:text-gray-600'}`}
+          onClick={() => setLocation('/orders')}
+          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/orders' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          <Heart className={`h-6 w-6 ${location === '/favorites' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">{t('favorites')}</span>
-          {location === '/favorites' && <div className="h-1 w-4 bg-[#d32f2f] rounded-full mt-0.5" />}
+          <Receipt className={`h-6 w-6 ${location === '/orders' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">طلباتي</span>
+          {location === '/orders' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
         </button>
 
         <div className="relative -mt-10">
@@ -259,10 +256,10 @@ export default function Layout({ children }: LayoutProps) {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] rounded-t-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
               <div className="h-32 bg-gradient-to-br from-[#388e3c] to-[#2e7d32] p-8 flex items-end">
-                <h2 className="text-3xl font-black text-white italic tracking-tighter">{t('we_are_here')}</h2>
+                <h2 className="text-3xl font-black text-white italic tracking-tighter">نحن معك..</h2>
               </div>
               <div className="p-8 space-y-4">
-                <p className="text-gray-500 font-bold mb-6 text-center">{t('how_can_we_help')}</p>
+                <p className="text-gray-500 font-bold mb-6 text-center">اختر وسيلة التواصل المناسبة لك</p>
                 <div className="grid gap-4">
                   <Button 
                     variant="outline" 
@@ -276,8 +273,8 @@ export default function Layout({ children }: LayoutProps) {
                       <MessageCircle className="h-6 w-6 text-green-600" />
                     </div>
                     <div className="flex-1 text-right mr-4">
-                      <p className="font-black text-xl text-gray-900">{t('whatsapp')}</p>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('direct_call')}</p>
+                      <p className="font-black text-xl text-gray-900">واتساب</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">تحدث مباشرة</p>
                     </div>
                     <ChevronLeft className="h-5 w-5 text-gray-300" />
                   </Button>
@@ -294,8 +291,8 @@ export default function Layout({ children }: LayoutProps) {
                       <PhoneCall className="h-6 w-6 text-blue-600" />
                     </div>
                     <div className="flex-1 text-right mr-4">
-                      <p className="font-black text-xl text-gray-900">{t('call')}</p>
-                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{t('direct_call')}</p>
+                      <p className="font-black text-xl text-gray-900">اتصال</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">مكالمة فورية</p>
                     </div>
                     <ChevronLeft className="h-5 w-5 text-gray-300" />
                   </Button>
@@ -306,12 +303,12 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         <button 
-          onClick={() => setLocation(user ? '/orders' : '/auth')}
-          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/orders' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
+          onClick={() => setLocation('/favorites')}
+          className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/favorites' ? 'text-[#d32f2f] scale-110' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          <Receipt className={`h-6 w-6 ${location === '/orders' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">{t('orders')}</span>
-          {location === '/orders' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
+          <Heart className={`h-6 w-6 ${location === '/favorites' ? 'fill-current' : ''}`} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">المفضلة</span>
+          {location === '/favorites' && <div className="h-1 w-4 bg-[#d32f2f] rounded-full mt-0.5" />}
         </button>
 
         <button 
@@ -319,7 +316,7 @@ export default function Layout({ children }: LayoutProps) {
           className={`flex flex-col items-center gap-1 transition-all duration-300 ${location === '/profile' ? 'text-primary scale-110' : 'text-gray-400 hover:text-gray-600'}`}
         >
           <User className={`h-6 w-6 ${location === '/profile' ? 'fill-current' : ''}`} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">{t('account')}</span>
+          <span className="text-[10px] font-black uppercase tracking-tighter">حسابي</span>
           {location === '/profile' && <div className="h-1 w-4 bg-primary rounded-full mt-0.5" />}
         </button>
       </div>

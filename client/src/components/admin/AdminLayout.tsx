@@ -76,6 +76,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       description: 'إدارة السائقين'
     },
     { 
+      icon: Truck, 
+      label: 'إدارة السائقين (متقدم)', 
+      path: '/admin/drivers-advanced',
+      description: 'إحصائيات ومحفظة السائقين'
+    },
+    { 
       icon: DollarSign, 
       label: 'رسوم التوصيل', 
       path: '/admin/delivery-fees',
@@ -220,12 +226,33 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row" dir="rtl">
       {/* Desktop Sidebar - Always visible on lg+ screens */}
-      <aside className="hidden lg:block w-80 bg-white shadow-lg sticky top-0 h-screen overflow-y-auto z-20">
+      <aside className="hidden lg:block w-80 bg-white shadow-lg overflow-y-auto max-h-screen">
         <SidebarContent />
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen lg:min-h-auto overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen lg:min-h-auto">
+        {/* Desktop Header */}
+        <header className="hidden lg:block bg-white border-b p-4 flex items-center justify-between sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            {getLogoUrl() ? (
+              <img 
+                src={getLogoUrl()} 
+                alt="شعار التطبيق" 
+                className="h-10 object-contain"
+              />
+            ) : (
+              <h1 className="font-bold text-gray-900 text-xl">طمطوم</h1>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm">
+              <Bell className="h-5 w-5" />
+            </Button>
+          </div>
+        </header>
+
         {/* Mobile Header with Sidebar Toggle */}
         <header className="lg:hidden bg-white border-b p-4 flex items-center justify-between sticky top-0 z-50">
           <div className="flex items-center gap-3">
@@ -257,12 +284,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </div>
         </header>
 
-        {/* Desktop Header - Simplified and merged if needed, or removed if duplicate */}
-        {/* We keep it only if it provides unique functionality. The user said remove duplicate bar. */}
-        {/* The sidebar already has "لوحة التحكم" title. */}
-
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto">
           {children}
         </main>
       </div>
