@@ -12,6 +12,7 @@ import ActiveOrdersPage from './ActiveOrdersPage';
 import HistoryPage from './HistoryPage';
 import StatsPage from './StatsPage';
 import ProfilePage from './ProfilePage';
+import WalletPage from './WalletPage';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
   Truck,
@@ -299,6 +300,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     { id: 'dashboard', label: 'لوحة التحكم', icon: Activity },
     { id: 'available', label: 'الطلبات المتاحة', icon: Bell },
     { id: 'active', label: 'الطلبات النشطة', icon: Package },
+    { id: 'wallet', label: 'المحفظة', icon: DollarSign },
     { id: 'map', label: 'الخريطة', icon: MapPinned },
     { id: 'history', label: 'السجل', icon: History },
     { id: 'stats', label: 'الإحصائيات', icon: TrendingUp },

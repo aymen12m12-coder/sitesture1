@@ -41,6 +41,16 @@ export default function Profile() {
     retry: false,
   });
 
+  const { data: userOrders = [] } = useQuery({
+    queryKey: ['/api/orders/customer', profile.phone],
+    enabled: !!profile.phone,
+    queryFn: async () => {
+      const response = await fetch(`/api/orders/customer/${profile.phone}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Partial<UserType>) => {
       if (!userId) throw new Error('يجب تسجيل الدخول أولاً');
@@ -92,7 +102,9 @@ export default function Profile() {
     }
   };
 
-  if (authLoading || isLoading) {
+  const isGuestMode = !isAuthenticated || !userId;
+
+  if (authLoading || (isLoading && !isGuestMode)) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -102,8 +114,6 @@ export default function Profile() {
       </div>
     );
   }
-
-  const isGuestMode = !isAuthenticated || !userId;
 
   useEffect(() => {
     if (isGuestMode) {
@@ -153,9 +163,19 @@ export default function Profile() {
   const shareText = getSetting('share_text', 'انضم إلى تطبيق طمطوم الآن!');
 
   const profileStats = [
-    { icon: Receipt, label: 'إجمالي الطلبات', value: '42', color: 'text-primary' },
+    { 
+      icon: Receipt, 
+      label: 'إجمالي الطلبات', 
+      value: userOrders?.length?.toString() || '0', 
+      color: 'text-primary' 
+    },
     { icon: Star, label: 'التقييم', value: '4.8', color: 'text-yellow-500' },
-    { icon: Clock, label: 'عضو منذ', value: '6 أشهر', color: 'text-green-500' },
+    { 
+      icon: Clock, 
+      label: 'عضو منذ', 
+      value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ar-YE', { month: 'short', year: 'numeric' }) : 'جديد', 
+      color: 'text-green-500' 
+    },
   ];
 
   const menuItems = [
