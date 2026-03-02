@@ -48,9 +48,9 @@ router.get("/dashboard", async (req, res) => {
       sum + commission.commissionAmount, 0
     );
 
-    // الطلبات المتاحة (غير مُعيَّنة لسائق)
+    // الطلبات المتاحة (المُعيَّنة لهذا السائق ولكن لم يقبلها بعد)
     const availableOrders = allOrders
-      .filter(order => order.status === "confirmed" && !order.driverId)
+      .filter(order => order.status === "confirmed" && order.driverId === driverId)
       .slice(0, 10);
 
     // الطلبات الحالية للسائق
@@ -112,7 +112,7 @@ router.post("/orders/:id/accept", async (req, res) => {
     }
 
     // التحقق من إمكانية قبول الطلب
-    if (order.status !== "confirmed" || order.driverId) {
+    if (order.status !== "confirmed" || (order.driverId && order.driverId !== driverId)) {
       return res.status(400).json({ error: "لا يمكن قبول هذا الطلب" });
     }
 
@@ -569,6 +569,21 @@ router.post("/withdraw", async (req, res) => {
       description: `سحب رصيد - طلب رقم: ${withdrawal.id.substring(0, 8)}`,
       orderId: withdrawal.id
     });
+
+    // إرسال إشعار للإدارة
+    try {
+      await storage.createNotification({
+        type: 'withdrawal_request',
+        title: 'طلب سحب رصيد جديد',
+        message: `السائق ${driver.name} يطلب سحب مبلغ ${amount} ريال`,
+        recipientType: 'admin',
+        recipientId: null,
+        orderId: null,
+        isRead: false
+      });
+    } catch (notificationError) {
+      console.error('Error creating admin notification for withdrawal:', notificationError);
+    }
 
     res.json({ 
       success: true, 

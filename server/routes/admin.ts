@@ -1320,6 +1320,12 @@ router.post("/special-offers", async (req, res) => {
     const validatedData = insertSpecialOfferSchema.parse(offerData);
     
     const newOffer = await storage.createSpecialOffer(validatedData);
+
+    // إذا تم ربط العرض بمنتج، قم بتحديث المنتج ليكون عرضاً خاصاً
+    if (newOffer.menuItemId) {
+      await storage.updateMenuItem(newOffer.menuItemId, { isSpecialOffer: true });
+    }
+    
     res.status(201).json(newOffer);
   } catch (error) {
     if (error instanceof z.ZodError) {
