@@ -64,6 +64,7 @@ export default function AdminOffers() {
         minimumOrder: parseFloat(data.minimumOrder),
         validUntil: data.validUntil ? new Date(data.validUntil) : null,
         restaurantId: data.restaurantId || null,
+        categoryId: data.categoryId || null,
       };
       const response = await apiRequest('POST', '/api/admin/special-offers', submitData);
       return response.json();
@@ -88,6 +89,7 @@ export default function AdminOffers() {
         minimumOrder: parseFloat(data.minimumOrder),
         validUntil: data.validUntil ? new Date(data.validUntil) : null,
         restaurantId: data.restaurantId || null,
+        categoryId: data.categoryId || null,
       };
       const response = await apiRequest('PUT', `/api/admin/special-offers/${id}`, submitData);
       return response.json();

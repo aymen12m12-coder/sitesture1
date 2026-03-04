@@ -36,7 +36,7 @@ import Restaurant from "./pages/Restaurant";
 import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
 import Location from "./pages/Location";
-import OrderTracking from "./pages/OrderTracking";
+import OrderTrackingPage from "./pages/OrderTrackingPage";
 import OrdersPage from "./pages/OrdersPage";
 import TrackOrdersPage from "./pages/TrackOrdersPage";
 import Settings from "./pages/Settings";
@@ -179,8 +179,8 @@ function Router() {
       <Route path="/auth" component={CustomerAuthPage} />
       <Route path="/favorites" component={Favorites} />
       <Route path="/addresses" component={Location} />
-      {showOrdersPage && <Route path="/orders" component={OrdersPage} />}
-      <Route path="/orders/:orderId" component={OrderTracking} />
+      <Route path="/orders" component={OrdersPage} />
+      <Route path="/orders/:orderId" component={OrderTrackingPage} />
       {showTrackOrdersPage && <Route path="/track-orders" component={TrackOrdersPage} />}
       <Route path="/settings" component={Settings} />
       <Route path="/privacy" component={Privacy} />

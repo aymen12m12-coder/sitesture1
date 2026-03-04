@@ -510,14 +510,14 @@ function SidebarContent({ activeTab, onTabChange, availableOrders, myOrders }: a
               <ChevronRight size={18} className={isActive ? 'translate-x-1' : ''} />
               <Icon size={20} />
               <span className="flex-1">{step.label}</span>
-              {step.id === 'available' && availableOrders.length > 0 && (
+              {step.id === 'available' && availableOrders.filter((o: any) => o.status === 'assigned').length > 0 && (
                 <span className="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-black">
-                  {availableOrders.length}
+                  {availableOrders.filter((o: any) => o.status === 'assigned').length}
                 </span>
               )}
-              {step.id === 'accepted' && myOrders.length > 0 && (
+              {step.id === 'accepted' && myOrders.filter((o: any) => ['confirmed', 'picked_up', 'on_way'].includes(o.status)).length > 0 && (
                 <span className="bg-orange-500 text-white text-xs rounded-full px-2 py-0.5 font-black">
-                  {myOrders.length}
+                  {myOrders.filter((o: any) => ['confirmed', 'picked_up', 'on_way'].includes(o.status)).length}
                 </span>
               )}
             </button>
@@ -529,15 +529,18 @@ function SidebarContent({ activeTab, onTabChange, availableOrders, myOrders }: a
 }
 
 function AvailableOrdersSection({ orders, acceptingOrderId, onAccept, driver }: any) {
+  // تصفية الطلبات المعينة لهذا السائق فقط والتي لم يقبلها بعد
+  const filteredOrders = orders.filter((o: Order) => o.status === 'assigned');
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
         <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
           <Package className="text-blue-600" />
-          الطلبات المتاحة حالياً
+          طلبات تم تكليفك بها
         </h2>
         <span className="bg-blue-600 text-white px-3 py-1 rounded-full font-black text-sm">
-          {orders.length} طلب جديد
+          {filteredOrders.length} طلب جديد
         </span>
       </div>
 
@@ -553,17 +556,17 @@ function AvailableOrdersSection({ orders, acceptingOrderId, onAccept, driver }: 
         </div>
       )}
 
-      {orders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <Package className="text-gray-300" size={40} />
           </div>
-          <p className="text-gray-500 font-bold text-lg">لا توجد طلبات متاحة حالياً</p>
-          <p className="text-gray-400 text-sm mt-1">سيتم إخطارك فور توفر طلبات جديدة في منطقتك</p>
+          <p className="text-gray-500 font-bold text-lg">لا توجد طلبات معينة لك حالياً</p>
+          <p className="text-gray-400 text-sm mt-1">سيتم إخطارك من قبل الإدارة فور تكليفك بطلب جديد</p>
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-          {orders.map((order: Order) => (
+          {filteredOrders.map((order: Order) => (
             <OrderCard key={order.id} order={order} isLoading={acceptingOrderId === order.id} onAccept={onAccept} actionType="accept" />
           ))}
         </div>
@@ -573,29 +576,34 @@ function AvailableOrdersSection({ orders, acceptingOrderId, onAccept, driver }: 
 }
 
 function MyOrdersSection({ orders, onStatusUpdate, updatingOrderId, selectedOrder, setSelectedOrder }: any) {
+  // تصفية الطلبات النشطة فقط (المستلمة وفي الطريق)
+  const filteredOrders = orders.filter((o: Order) => 
+    ['confirmed', 'picked_up', 'on_way'].includes(o.status)
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
         <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
           <Navigation className="text-orange-600" />
-          طلباتي التي أقوم بتوصيلها
+          طلباتي الجارية
         </h2>
         <span className="bg-orange-600 text-white px-3 py-1 rounded-full font-black text-sm">
-          {orders.length} نشط
+          {filteredOrders.length} طلب نشط
         </span>
       </div>
 
-      {orders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
           <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <Navigation className="text-gray-300" size={40} />
           </div>
           <p className="text-gray-500 font-bold text-lg">ليس لديك طلبات نشطة حالياً</p>
-          <p className="text-gray-400 text-sm mt-1">توجه إلى قسم "الطلبات المتاحة" لقبول طلبات جديدة</p>
+          <p className="text-gray-400 text-sm mt-1">توجه إلى قسم "الطلبات المتاحة" لتأكيد الطلبات المكلف بها</p>
         </div>
       ) : (
         <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-          {orders.map((order: Order) => (
+          {filteredOrders.map((order: Order) => (
             <OrderCard 
               key={order.id} 
               order={order} 
