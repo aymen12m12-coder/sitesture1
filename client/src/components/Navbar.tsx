@@ -32,6 +32,18 @@ export const Navbar: React.FC = () => {
               الرئيسية
             </button>
           </li>
+          <li>
+            <button
+              onClick={() => setLocation('/orders')}
+              className={`text-[11px] md:text-[13px] font-black uppercase tracking-tighter transition-all px-4 py-1.5 rounded-full ${
+                location === '/orders' 
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20' 
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              طلباتي
+            </button>
+          </li>
           {displayCategories.map((cat) => (
             <li key={cat.id}>
               <button
