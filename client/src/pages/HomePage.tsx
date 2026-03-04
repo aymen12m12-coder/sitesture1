@@ -30,6 +30,25 @@ export default function HomePage() {
     setLocation(`/restaurant/${restaurantId}`);
   };
 
+  const handlePromoClick = () => {
+    // البحث عن تصنيف العروض
+    const offersCategory = categories?.find(c => 
+      c.name.includes('عرض') || 
+      c.name.includes('عروض') || 
+      c.name.toLowerCase().includes('offer')
+    );
+    
+    if (offersCategory) {
+      setSelectedCategory(offersCategory.id);
+      setSelectedTab('all');
+      // التمرير إلى قسم التصنيفات
+      const categorySection = document.getElementById('categories-section');
+      if (categorySection) {
+        categorySection.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Timing Banner - Dynamic from settings */}
@@ -38,7 +57,7 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="max-w-md mx-auto px-4 py-6">
         {/* Category Grid - Dynamic from API */}
-        <section className="mb-6">
+        <section id="categories-section" className="mb-6">
           <div className="grid grid-cols-4 gap-3">
             {categories?.slice(0, 3).map((category) => (
               <div key={category.id} className="text-center cursor-pointer" onClick={() => { setSelectedCategory(category.id); setSelectedTab('all'); }}>
@@ -67,33 +86,43 @@ export default function HomePage() {
         <section className="mb-6">
           <div className="grid grid-cols-2 gap-3">
             {/* Special Offer Banner */}
-            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
-              <div className="absolute inset-0 orange-gradient p-4 text-white">
-                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
-                  عرض خاص
+            <div 
+              className="relative h-40 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={handlePromoClick}
+            >
+              <div className="absolute inset-0 orange-gradient p-4 text-white flex flex-col justify-between">
+                <div>
+                  <div className="bg-white/20 px-2 py-1 rounded-full text-[10px] inline-block mb-1">
+                    عرض خاص
+                  </div>
+                  <h3 className="text-sm font-bold leading-tight">عرض مجاني يصل عبر التطبيق</h3>
                 </div>
-                <div className="absolute bottom-3 right-3">
-                  <h3 className="text-sm font-bold mb-1">عرض مجاني يصل عبر التطبيق</h3>
-                  <p className="text-xs opacity-90">عند طلب أي اكل من التطبيق</p>
-                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
-                    صالح حتى 15.000 د
-                  </p>
+                <div>
+                  <p className="text-[10px] opacity-90 mb-2">عند طلب أي اكل من التطبيق</p>
+                  <button className="bg-white text-orange-600 text-[10px] font-bold px-3 py-1 rounded-full w-full">
+                    تسوق الآن
+                  </button>
                 </div>
               </div>
             </div>
 
             {/* Million Offer Banner */}
-            <div className="relative h-32 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow">
-              <div className="absolute inset-0 red-gradient p-4 text-white">
-                <div className="absolute top-3 left-3 bg-white/20 px-2 py-1 rounded-full text-xs">
-                  1,000,000
+            <div 
+              className="relative h-40 overflow-hidden rounded-2xl cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={handlePromoClick}
+            >
+              <div className="absolute inset-0 red-gradient p-4 text-white flex flex-col justify-between">
+                <div>
+                  <div className="bg-white/20 px-2 py-1 rounded-full text-[10px] inline-block mb-1">
+                    1,000,000
+                  </div>
+                  <h3 className="text-sm font-bold leading-tight">كل العروض الجديدة</h3>
                 </div>
-                <div className="absolute bottom-3 right-3">
-                  <h3 className="text-sm font-bold mb-1">كل العروض</h3>
-                  <p className="text-xs opacity-90">الاطباق الأمريكية</p>
-                  <p className="text-xs mt-1 bg-white/20 inline-block px-2 py-1 rounded">
-                    متاح حتى 15.000 د
-                  </p>
+                <div>
+                  <p className="text-[10px] opacity-90 mb-2">الاطباق الأمريكية</p>
+                  <button className="bg-white text-red-600 text-[10px] font-bold px-3 py-1 rounded-full w-full">
+                    تسوق الآن
+                  </button>
                 </div>
               </div>
             </div>

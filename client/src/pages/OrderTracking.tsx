@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
+import { DriverCommunication } from '@/components/DriverCommunication';
 
 interface OrderStatus {
   id: string;
@@ -27,6 +28,7 @@ interface OrderDetails {
   estimatedTime: string;
   driverName?: string;
   driverPhone?: string;
+  driverId?: string;
   restaurantName?: string;
   restaurantAddress?: string;
   createdAt: Date;
@@ -228,49 +230,16 @@ export default function OrderTracking() {
 
         {/* Driver Info */}
         {(['picked_up', 'on_way'].includes(order.status)) && order.driverId && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-foreground" data-testid="driver-name">
-                    {order.driverName || 'سائق التوصيل'}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">جاري التوصيل</p>
-                </div>
-                {order.driverPhone && (
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => window.open(`tel:${order.driverPhone}`)}
-                      data-testid="button-call-driver"
-                    >
-                      <Phone className="h-4 w-4 ml-2" />
-                      اتصال
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="text-green-600 border-green-200 hover:bg-green-50"
-                      onClick={() => window.open(`https://wa.me/${order.driverPhone?.replace(/\D/g, '')}`, '_blank')}
-                    >
-                      <MessageCircle className="h-4 w-4 ml-2" />
-                      واتساب
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="bg-muted p-3 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground">السائق في الطريق إليك</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <DriverCommunication 
+            driver={{
+              id: order.driverId || '',
+              name: order.driverName || 'سائق التوصيل',
+              phone: order.driverPhone || '',
+              isAvailable: true
+            }}
+            orderNumber={order.orderNumber}
+            customerLocation={order.deliveryAddress}
+          />
         )}
 
         {/* Delivery Address */}

@@ -171,7 +171,7 @@ export const DriverDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }
 
   const fetchAvailableOrders = async () => {
     try {
-      const response = await fetchWithAuth(`/api/orders?status=confirmed&available=true`);
+      const response = await fetchWithAuth(`/api/orders?available=true&driverId=${driverId}`);
       const data = await response.json();
       setAvailableOrders(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -236,15 +236,20 @@ export const DriverDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }
   const acceptOrder = async (orderId: string) => {
     setAcceptingOrderId(orderId);
     try {
-      const response = await fetchWithAuth(`/api/orders/${orderId}/assign-driver`, {
+      // السائق يؤكد استلام الطلب الذي عينه له المدير
+      const response = await fetchWithAuth(`/api/orders/${orderId}`, {
         method: 'PUT',
-        body: JSON.stringify({ driverId })
+        body: JSON.stringify({ 
+          status: 'confirmed', 
+          updatedBy: driverId, 
+          updatedByType: 'driver' 
+        })
       });
       
       if (response.ok) {
         toast({
-          title: "✅ تم قبول الطلب",
-          description: "تم إضافة الطلب إلى قائمة طلباتك",
+          title: "✅ تم استلام الطلب",
+          description: "تم نقل الطلب إلى قائمة طلباتك الجارية",
         });
         await fetchAllData();
         setActiveTab('accepted');
@@ -252,7 +257,7 @@ export const DriverDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }
         const err = await response.json();
         toast({
           title: "❌ خطأ",
-          description: err.error || "فشل في قبول الطلب",
+          description: err.error || "فشل في استلام الطلب",
           variant: "destructive",
         });
       }

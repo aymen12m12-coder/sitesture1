@@ -104,13 +104,13 @@ export default function Home() {
                           if (offer.categoryId) {
                             const cat = categories?.find(c => c.id === offer.categoryId);
                             if (cat) {
-                              setLocation(`/category/${cat.name}`);
+                              setLocation(`/category/${cat.name}${offer.menuItemId ? `#product-${offer.menuItemId}` : ''}`);
                               return;
                             }
                           }
                           
                           if (offer.menuItemId) {
-                            setLocation(`/product/${offer.menuItemId}`);
+                            setLocation(`/category/العروض#product-${offer.menuItemId}`);
                           } else if (offer.restaurantId) {
                             setLocation(`/restaurant/${offer.restaurantId}`);
                           } else {

@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { useQuery } from '@tanstack/react-query';
 import { Skeleton } from '@/components/ui/skeleton';
 import RatingDialog from '@/components/RatingDialog';
+import { DriverCommunication } from '@/components/DriverCommunication';
 
 interface OrderStatus {
   id: string;
@@ -27,7 +28,9 @@ interface OrderDetails {
   estimatedTime: string;
   driverName?: string;
   driverPhone?: string;
+  driverId?: string;
   restaurantName?: string;
+  orderNumber: string;
   createdAt: Date;
 }
 
@@ -180,36 +183,17 @@ export default function OrderTrackingPage() {
         </Card>
 
         {/* Driver Info */}
-        {order.status === 'on_way' && order.driverName && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary-foreground" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-foreground" data-testid="driver-name">
-                    {order.driverName}
-                  </h4>
-                  <p className="text-sm text-muted-foreground">سائق التوصيل</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  data-testid="button-call-driver"
-                >
-                  <Phone className="h-4 w-4 ml-2" />
-                  اتصال
-                </Button>
-              </div>
-              <div className="bg-muted p-3 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-primary" />
-                  <span className="text-sm text-foreground">السائق في الطريق إليك</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {(['picked_up', 'on_way'].includes(order.status)) && order.driverId && (
+          <DriverCommunication 
+            driver={{
+              id: order.driverId || '',
+              name: order.driverName || 'سائق التوصيل',
+              phone: order.driverPhone || '',
+              isAvailable: true
+            }}
+            orderNumber={order.orderNumber}
+            customerLocation={order.deliveryAddress}
+          />
         )}
 
         {/* Delivery Address */}

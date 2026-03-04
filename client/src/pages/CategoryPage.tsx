@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -63,6 +63,22 @@ export default function CategoryPage() {
     if (sortBy === 'price-desc') return parseFloat(String(b.price)) - parseFloat(String(a.price));
     return 0;
   });
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && !isLoading && sortedItems.length > 0) {
+      const element = document.querySelector(hash);
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('ring-4', 'ring-primary', 'ring-offset-2');
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-primary', 'ring-offset-2');
+          }, 3000);
+        }, 500);
+      }
+    }
+  }, [isLoading, sortedItems.length]);
 
   const getCategoryTitle = () => {
     return decodeURIComponent(slug || '');

@@ -17,7 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '../context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@shared/schema';
 import MenuItemCard from '@/components/MenuItemCard';
