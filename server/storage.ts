@@ -63,6 +63,7 @@ export interface IStorage {
   getOrders(): Promise<Order[]>;
   getOrder(id: string): Promise<Order | undefined>;
   getOrdersByRestaurant(restaurantId: string): Promise<Order[]>;
+  getOrdersByCustomer(phone: string): Promise<Order[]>;
   createOrder(order: InsertOrder): Promise<Order>;
   updateOrder(id: string, order: Partial<InsertOrder>): Promise<Order | undefined>;
 
@@ -988,6 +989,13 @@ export class MemStorage implements IStorage {
 
   async getOrdersByRestaurant(restaurantId: string): Promise<Order[]> {
     return Array.from(this.orders.values()).filter(order => order.restaurantId === restaurantId);
+  }
+
+  async getOrdersByCustomer(phone: string): Promise<Order[]> {
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    return Array.from(this.orders.values()).filter(order => 
+      order.customerPhone && order.customerPhone.replace(/\s+/g, '') === cleanPhone
+    );
   }
 
   async createOrder(order: InsertOrder): Promise<Order> {

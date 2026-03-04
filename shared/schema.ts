@@ -116,6 +116,7 @@ export const drivers = pgTable("drivers", {
   vehicleNumber: varchar("vehicle_number", { length: 50 }),
   currentLocation: varchar("current_location", { length: 200 }),
   earnings: decimal("earnings", { precision: 10, scale: 2 }).default("0"),
+  completedOrders: integer("completed_orders").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

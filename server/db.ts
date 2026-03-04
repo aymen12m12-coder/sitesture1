@@ -372,6 +372,56 @@ export class DatabaseStorage {
     }
   }
 
+  async getOrdersByCustomer(phone: string): Promise<any[]> {
+    try {
+      const cleanPhone = phone.trim().replace(/\s+/g, '');
+      const result = await this.db.select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerName: orders.customerName,
+        customerPhone: orders.customerPhone,
+        customerEmail: orders.customerEmail,
+        customerId: orders.customerId,
+        deliveryAddress: orders.deliveryAddress,
+        customerLocationLat: orders.customerLocationLat,
+        customerLocationLng: orders.customerLocationLng,
+        notes: orders.notes,
+        paymentMethod: orders.paymentMethod,
+        status: orders.status,
+        items: orders.items,
+        subtotal: orders.subtotal,
+        deliveryFee: orders.deliveryFee,
+        total: orders.total,
+        totalAmount: orders.totalAmount,
+        estimatedTime: orders.estimatedTime,
+        driverEarnings: orders.driverEarnings,
+        restaurantEarnings: orders.restaurantEarnings,
+        companyEarnings: orders.companyEarnings,
+        distance: orders.distance,
+        restaurantId: orders.restaurantId,
+        driverId: orders.driverId,
+        createdAt: orders.createdAt,
+        updatedAt: orders.updatedAt,
+        restaurantName: restaurants.name,
+        restaurantPhone: restaurants.phone,
+        restaurantAddress: restaurants.address,
+        restaurantImage: restaurants.image,
+        driverName: drivers.name,
+        driverPhone: drivers.phone,
+      })
+      .from(orders)
+      .leftJoin(restaurants, eq(orders.restaurantId, restaurants.id))
+      .leftJoin(drivers, eq(orders.driverId, drivers.id))
+      .where(sql`REPLACE(${orders.customerPhone}, ' ', '') = ${cleanPhone}`)
+      .orderBy(desc(orders.createdAt));
+      
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Error fetching customer orders:', error);
+      return [];
+    }
+  }
+
   async createOrder(order: InsertOrder): Promise<Order> {
     const [newOrder] = await this.db.insert(orders).values(order).returning();
     return newOrder;

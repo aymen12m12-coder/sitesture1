@@ -204,26 +204,26 @@ router.get("/", async (req, res) => {
     
     let orders = await storage.getOrders();
     
-    // فلترة حسب الحالة
-    if (status && status !== 'all') {
-      orders = orders.filter(order => order.status === status);
+    // فلترة حسب السائق (طلباتي)
+    if (driverId && available !== 'true') {
+      orders = orders.filter(order => order.driverId === driverId && 
+        ['confirmed', 'preparing', 'ready', 'picked_up', 'on_way'].includes(order.status));
     }
-    
-    // فلترة حسب السائق
-    if (driverId) {
-      orders = orders.filter(order => order.driverId === driverId);
-    }
-    
-    // فلترة الطلبات المتاحة (بدون سائق مُعيَّن)
-    if (available === 'true') {
+    // فلترة الطلبات المتاحة (المعينة لهذا السائق حصراً ولم يقبلها بعد)
+    else if (driverId && available === 'true') {
       orders = orders.filter(order => 
-        order.status === 'confirmed' && !order.driverId
+        order.status === 'assigned' && order.driverId === driverId
       );
     }
-    
-    // فلترة حسب المطعم
-    if (restaurantId) {
-      orders = orders.filter(order => order.restaurantId === restaurantId);
+    // فلترة للوحة التحكم (بدون driverId)
+    else {
+      if (status && status !== 'all') {
+        orders = orders.filter(order => order.status === status);
+      }
+      
+      if (restaurantId) {
+        orders = orders.filter(order => order.restaurantId === restaurantId);
+      }
     }
     
     // ترتيب حسب تاريخ الإنشاء (الأحدث أولاً)
@@ -309,18 +309,17 @@ router.put("/:id/assign-driver", async (req, res) => {
       driverId,
       driverEarnings: String(driverEarnings),
       companyEarnings: String(companyEarnings),
-      status: 'confirmed', // إبقاء الحالة "مؤكد" عند التعيين ليقوم السائق بتحديثها
+      status: 'assigned', // تعيين الطلب للسائق أولاً
       updatedAt: new Date()
     });
 
     // Broadcast update via WebSocket
     const ws = req.app.get('ws');
     if (ws) {
-      ws.broadcast('order_update', { orderId: id, status: 'confirmed' });
+      ws.broadcast('order_update', { orderId: id, status: 'assigned' });
     }
 
-    // تحديث حالة السائق إلى مشغول
-    await storage.updateDriver(driverId, { isAvailable: false });
+    // لا نقوم بتحديث حالة السائق إلى مشغول إلا بعد استلامه للطلب فعلياً
 
     // إنشاء إشعارات
     try {
@@ -328,28 +327,12 @@ router.put("/:id/assign-driver", async (req, res) => {
       await storage.createNotification({
         type: 'new_order_assigned',
         title: 'طلب جديد مُعين لك',
-        message: `تم تعيينك لتوصيل الطلب رقم ${order.orderNumber} من ${restaurant?.name || 'المتجر الرئيسي'}`,
+        message: `تم تعيينك لتوصيل الطلب رقم ${order.orderNumber} من ${restaurant?.name || 'المتجر الرئيسي'}. يرجى تأكيد الاستلام.`,
         recipientType: 'driver',
         recipientId: driverId,
         orderId: id,
         isRead: false
       });
-
-      // إشعار للسائقين الآخرين بأن الطلب لم يعد متاحاً
-      const otherDrivers = await storage.getAvailableDrivers();
-      for (const otherDriver of otherDrivers) {
-        if (otherDriver.id !== driverId) {
-          await storage.createNotification({
-            type: 'order_taken',
-            title: 'تم استلام الطلب',
-            message: `السائق ${driver.name} قام باستلام الطلب`,
-            recipientType: 'driver',
-            recipientId: otherDriver.id,
-            orderId: id,
-            isRead: false
-          });
-        }
-      }
 
       // إشعار للإدارة
       await storage.createNotification({
@@ -365,10 +348,10 @@ router.put("/:id/assign-driver", async (req, res) => {
       // تتبع الطلب
       await storage.createOrderTracking({
         orderId: id,
-        status: 'preparing',
-        message: `تم تعيين السائق ${driver.name} وبدء تحضير الطلب`,
-        createdBy: driverId,
-        createdByType: 'driver'
+        status: 'assigned',
+        message: `تم تعيين السائق ${driver.name} وفي انتظار قبول الطلب`,
+        createdBy: 'admin',
+        createdByType: 'admin'
       });
     } catch (notificationError) {
       console.error('خطأ في إنشاء الإشعارات:', notificationError);
@@ -455,8 +438,10 @@ router.put("/:id", async (req, res) => {
               // تحديث إجمالي الأرباح في جدول السائقين
               const driver = await storage.getDriver(order.driverId);
               const currentEarnings = parseFloat(driver?.earnings?.toString() || '0');
+              const currentCompletedOrders = driver?.completedOrders || 0;
               await storage.updateDriver(order.driverId, {
-                earnings: String(currentEarnings + driverEarnings)
+                earnings: String(currentEarnings + driverEarnings),
+                completedOrders: currentCompletedOrders + 1
               });
             }
           } catch (e) {
@@ -556,15 +541,7 @@ router.get("/customer/:phone", async (req, res) => {
       });
     }
     
-    const orders = await storage.getOrders();
-    
-    // فلترة الطلبات حسب رقم الهاتف
-    const customerOrders = orders.filter(order => 
-      order.customerPhone && order.customerPhone.replace(/\s+/g, '') === phone
-    );
-    
-    // ترتيب حسب التاريخ (الأحدث أولاً)
-    customerOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const customerOrders = await storage.getOrdersByCustomer(phone);
     
     res.json(customerOrders);
   } catch (error) {

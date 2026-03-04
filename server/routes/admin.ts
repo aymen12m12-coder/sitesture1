@@ -1287,6 +1287,8 @@ router.post("/special-offers", async (req, res) => {
       isActive: coercedData.isActive !== undefined ? coercedData.isActive : true,
       
       restaurantId: coercedData.restaurantId,
+      menuItemId: coercedData.menuItemId,
+      categoryId: coercedData.categoryId,
       
       // حقول التوقيت
       createdAt: new Date()

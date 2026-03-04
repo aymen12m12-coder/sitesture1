@@ -61,8 +61,8 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // إنشاء رمز مميز بسيط
-    const token = randomUUID();
+    // استخدام معرف المستخدم كرمز مؤقت للمصادقة للبقاء مسجلاً للدخول
+    const token = user.id;
 
     console.log('🎉 تم تسجيل الدخول بنجاح للعميل:', user.name);
     
@@ -82,6 +82,94 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('خطأ في تسجيل دخول العميل:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في الخادم'
+    });
+  }
+});
+
+// التحقق من صحة الرمز وجلب بيانات المستخدم
+router.post('/validate', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'غير مصرح'
+      });
+    }
+
+    const token = authHeader.split(' ')[1];
+    
+    // البحث عن المستخدم باستخدام المعرف (الذي نستخدمه كرمز حالياً)
+    const userResult = await dbStorage.db
+      .select()
+      .from(users)
+      .where(eq(users.id, token))
+      .limit(1);
+
+    if (userResult.length === 0) {
+      // التحقق من السائقين أيضاً
+      const driverResult = await dbStorage.db
+        .select()
+        .from(drivers)
+        .where(eq(drivers.id, token))
+        .limit(1);
+      
+      if (driverResult.length > 0) {
+        const driver = driverResult[0];
+        return res.json({
+          success: true,
+          user: {
+            id: driver.id,
+            name: driver.name,
+            phone: driver.phone,
+            userType: 'driver'
+          }
+        });
+      }
+
+      // التحقق من المديرين أيضاً
+      const adminResult = await dbStorage.db
+        .select()
+        .from(adminUsers)
+        .where(eq(adminUsers.id, token))
+        .limit(1);
+      
+      if (adminResult.length > 0) {
+        const admin = adminResult[0];
+        return res.json({
+          success: true,
+          user: {
+            id: admin.id,
+            name: admin.name,
+            email: admin.email,
+            userType: 'admin'
+          }
+        });
+      }
+
+      return res.status(401).json({
+        success: false,
+        message: 'جلسة غير صالحة'
+      });
+    }
+
+    const user = userResult[0];
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        phone: user.phone,
+        userType: 'customer'
+      }
+    });
+  } catch (error) {
+    console.error('خطأ في التحقق من الرمز:', error);
     res.status(500).json({
       success: false,
       message: 'حدث خطأ في الخادم'
@@ -119,7 +207,7 @@ router.post('/register', async (req, res) => {
       .values(validatedData)
       .returning();
 
-    const token = randomUUID();
+    const token = newUser.id;
 
     res.status(201).json({
       success: true,
@@ -196,8 +284,8 @@ router.post('/admin/login', async (req, res) => {
       });
     }
 
-    // إنشاء رمز مميز بسيط
-    const token = randomUUID();
+    // استخدام معرف المدير كرمز مؤقت للمصادقة للبقاء مسجلاً للدخول
+    const token = admin.id;
 
     console.log('🎉 تم تسجيل الدخول بنجاح للمدير:', admin.name);
     
@@ -270,8 +358,8 @@ router.post('/driver/login', async (req, res) => {
       });
     }
 
-    // إنشاء رمز مميز بسيط
-    const token = randomUUID();
+    // استخدام معرف السائق كرمز مؤقت للمصادقة للبقاء مسجلاً للدخول
+    const token = driver.id;
 
     console.log('🎉 تم تسجيل الدخول بنجاح للسائق:', driver.name);
     
