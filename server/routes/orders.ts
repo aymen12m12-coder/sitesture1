@@ -210,10 +210,16 @@ router.get("/", async (req, res) => {
         ['confirmed', 'preparing', 'ready', 'picked_up', 'on_way'].includes(order.status));
     }
     // فلترة الطلبات المتاحة (المعينة لهذا السائق حصراً ولم يقبلها بعد)
-    else if (driverId && available === 'true') {
-      orders = orders.filter(order => 
-        order.status === 'assigned' && order.driverId === driverId
-      );
+    else if (available === 'true') {
+      if (!driverId) {
+        // إذا لم يتم توفير معرف السائق، لا نعيد أي طلبات متاحة
+        // لأن الطلبات المتاحة يجب أن تكون معينة لسائق محدد
+        orders = [];
+      } else {
+        orders = orders.filter(order => 
+          order.status === 'assigned' && order.driverId === driverId
+        );
+      }
     }
     // فلترة للوحة التحكم (بدون driverId)
     else {
@@ -546,6 +552,56 @@ router.get("/customer/:phone", async (req, res) => {
     res.json(customerOrders);
   } catch (error) {
     console.error("خطأ في جلب طلبات العميل:", error);
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
+// جلب تفاصيل تتبع الطلب
+router.get("/:orderId/track", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await storage.getOrder(orderId);
+    if (!order) {
+      return res.status(404).json({ error: "الطلب غير موجود" });
+    }
+
+    // جلب بيانات السائق إذا كانت موجودة
+    let driverInfo = null;
+    if (order.driverId) {
+      const driver = await storage.getDriver(order.driverId);
+      if (driver) {
+        driverInfo = {
+          name: driver.name,
+          phone: driver.phone
+        };
+      }
+    }
+
+    // جلب سجل تتبع الطلب
+    const trackingHistory = await storage.getOrderTracking(orderId);
+    
+    // تنسيق البيانات لتتوافق مع واجهة التتبع
+    const formattedOrder = {
+      ...order,
+      driverName: driverInfo?.name,
+      driverPhone: driverInfo?.phone,
+      items: typeof order.items === 'string' ? JSON.parse(order.items) : order.items
+    };
+
+    const formattedTracking = trackingHistory.map(t => ({
+      id: t.id,
+      status: t.status,
+      timestamp: t.createdAt,
+      description: t.message
+    }));
+
+    res.json({
+      order: formattedOrder,
+      tracking: formattedTracking
+    });
+  } catch (error) {
+    console.error("خطأ في جلب بيانات تتبع الطلب:", error);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });

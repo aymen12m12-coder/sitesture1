@@ -48,7 +48,21 @@ router.post("/auth", async (req, res) => {
   }
 });
 
-// جلب ملف العميل
+// جلب ملف العميل (alias for compat with Profile.tsx)
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const customer = await storage.getUser(id);
+    if (!customer) {
+      return res.status(404).json({ error: "المستخدم غير موجود" });
+    }
+    res.json(customer);
+  } catch (error) {
+    res.status(500).json({ error: "خطأ في جلب بيانات الملف الشخصي" });
+  }
+});
+
+// جلب ملف العميل (original route)
 router.get("/:id/profile", async (req, res) => {
   try {
     const { id } = req.params;
