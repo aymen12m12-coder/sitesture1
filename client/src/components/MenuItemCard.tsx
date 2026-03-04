@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ShoppingBag, Star, Heart, Plus } from 'lucide-react';
 import type { MenuItem } from '@shared/schema';
-import { useCart } from '../contexts/CartContext';
+import { useCart } from '../context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '../context/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -101,7 +101,11 @@ export default function MenuItemCard({
   const colors = item.colors ? item.colors.split(',') : [];
 
   return (
-    <div className="group relative bg-white cursor-pointer border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" onClick={() => setLocation(`/product/${item.id}`)}>
+    <div 
+      id={`product-${item.id}`}
+      className="group relative bg-white cursor-pointer border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" 
+      onClick={() => setLocation(`/product/${item.id}`)}
+    >
       {/* Product Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gray-50">
         <img
