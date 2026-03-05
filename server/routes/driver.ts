@@ -2,18 +2,18 @@ import express from "express";
 import { storage } from "../storage";
 import { z } from "zod";
 import { coerceRequestData } from "../utils/coercion";
+import { requireDriverAuth, AuthenticatedRequest } from "../utils/auth-middleware";
 
 const router = express.Router();
 
-// لوحة معلومات السائق مع تفاصيل الرصيد
-router.get("/dashboard", async (req, res) => {
-  try {
-    const { driverId } = req.query;
-    
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
+// تطبيق ميدل وير المصادقة على جميع مسارات السائق
+router.use(requireDriverAuth);
 
+// لوحة معلومات السائق مع تفاصيل الرصيد
+router.get("/dashboard", async (req: AuthenticatedRequest, res) => {
+  try {
+    const driverId = req.driverId!;
+    
     // التحقق من وجود السائق
     const driver = await storage.getDriver(driverId);
     if (!driver) {
@@ -41,21 +41,21 @@ router.get("/dashboard", async (req, res) => {
       new Date(commission.createdAt).toDateString() === today
     );
     const todayEarnings = commissionsToday.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
+      sum + (parseFloat(commission.commissionAmount.toString()) || 0), 0
     );
     
     const totalEarnings = driverCommissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
+      sum + (parseFloat(commission.commissionAmount.toString()) || 0), 0
     );
 
     // الطلبات المتاحة (المُعيَّنة لهذا السائق ولكن لم يقبلها بعد)
     const availableOrders = allOrders
-      .filter(order => order.status === "confirmed" && order.driverId === driverId)
+      .filter(order => order.status === "confirmed" && (order.driverId === driverId || !order.driverId))
       .slice(0, 10);
 
     // الطلبات الحالية للسائق
     const currentOrders = driverOrders.filter(order => 
-      order.status === "picked_up" || order.status === "ready"
+      order.status === "picked_up" || order.status === "ready" || order.status === "on_way"
     );
 
     // الطلبات المعلقة التي تحتوي على عمولات
@@ -90,15 +90,11 @@ router.get("/dashboard", async (req, res) => {
 });
 
 // قبول طلب مع احتساب العمولة تلقائيًا
-router.post("/orders/:id/accept", async (req, res) => {
+router.post("/orders/:id/accept", async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const { driverId } = req.body;
+    const driverId = req.driverId!;
     
-    if (!driverId) {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     // التحقق من وجود السائق
     const driver = await storage.getDriver(driverId);
     if (!driver) {
@@ -143,13 +139,14 @@ router.post("/orders/:id/accept", async (req, res) => {
 });
 
 // تحديث حالة الطلب مع معالجة العمولة عند التسليم
-router.put("/orders/:id/status", async (req, res) => {
+router.put("/orders/:id/status", async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const { driverId, status, location } = req.body;
+    const { status, location } = req.body;
+    const driverId = req.driverId!;
     
-    if (!driverId || !status) {
-      return res.status(400).json({ error: "معرف السائق والحالة مطلوبان" });
+    if (!status) {
+      return res.status(400).json({ error: "الحالة مطلوبة" });
     }
 
     // جلب الطلب والتحقق من صلاحية السائق
@@ -163,7 +160,7 @@ router.put("/orders/:id/status", async (req, res) => {
     }
 
     // التحقق من الحالات المسموحة
-    const allowedStatuses = ["ready", "picked_up", "delivered"];
+    const allowedStatuses = ["ready", "picked_up", "on_way", "delivered"];
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({ error: "حالة غير صحيحة" });
     }
@@ -211,15 +208,11 @@ router.put("/orders/:id/status", async (req, res) => {
 });
 
 // جلب تفاصيل طلب محدد مع معلومات العمولة
-router.get("/orders/:id", async (req, res) => {
+router.get("/orders/:id", async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
-    const { driverId } = req.query;
+    const driverId = req.driverId!;
     
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     const order = await storage.getOrder(id);
     if (!order) {
       return res.status(404).json({ error: "الطلب غير موجود" });
@@ -251,14 +244,11 @@ router.get("/orders/:id", async (req, res) => {
 });
 
 // جلب طلبات السائق مع تفاصيل العمولة
-router.get("/orders", async (req, res) => {
+router.get("/orders", async (req: AuthenticatedRequest, res) => {
   try {
-    const { driverId, status } = req.query;
+    const driverId = req.driverId!;
+    const { status } = req.query;
     
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     // جلب جميع الطلبات وفلترتها
     const allOrders = await storage.getOrders();
     let driverOrders = allOrders.filter(order => order.driverId === driverId);
@@ -289,14 +279,10 @@ router.get("/orders", async (req, res) => {
 });
 
 // جلب إحصائيات السائق مع تفاصيل الرصيد
-router.get("/stats", async (req, res) => {
+router.get("/stats", async (req: AuthenticatedRequest, res) => {
   try {
-    const { driverId } = req.query;
+    const driverId = req.driverId!;
     
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     // التحقق من وجود السائق
     const driver = await storage.getDriver(driverId);
     if (!driver) {
@@ -316,17 +302,18 @@ router.get("/stats", async (req, res) => {
     // حساب الإحصائيات
     const thisMonth = new Date();
     thisMonth.setDate(1);
+    thisMonth.setHours(0, 0, 0, 0);
     
     const monthlyCommissions = driverCommissions.filter(commission => 
       new Date(commission.createdAt) >= thisMonth
     );
     
     const totalEarnings = driverCommissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
+      sum + (parseFloat(commission.commissionAmount.toString()) || 0), 0
     );
     
     const monthlyEarnings = monthlyCommissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
+      sum + (parseFloat(commission.commissionAmount.toString()) || 0), 0
     );
 
     // المعاملات الحديثة
@@ -355,15 +342,12 @@ router.get("/stats", async (req, res) => {
 });
 
 // تحديث الملف الشخصي للسائق
-router.put("/profile", async (req, res) => {
+router.put("/profile", async (req: AuthenticatedRequest, res) => {
   try {
     const coercedData = coerceRequestData(req.body);
-    const { driverId, ...updateData } = coercedData;
+    const driverId = req.driverId!;
+    const updateData = coercedData;
     
-    if (!driverId) {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     // إزالة أي حقول غير مسموحة
     const allowedFields = ['name', 'phone', 'email', 'currentLocation', 'isAvailable'];
     const sanitizedData: any = {};
@@ -387,277 +371,67 @@ router.put("/profile", async (req, res) => {
 });
 
 // جلب تفاصيل الرصيد والمعاملات
-router.get("/balance", async (req, res) => {
+router.get("/balance", async (req: AuthenticatedRequest, res) => {
   try {
-    const { driverId } = req.query;
+    const driverId = req.driverId!;
     
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
     // التحقق من وجود السائق
     const driver = await storage.getDriver(driverId);
     if (!driver) {
       return res.status(404).json({ error: "السائق غير موجود" });
     }
 
-    // جلب معلومات الرصيد والمعاملات
     const driverBalance = await storage.getDriverBalance(driverId);
     const driverTransactions = await storage.getDriverTransactions(driverId);
     const driverCommissions = await storage.getDriverCommissions(driverId);
-
-    // حساب الإحصائيات
-    const totalCommissionEarnings = driverCommissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
-    );
-
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    const monthlyCommissions = driverCommissions.filter(commission => 
-      new Date(commission.createdAt) >= thisMonth
-    );
-    const monthlyEarnings = monthlyCommissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
-    );
+    const driverWithdrawals = await storage.getDriverWithdrawals(driverId);
 
     res.json({
-      balance: driverBalance,
-      totalEarnings: totalCommissionEarnings,
-      monthlyEarnings,
-      transactionCount: driverTransactions.length,
-      commissionCount: driverCommissions.length,
-      transactions: driverTransactions.slice(0, 20),
-      commissions: driverCommissions.slice(0, 10)
+      balance: driverBalance || {
+        availableBalance: "0",
+        totalBalance: "0",
+        withdrawnAmount: "0",
+        pendingAmount: "0"
+      },
+      transactions: driverTransactions,
+      commissions: driverCommissions,
+      withdrawals: driverWithdrawals
     });
   } catch (error) {
-    console.error("خطأ في جلب تفاصيل الرصيد:", error);
+    console.error("خطأ في جلب بيانات الرصيد:", error);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
 
-// جلب سجل العمولات
-router.get("/commissions", async (req, res) => {
+// طلب سحب رصيد
+router.post("/withdraw", async (req: AuthenticatedRequest, res) => {
   try {
-    const { driverId, startDate, endDate } = req.query;
-    
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
+    const driverId = req.driverId!;
+    const { amount, method, details } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: "مبلغ غير صحيح" });
     }
 
-    // التحقق من وجود السائق
-    const driver = await storage.getDriver(driverId);
-    if (!driver) {
-      return res.status(404).json({ error: "السائق غير موجود" });
-    }
+    // التحقق من الرصيد المتاح
+    const balance = await storage.getDriverBalance(driverId);
+    const available = parseFloat(balance?.availableBalance || "0");
 
-    // جلب العمولات
-    let commissions = await storage.getDriverCommissions(driverId);
-    
-    // فلترة حسب التاريخ إذا تم توفيره
-    if (startDate && typeof startDate === 'string') {
-      const start = new Date(startDate);
-      commissions = commissions.filter(commission => 
-        new Date(commission.createdAt) >= start
-      );
-    }
-    
-    if (endDate && typeof endDate === 'string') {
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      commissions = commissions.filter(commission => 
-        new Date(commission.createdAt) <= end
-      );
-    }
-
-    // ترتيب حسب التاريخ
-    commissions.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    // حساب المجموع
-    const totalAmount = commissions.reduce((sum, commission) => 
-      sum + commission.commissionAmount, 0
-    );
-
-    res.json({
-      commissions,
-      totalCount: commissions.length,
-      totalAmount,
-      averageAmount: commissions.length > 0 ? totalAmount / commissions.length : 0
-    });
-  } catch (error) {
-    console.error("خطأ في جلب سجل العمولات:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// جلب سجل المعاملات
-router.get("/transactions", async (req, res) => {
-  try {
-    const { driverId, type, limit } = req.query;
-    
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
-    // التحقق من وجود السائق
-    const driver = await storage.getDriver(driverId);
-    if (!driver) {
-      return res.status(404).json({ error: "السائق غير موجود" });
-    }
-
-    // جلب المعاملات
-    let transactions = await storage.getDriverTransactions(driverId);
-    
-    // فلترة حسب النوع إذا تم توفيره
-    if (type && typeof type === 'string') {
-      transactions = transactions.filter(transaction => transaction.type === type);
-    }
-    
-    // تحديد الحد إذا تم توفيره
-    const transactionLimit = limit ? parseInt(limit as string) : 50;
-    
-    // ترتيب حسب التاريخ
-    transactions.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
-    res.json({
-      transactions: transactions.slice(0, transactionLimit),
-      totalCount: transactions.length
-    });
-  } catch (error) {
-    console.error("خطأ في جلب سجل المعاملات:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// طلب سحب الرصيد
-router.post("/withdraw", async (req, res) => {
-  try {
-    const { driverId, amount, notes } = req.body;
-    
-    if (!driverId || !amount) {
-      return res.status(400).json({ error: "معرف السائق والمبلغ مطلوبان" });
-    }
-
-    // التحقق من وجود السائق
-    const driver = await storage.getDriver(driverId);
-    if (!driver) {
-      return res.status(404).json({ error: "السائق غير موجود" });
-    }
-
-    // جلب الرصيد الحالي
-    const driverBalance = await storage.getDriverBalance(driverId);
-    if (!driverBalance || driverBalance.availableBalance < amount) {
+    if (amount > available) {
       return res.status(400).json({ error: "الرصيد غير كافٍ" });
     }
 
-    // إنشاء طلب السحب
     const withdrawal = await storage.createDriverWithdrawal({
       driverId,
-      amount,
+      amount: amount.toString(),
       status: 'pending',
-      paymentMethod: 'wallet',
-      notes
+      paymentMethod: method || 'cash',
+      paymentDetails: details || ''
     });
 
-    // تحديث الرصيد
-    await storage.updateDriverBalance(driverId, {
-      amount,
-      type: 'withdrawal',
-      description: `سحب رصيد - طلب رقم: ${withdrawal.id.substring(0, 8)}`,
-      orderId: withdrawal.id
-    });
-
-    // إرسال إشعار للإدارة
-    try {
-      await storage.createNotification({
-        type: 'withdrawal_request',
-        title: 'طلب سحب رصيد جديد',
-        message: `السائق ${driver.name} يطلب سحب مبلغ ${amount} ريال`,
-        recipientType: 'admin',
-        recipientId: null,
-        orderId: null,
-        isRead: false
-      });
-    } catch (notificationError) {
-      console.error('Error creating admin notification for withdrawal:', notificationError);
-    }
-
-    res.json({ 
-      success: true, 
-      withdrawal,
-      newBalance: driverBalance.availableBalance - amount
-    });
+    res.json({ success: true, withdrawal });
   } catch (error) {
-    console.error("خطأ في طلب سحب الرصيد:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// جلب طلبات السحب
-router.get("/withdrawals", async (req, res) => {
-  try {
-    const { driverId, status } = req.query;
-    
-    if (!driverId || typeof driverId !== 'string') {
-      return res.status(400).json({ error: "معرف السائق مطلوب" });
-    }
-
-    // التحقق من وجود السائق
-    const driver = await storage.getDriver(driverId);
-    if (!driver) {
-      return res.status(404).json({ error: "السائق غير موجود" });
-    }
-
-    // جلب طلبات السحب
-    const withdrawals = await storage.getDriverWithdrawals(driverId);
-    
-    // فلترة حسب الحالة إذا تم توفيرها
-    let filteredWithdrawals = withdrawals;
-    if (status && typeof status === 'string') {
-      filteredWithdrawals = withdrawals.filter(w => w.status === status);
-    }
-
-    res.json({
-      withdrawals: filteredWithdrawals,
-      totalCount: filteredWithdrawals.length,
-      totalAmount: filteredWithdrawals.reduce((sum, w) => sum + w.amount, 0)
-    });
-  } catch (error) {
-    console.error("خطأ في جلب طلبات السحب:", error);
-    res.status(500).json({ error: "خطأ في الخادم" });
-  }
-});
-
-// تحديث موقع السائق الحالي
-router.post("/location", async (req, res) => {
-  try {
-    const { driverId, location } = req.body;
-    
-    if (!driverId || !location) {
-      return res.status(400).json({ error: "معرف السائق والموقع مطلوبان" });
-    }
-
-    // تحديث موقع السائق
-    const updatedDriver = await storage.updateDriver(driverId, {
-      currentLocation: location
-    });
-
-    if (!updatedDriver) {
-      return res.status(404).json({ error: "السائق غير موجود" });
-    }
-
-    // يمكن هنا إرسال تحديث الموقع للعملاء إذا لزم الأمر
-
-    res.json({ 
-      success: true, 
-      location: updatedDriver.currentLocation,
-      updatedAt: updatedDriver.updatedAt 
-    });
-  } catch (error) {
-    console.error("خطأ في تحديث الموقع:", error);
+    console.error("خطأ في طلب السحب:", error);
     res.status(500).json({ error: "خطأ في الخادم" });
   }
 });
