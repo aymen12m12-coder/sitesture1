@@ -19,14 +19,21 @@ interface StatsPageProps {
 }
 
 export default function StatsPage({ driverId }: StatsPageProps) {
+  const driverToken = localStorage.getItem('driver_token');
+
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: [`/api/driver/dashboard?driverId=${driverId}`],
+    queryKey: [`/api/driver/dashboard`],
     queryFn: async () => {
-      const response = await fetch(`/api/driver/dashboard?driverId=${driverId}`);
+      const response = await fetch(`/api/driver/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch stats');
       return response.json();
     },
     refetchInterval: 30000,
+    enabled: !!driverToken
   });
 
   const stats: DashboardStats = dashboardData?.stats || {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,24 +6,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { User, Phone, MapPin, Truck, LogOut, Save, Settings } from 'lucide-react';
+import { User, Phone, MapPin, Truck, LogOut, Save, Settings, RefreshCw } from 'lucide-react';
 
 interface Driver {
   id: string;
   name: string;
   email: string;
   phone: string;
-  vehicle?: string;
-  licenseNumber?: string;
+  vehicleType?: string;
+  vehicleNumber?: string;
   isAvailable: boolean;
 }
 
 interface ProfilePageProps {
-  driverId: string;
   onLogout: () => void;
 }
 
-export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
+export default function ProfilePage({ onLogout }: ProfilePageProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
@@ -31,22 +30,25 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
     name: '',
     email: '',
     phone: '',
-    vehicle: '',
-    licenseNumber: '',
+    vehicleType: '',
+    vehicleNumber: '',
     isAvailable: false
   });
 
-  React.useEffect(() => {
-    const driverData = localStorage.getItem('driverUser');
+  const driverToken = localStorage.getItem('driver_token');
+
+  useEffect(() => {
+    const driverData = localStorage.getItem('driver_user');
     if (driverData) {
       try {
         const driver = JSON.parse(driverData);
         setFormData({
+          id: driver.id,
           name: driver.name || '',
           email: driver.email || '',
           phone: driver.phone || '',
-          vehicle: driver.vehicle || '',
-          licenseNumber: driver.licenseNumber || '',
+          vehicleType: driver.vehicleType || '',
+          vehicleNumber: driver.vehicleNumber || '',
           isAvailable: driver.isAvailable || false
         });
       } catch (error) {
@@ -57,21 +59,24 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<Driver>) => {
-      const response = await fetch(`/api/drivers/${driverId}`, {
+      const response = await fetch(`/api/driver/profile`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${driverToken}`
         },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error('Failed to update profile');
+      if (!response.ok) throw new Error('فشل في تحديث الملف الشخصي');
       return response.json();
     },
-    onSuccess: (data) => {
-      localStorage.setItem('driverUser', JSON.stringify(data));
-      queryClient.invalidateQueries({ queryKey: ['/api/drivers'] });
+    onSuccess: (result) => {
+      if (result.success && result.driver) {
+        localStorage.setItem('driver_user', JSON.stringify(result.driver));
+        setFormData(prev => ({ ...prev, ...result.driver }));
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/dashboard'] });
       setIsEditing(false);
       toast({
         title: "تم التحديث ✅",
@@ -89,24 +94,26 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
 
   const updateAvailabilityMutation = useMutation({
     mutationFn: async (isAvailable: boolean) => {
-      const response = await fetch(`/api/drivers/${driverId}`, {
+      const response = await fetch(`/api/driver/profile`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${driverToken}`
         },
         body: JSON.stringify({ isAvailable }),
       });
 
-      if (!response.ok) throw new Error('Failed to update availability');
+      if (!response.ok) throw new Error('فشل في تحديث حالة التوفر');
       return response.json();
     },
-    onSuccess: (data) => {
-      localStorage.setItem('driverUser', JSON.stringify(data));
-      setFormData(prev => ({ ...prev, isAvailable: data.isAvailable }));
+    onSuccess: (result) => {
+      if (result.success && result.driver) {
+        localStorage.setItem('driver_user', JSON.stringify(result.driver));
+        setFormData(prev => ({ ...prev, isAvailable: result.driver.isAvailable }));
+      }
       toast({
         title: "تم التحديث",
-        description: data.isAvailable ? "أنت متاح الآن 🟢" : "أنت غير متاح 🔴"
+        description: formData.isAvailable ? "أنت متاح الآن 🟢" : "أنت غير متاح 🔴"
       });
     },
     onError: (error: Error) => {
@@ -121,18 +128,19 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
   return (
     <div className="min-h-screen bg-gray-50 p-4" dir="rtl">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">الملف الشخصي</h1>
+        <h1 className="text-2xl font-bold mb-6 text-right">الملف الشخصي</h1>
 
         {/* Profile Header */}
-        <Card className="mb-6 bg-gradient-to-r from-green-500 to-green-600 text-white">
+        <Card className="mb-6 bg-gradient-to-r from-green-500 to-green-600 text-white border-none">
           <CardContent className="p-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 text-right">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                 <User className="h-8 w-8 text-white" />
               </div>
-              <div>
-                <p className="text-sm opacity-90">معرف السائق</p>
-                <p className="text-xl font-bold">{driverId}</p>
+              <div className="text-right">
+                <p className="text-sm opacity-90">السائق</p>
+                <p className="text-xl font-bold">{formData.name}</p>
+                <p className="text-xs opacity-75">{formData.id}</p>
               </div>
             </div>
           </CardContent>
@@ -141,7 +149,7 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
         {/* Availability Status */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between text-right">
               <span className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
                 حالة التوفر
@@ -158,64 +166,59 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
               </div>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${formData.isAvailable ? 'bg-green-600' : 'bg-gray-400'}`} />
+          <CardContent className="text-right">
+            <div className="flex items-center gap-2 justify-end">
               <p className="text-sm text-gray-600">
                 {formData.isAvailable ? 'أنت متاح لاستقبال طلبات جديدة 🟢' : 'أنت غير متاح الآن 🔴'}
               </p>
+              <div className={`w-3 h-3 rounded-full ${formData.isAvailable ? 'bg-green-600' : 'bg-gray-400'}`} />
             </div>
           </CardContent>
         </Card>
 
         {/* Profile Information */}
         <Card className="mb-6">
-          <CardHeader className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              معلومات الملف الشخصي
-            </CardTitle>
-            <Button
+          <CardHeader className="flex flex-row justify-between items-center">
+             <Button
               variant={isEditing ? 'default' : 'outline'}
               size="sm"
               onClick={() => setIsEditing(!isEditing)}
             >
               {isEditing ? 'إلغاء' : 'تعديل'}
             </Button>
+            <CardTitle className="flex items-center gap-2 text-right">
+              <User className="h-5 w-5" />
+              معلومات الملف الشخصي
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 text-right">
             <div>
-              <Label className="mb-2">الاسم</Label>
+              <Label className="mb-2 block">الاسم</Label>
               <Input
                 value={formData.name || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 disabled={!isEditing}
                 placeholder="اسم السائق"
+                className="text-right"
               />
             </div>
 
             <div>
-              <Label className="mb-2">البريد الإلكتروني</Label>
+              <Label className="mb-2 block">البريد الإلكتروني</Label>
               <Input
                 type="email"
                 value={formData.email || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 disabled={!isEditing}
                 placeholder="البريد الإلكتروني"
+                className="text-right"
               />
             </div>
 
             <div>
-              <Label className="mb-2">رقم الهاتف</Label>
+              <Label className="mb-2 block">رقم الهاتف</Label>
               <div className="flex gap-2 items-center">
-                <Input
-                  type="tel"
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  disabled={!isEditing}
-                  placeholder="رقم الهاتف"
-                />
-                {formData.phone && (
+                 {formData.phone && (
                   <Button
                     variant="outline"
                     size="icon"
@@ -225,6 +228,14 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
                     <Phone className="h-4 w-4" />
                   </Button>
                 )}
+                <Input
+                  type="tel"
+                  value={formData.phone || ''}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  disabled={!isEditing}
+                  placeholder="رقم الهاتف"
+                  className="text-right"
+                />
               </div>
             </div>
 
@@ -243,11 +254,7 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
 
         {/* Vehicle Information */}
         <Card className="mb-6">
-          <CardHeader className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="h-5 w-5" />
-              معلومات المركبة
-            </CardTitle>
+          <CardHeader className="flex flex-row justify-between items-center">
             <Button
               variant={isEditing ? 'default' : 'outline'}
               size="sm"
@@ -255,33 +262,39 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
             >
               {isEditing ? 'إلغاء' : 'تعديل'}
             </Button>
+            <CardTitle className="flex items-center gap-2 text-right">
+              <Truck className="h-5 w-5" />
+              معلومات المركبة
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 text-right">
             <div>
-              <Label className="mb-2">نوع المركبة</Label>
+              <Label className="mb-2 block">نوع المركبة</Label>
               <Input
-                value={formData.vehicle || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, vehicle: e.target.value }))}
+                value={formData.vehicleType || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, vehicleType: e.target.value }))}
                 disabled={!isEditing}
                 placeholder="مثال: دراجة نارية، سيارة صغيرة"
+                className="text-right"
               />
             </div>
 
             <div>
-              <Label className="mb-2">رقم الترخيص</Label>
+              <Label className="mb-2 block">رقم المركبة</Label>
               <Input
-                value={formData.licenseNumber || ''}
-                onChange={(e) => setFormData(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                value={formData.vehicleNumber || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, vehicleNumber: e.target.value }))}
                 disabled={!isEditing}
-                placeholder="رقم الترخيص"
+                placeholder="رقم اللوحة"
+                className="text-right"
               />
             </div>
 
             {isEditing && (
               <Button
                 onClick={() => updateProfileMutation.mutate({
-                  vehicle: formData.vehicle,
-                  licenseNumber: formData.licenseNumber
+                  vehicleType: formData.vehicleType,
+                  vehicleNumber: formData.vehicleNumber
                 })}
                 disabled={updateProfileMutation.isPending}
                 className="w-full gap-2 bg-blue-600 hover:bg-blue-700"
@@ -294,11 +307,11 @@ export default function ProfilePage({ driverId, onLogout }: ProfilePageProps) {
         </Card>
 
         {/* Logout Button */}
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50 border">
           <CardContent className="p-6">
             <Button
               onClick={onLogout}
-              className="w-full gap-2 bg-red-600 hover:bg-red-700 text-white"
+              className="w-full gap-2 bg-red-600 hover:bg-red-700 text-white border-none"
             >
               <LogOut className="h-5 w-5" />
               تسجيل الخروج

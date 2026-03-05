@@ -32,7 +32,8 @@ import {
   Bell,
   Settings,
   History,
-  MapPinned
+  MapPinned,
+  RefreshCw
 } from 'lucide-react';
 
 interface Order {
@@ -62,8 +63,8 @@ interface Order {
   restaurantLatitude?: string;
   restaurantLongitude?: string;
   driverId?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface DashboardStats {
@@ -91,8 +92,12 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const driverToken = localStorage.getItem('driver_token');
+
   // WebSocket Connection
   useEffect(() => {
+    if (!driverId) return;
+    
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     const ws = new WebSocket(wsUrl);
@@ -109,7 +114,6 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       try {
         const message = JSON.parse(event.data);
         if (message.type === 'order_update') {
-          queryClient.invalidateQueries({ queryKey: [`/api/orders`] });
           queryClient.invalidateQueries({ queryKey: [`/api/driver/dashboard`] });
           toast({ title: 'تحديث جديد', description: 'تم تحديث حالة أحد الطلبات' });
         }
@@ -127,43 +131,53 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
 
   // Fetch dashboard data
   const { data: dashboardData, isLoading } = useQuery({
-    queryKey: [`/api/driver/dashboard?driverId=${driverId}`],
+    queryKey: [`/api/driver/dashboard`],
     queryFn: async () => {
-      const response = await fetch(`/api/driver/dashboard?driverId=${driverId}`);
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
+      const response = await fetch(`/api/driver/dashboard`, {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
+      if (!response.ok) {
+        if (response.status === 401) {
+          onLogout();
+          throw new Error('انتهت الجلسة');
+        }
+        throw new Error('Failed to fetch dashboard data');
+      }
       return response.json();
     },
-    refetchInterval: 15000, // Refresh every 15 seconds
+    refetchInterval: 15000,
+    enabled: !!driverToken
   });
 
-  // Fetch available orders
-  const { data: availableOrders = [], refetch: refetchAvailableOrders } = useQuery<Order[]>({
-    queryKey: [`/api/orders?available=true`],
-    refetchInterval: 10000,
-  });
-
-  // Fetch driver's current orders
-  const { data: myOrders = [] } = useQuery<Order[]>({
-    queryKey: [`/api/orders?driverId=${driverId}`],
-    refetchInterval: 10000,
-  });
+  const { 
+    availableOrders = [], 
+    currentOrders = [], 
+    stats = {} as DashboardStats 
+  } = dashboardData || {};
 
   // Accept order mutation
   const acceptOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const response = await fetch(`/api/orders/${orderId}/assign-driver`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ driverId }),
+      const response = await fetch(`/api/driver/orders/${orderId}/accept`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${driverToken}`
+        }
       });
-      if (!response.ok) throw new Error('Failed to accept order');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to accept order');
+      }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/orders`] });
       queryClient.invalidateQueries({ queryKey: [`/api/driver/dashboard`] });
       setAcceptingOrderId(null);
       toast({ title: 'تم قبول الطلب بنجاح', description: 'يمكنك الآن البدء في التوصيل' });
+      setActiveTab('active');
     },
     onError: (error: any) => {
       setAcceptingOrderId(null);
@@ -178,25 +192,30 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
   // Update order status mutation
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/driver/orders/${orderId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status,
-          updatedBy: driverId,
-          updatedByType: 'driver'
-        }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${driverToken}`
+        },
+        body: JSON.stringify({ status }),
       });
-      if (!response.ok) throw new Error('Failed to update order status');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update order status');
+      }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/orders`] });
       queryClient.invalidateQueries({ queryKey: [`/api/driver/dashboard`] });
       toast({ title: 'تم تحديث حالة الطلب بنجاح' });
     },
-    onError: () => {
-      toast({ title: 'فشل في تحديث حالة الطلب', variant: 'destructive' });
+    onError: (error: any) => {
+      toast({ 
+        title: 'فشل في تحديث حالة الطلب', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
@@ -235,8 +254,6 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     }
   }, [socket, driverId]);
 
-
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available': return 'bg-green-500 text-white';
@@ -267,10 +284,10 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
       cancelled: { label: 'ملغي', color: 'bg-red-500' },
     };
     const { label, color } = config[status] || config.pending;
-    return <Badge className={`${color} text-white`}>{label}</Badge>;
+    return <Badge className={`${color} text-white border-none`}>{label}</Badge>;
   };
 
-  const stats: DashboardStats = dashboardData?.stats || {
+  const dashboardStats: DashboardStats = (stats as DashboardStats) || {
     todayOrders: 0,
     todayEarnings: 0,
     completedToday: 0,
@@ -279,23 +296,7 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     averageRating: 0,
   };
 
-  // Categorize orders
-  const activeOrders = myOrders.filter(order =>
-    ['preparing', 'ready', 'picked_up', 'on_way'].includes(order.status)
-  );
-
-  const completedOrders = myOrders.filter(order => order.status === 'delivered');
-  const inProgressOrders = myOrders.filter(order => ['picked_up', 'on_way'].includes(order.status));
-
-  // Orders for map
-  const ordersForMap = activeOrders
-    .filter(order => order.customerLocationLat && order.customerLocationLng)
-    .map(order => ({
-      ...order,
-      restaurantLat: order.restaurantLatitude || '15.3694',
-      restaurantLng: order.restaurantLongitude || '44.1910',
-    }));
-
+  // Nav Items
   const navItems = [
     { id: 'dashboard', label: 'لوحة التحكم', icon: Activity },
     { id: 'available', label: 'الطلبات المتاحة', icon: Bell },
@@ -307,16 +308,16 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
     { id: 'profile', label: 'الملف الشخصي', icon: User },
   ];
 
-  const Sidebar = () => (
-    <div className="flex flex-col h-full bg-white border-l">
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full bg-white text-right" dir="rtl">
       <div className="p-6 border-b">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-end gap-3">
+          <div className="text-right">
+            <h2 className="text-lg font-bold">تطبيق السائق</h2>
+            <p className="text-xs text-gray-500">ID: {driverId.slice(-6)}</p>
+          </div>
           <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center">
             <Truck className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold">تطبيق السائق</h2>
-            <p className="text-sm text-gray-500">ID: {driverId.slice(-6)}</p>
           </div>
         </div>
       </div>
@@ -327,11 +328,11 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
             <Button
               key={item.id}
               variant={activeTab === item.id && !selectedOrderId ? 'default' : 'ghost'}
-              className="w-full justify-start gap-3"
+              className={`w-full justify-end gap-3 ${activeTab === item.id && !selectedOrderId ? 'bg-green-600 hover:bg-green-700' : ''}`}
               onClick={() => { setActiveTab(item.id); setSelectedOrderId(null); setSidebarOpen(false); }}
             >
+              <span>{item.label}</span>
               <item.icon className="h-5 w-5" />
-              {item.label}
             </Button>
           ))}
         </div>
@@ -341,802 +342,272 @@ export default function EnhancedDriverDashboard({ driverId, onLogout }: Enhanced
         <Button
           variant="outline"
           onClick={() => { onLogout(); setSidebarOpen(false); }}
-          className="w-full flex items-center gap-2 text-red-600 hover:bg-red-50"
+          className="w-full flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 border-red-100"
         >
+          <span>تسجيل الخروج</span>
           <LogOut className="h-4 w-4" />
-          تسجيل الخروج
         </Button>
       </div>
     </div>
   );
 
-  const TopBar = () => (
-    <header className="hidden lg:block bg-white border-b sticky top-0 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2">
-              <Truck className="h-6 w-6 text-green-600" />
-              <span className="font-bold text-xl">تطبيق السائق</span>
-            </div>
-            
-            <nav className="flex items-center gap-1">
-              {navItems.map((item) => (
-                <Button
-                  key={item.id}
-                  variant={activeTab === item.id && !selectedOrderId ? 'secondary' : 'ghost'}
-                  className="gap-2 px-3"
-                  onClick={() => { setActiveTab(item.id); setSelectedOrderId(null); }}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Badge className={getStatusColor(driverStatus)}>
-              {getStatusText(driverStatus)}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onLogout}
-              className="text-red-600 hover:bg-red-50 gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              خروج
-            </Button>
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-
-  if (isLoading) {
+  if (isLoading && !dashboardData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">جاري تحميل البيانات...</p>
+          <RefreshCw className="animate-spin h-12 w-12 text-green-600 mx-auto mb-4" />
+          <p className="text-gray-600">جاري تحميل لوحة التحكم...</p>
         </div>
       </div>
     );
   }
 
-  if (selectedOrderId) {
-    return (
-      <OrderDetailsPage
-        orderId={selectedOrderId}
-        driverId={driverId}
-        onBack={() => setSelectedOrderId(null)}
-      />
-    );
-  }
+  // Render correct page content based on activeTab
+  const renderContent = () => {
+    if (selectedOrderId) {
+      return (
+        <OrderDetailsPage 
+          orderId={selectedOrderId} 
+          onBack={() => setSelectedOrderId(null)}
+          onStatusUpdate={(status) => updateOrderStatusMutation.mutate({ orderId: selectedOrderId, status })}
+        />
+      );
+    }
+
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <div className="space-y-6 p-4" dir="rtl">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="border-none shadow-sm bg-blue-50">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-blue-600 mb-1">أرباح اليوم</p>
+                  <p className="text-xl font-bold text-blue-900">{formatCurrency(dashboardStats.todayEarnings)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-green-50">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-green-600 mb-1">طلبات اليوم</p>
+                  <p className="text-xl font-bold text-green-900">{dashboardStats.todayOrders}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-purple-50">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-purple-600 mb-1">المحفظة</p>
+                  <p className="text-xl font-bold text-purple-900">{formatCurrency(parseFloat(dashboardData?.balance?.availableBalance || "0"))}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-none shadow-sm bg-orange-50">
+                <CardContent className="p-4 text-center">
+                  <p className="text-xs text-orange-600 mb-1">التقييم</p>
+                  <p className="text-xl font-bold text-orange-900">{dashboardStats.averageRating || '4.8'}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Current Orders Section */}
+            {currentOrders.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-bold flex items-center justify-end gap-2">
+                  <span>الطلبات النشطة</span>
+                  <Package className="h-5 w-5 text-green-600" />
+                </h3>
+                <div className="grid gap-4">
+                  {currentOrders.map((order: any) => (
+                    <Card key={order.id} className="overflow-hidden border-2 border-green-100">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-4">
+                          <Badge className="bg-green-600 text-white border-none">نشط</Badge>
+                          <div className="text-right">
+                            <p className="font-bold">طلب #{order.orderNumber || order.id.slice(-6)}</p>
+                            <p className="text-sm text-gray-500">{order.customerName}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 text-sm text-gray-600 mb-4">
+                          <span>{order.deliveryAddress}</span>
+                          <MapPin className="h-4 w-4" />
+                        </div>
+                        <Button 
+                          className="w-full bg-green-600 hover:bg-green-700"
+                          onClick={() => setSelectedOrderId(order.id)}
+                        >
+                          عرض التفاصيل والمتابعة
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Available Orders Shortcut */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Button variant="ghost" className="text-green-600" onClick={() => setActiveTab('available')}>عرض الكل</Button>
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <span>طلبات متاحة بالقرب منك</span>
+                  <Bell className="h-5 w-5 text-orange-500" />
+                </h3>
+              </div>
+              
+              {availableOrders.length === 0 ? (
+                <Card className="bg-gray-50 border-dashed border-2">
+                  <CardContent className="p-8 text-center text-gray-500">
+                    لا توجد طلبات متاحة حالياً. تأكد من أن حالتك "متاح"
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {availableOrders.slice(0, 3).map((order: any) => (
+                    <Card key={order.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <p className="font-bold text-green-600">{formatCurrency(parseFloat(order.totalAmount))}</p>
+                          <p className="font-bold">طلب #{order.orderNumber || order.id.slice(-6)}</p>
+                        </div>
+                        <div className="flex items-center justify-end gap-2 text-sm text-gray-600 mb-4">
+                          <span className="truncate max-w-[200px]">{order.deliveryAddress}</span>
+                          <MapPin className="h-4 w-4" />
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          className="w-full border-green-600 text-green-600 hover:bg-green-50"
+                          onClick={() => acceptOrderMutation.mutate(order.id)}
+                          disabled={acceptOrderMutation.isPending}
+                        >
+                          {acceptOrderMutation.isPending ? 'جاري القبول...' : 'قبول الطلب فوراً'}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      case 'available':
+        return <AvailableOrdersPage onAcceptOrder={(id) => acceptOrderMutation.mutate(id)} />;
+      case 'active':
+        return <ActiveOrdersPage onSelectOrder={setSelectedOrderId} />;
+      case 'wallet':
+        return <WalletPage />;
+      case 'map':
+        return <div className="h-[calc(100vh-120px)] p-4"><DriverMapView currentLocation={currentLocation} orders={ordersForMap} /></div>;
+      case 'history':
+        return <HistoryPage onSelectOrder={setSelectedOrderId} />;
+      case 'stats':
+        return <StatsPage />;
+      case 'profile':
+        return <ProfilePage onLogout={onLogout} />;
+      default:
+        return <div>قيد التطوير...</div>;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
-      {/* Top Bar for Desktop */}
-      <TopBar />
-
-      {/* Mobile Header */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40 lg:hidden">
-        <div className="flex justify-between items-center h-16 px-4">
-          <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="p-0 w-80">
-              <Sidebar />
-            </SheetContent>
-          </Sheet>
-
-          <div className="flex items-center gap-3">
-            <Truck className="h-6 w-6 text-green-600" />
-            <h1 className="text-lg font-bold">السائق</h1>
-          </div>
-
-          <Badge className={getStatusColor(driverStatus)}>
-            {getStatusText(driverStatus)}
-          </Badge>
-        </div>
-      </header>
-
-      {/* Main Layout */}
-      <div className="flex flex-1 flex-col lg:flex-row h-full">
-        {/* Desktop Sidebar is now TopBar, so we don't need aside here anymore if we want full width */}
-        {/* But if user wants both, we keep it. However, user said "المحتويات التي تحتوي في القائمه الجانبيه يجب ان تكون في الشريط العلوي" which implies replacing it or moving it. */}
+    <div className="min-h-screen bg-gray-50 flex flex-col lg:flex-row">
+      {/* Mobile Top Nav */}
+      <div className="lg:hidden bg-white border-b p-4 flex justify-between items-center sticky top-0 z-50">
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="p-0 w-72">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
         
-        {/* Main Content */}
-        <main className="flex-1 overflow-auto">
-          {activeTab === 'available' ? (
-            <AvailableOrdersPage
-              driverId={driverId}
-              onSelectOrder={(orderId) => {
-                setSelectedOrderId(orderId);
-              }}
-            />
-          ) : activeTab === 'active' ? (
-            <ActiveOrdersPage
-              driverId={driverId}
-              onSelectOrder={(orderId) => {
-                setSelectedOrderId(orderId);
-              }}
-            />
-          ) : activeTab === 'history' ? (
-            <HistoryPage
-              driverId={driverId}
-              onSelectOrder={(orderId) => {
-                setSelectedOrderId(orderId);
-              }}
-            />
-          ) : activeTab === 'stats' ? (
-            <StatsPage driverId={driverId} />
-          ) : activeTab === 'profile' ? (
-            <ProfilePage driverId={driverId} onLogout={onLogout} />
-          ) : activeTab === 'map' ? (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPinned className="h-5 w-5" />
-                    خريطة التوصيل
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DriverMapView
-                    orders={ordersForMap}
-                    driverLocation={currentLocation}
-                    height="600px"
-                    onNavigate={(order) => {
-                      if (order.customerLocationLat && order.customerLocationLng) {
-                        const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
-                        window.open(url, '_blank');
-                      }
-                    }}
-                    onCall={(phone) => window.open(`tel:${phone}`, '_self')}
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-              {/* Desktop Header */}
-              <div className="hidden lg:flex justify-between items-center mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">لوحة التحكم</h1>
-                  <p className="text-sm text-gray-500">مرحباً بك في تطبيق السائق</p>
-                </div>
-                <Badge className={getStatusColor(driverStatus)}>
-                  {getStatusText(driverStatus)}
-                </Badge>
-              </div>
-              {/* Quick Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Package className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-600">طلبات اليوم</p>
-                        <p className="text-xl font-bold">{stats.todayOrders}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+        <div className="flex items-center gap-2">
+          <Truck className="h-6 w-6 text-green-600" />
+          <span className="font-bold text-lg">تطبيق السائق</span>
+        </div>
 
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                        <DollarSign className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-600">أرباح اليوم</p>
-                        <p className="text-xl font-bold">{formatCurrency(stats.todayEarnings)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                        <TrendingUp className="h-5 w-5 text-orange-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-600">طلبات نشطة</p>
-                        <p className="text-xl font-bold">{activeOrders.length}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Activity className="h-5 w-5 text-purple-600" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-600">مكتملة اليوم</p>
-                        <p className="text-xl font-bold">{stats.completedToday}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Active Orders */}
-              {activeOrders.length > 0 && (
-                <Card className="mb-6 border-green-200 bg-green-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-green-800">
-                      <Package className="h-5 w-5" />
-                      الطلبات النشطة ({activeOrders.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {activeOrders.map((order) => (
-                        <div 
-                          key={order.id} 
-                          className="bg-white rounded-lg p-4 border cursor-pointer hover:bg-gray-50 transition-colors"
-                          onClick={() => setSelectedOrderId(order.id)}
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="font-bold text-lg">طلب #{order.orderNumber}</p>
-                              <div className="flex items-center gap-2 text-primary font-bold">
-                                <Package className="h-4 w-4" />
-                                {order.restaurantName || 'مطعم غير معروف'}
-                              </div>
-                              <p className="text-sm text-gray-600">العميل: {order.customerName}</p>
-                            </div>
-                            {getOrderStatusBadge(order.status)}
-                          </div>
-
-                          <div className="space-y-1 mb-3">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 text-orange-500" />
-                              <span className="font-medium text-gray-800">من:</span> {order.restaurantAddress || 'عنوان المطعم غير متوفر'}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 text-green-500" />
-                              <span className="font-medium text-gray-800">إلى:</span> {order.deliveryAddress}
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(`tel:${order.customerPhone}`)}
-                              className="gap-2"
-                            >
-                              <Phone className="h-4 w-4" />
-                              اتصال
-                            </Button>
-
-                            {order.customerLocationLat && order.customerLocationLng && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
-                                  window.open(url, '_blank');
-                                }}
-                                className="gap-2"
-                              >
-                                <Navigation className="h-4 w-4" />
-                                توجيه
-                              </Button>
-                            )}
-
-                            {order.status === 'preparing' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'picked_up'
-                                })}
-                                className="gap-2 bg-blue-600 hover:bg-blue-700 mr-auto"
-                              >
-                                تم الاستلام
-                              </Button>
-                            )}
-
-                            {order.status === 'picked_up' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'on_way'
-                                })}
-                                className="gap-2 bg-purple-600 hover:bg-purple-700 mr-auto"
-                              >
-                                في الطريق
-                              </Button>
-                            )}
-
-                            {order.status === 'on_way' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'delivered'
-                                })}
-                                className="gap-2 bg-green-600 hover:bg-green-700 mr-auto"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                تم التسليم
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Available Orders Preview */}
-              {availableOrders.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="h-5 w-5" />
-                      طلبات متاحة ({availableOrders.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {availableOrders.slice(0, 3).map((order) => (
-                        <div 
-                          key={order.id} 
-                          className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => setSelectedOrderId(order.id)}
-                        >
-                          <div className="flex-1">
-                            <p className="font-bold">طلب #{order.orderNumber}</p>
-                            <p className="text-sm font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
-                            <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
-                            <p className="text-sm text-green-600 font-medium">عمولة: {formatCurrency(order.driverEarnings)}</p>
-                          </div>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAcceptingOrderId(order.id);
-                              acceptOrderMutation.mutate(order.id);
-                            }}
-                            disabled={(acceptingOrderId !== null && acceptingOrderId !== order.id) || acceptOrderMutation.isPending}
-                            className="gap-2 bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            {acceptingOrderId === order.id && acceptOrderMutation.isPending ? 'جاري...' : 'قبول'}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {availableOrders.length > 3 && (
-                      <Button
-                        variant="outline"
-                        onClick={() => setActiveTab('available')}
-                        className="w-full mt-3"
-                      >
-                        عرض جميع الطلبات المتاحة ({availableOrders.length})
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            {/* Available Orders Tab */}
-            <TabsContent value="available" className={activeTab === 'available' ? 'block' : 'hidden'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5" />
-                    الطلبات المتاحة ({availableOrders.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {availableOrders.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Bell className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500">لا توجد طلبات متاحة حالياً</p>
-                      <p className="text-sm text-gray-400">سيتم إشعارك عند توفر طلبات جديدة</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {availableOrders.map((order) => (
-                        <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="font-bold text-lg">طلب #{order.orderNumber}</p>
-                              <p className="font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
-                              <p className="text-sm text-gray-600">{formatDate(order.createdAt)}</p>
-                            </div>
-                            <div className="text-left">
-                              <p className="font-bold text-green-600">{formatCurrency(order.totalAmount)}</p>
-                              <p className="text-sm text-gray-600">عمولة: {formatCurrency(order.driverEarnings)}</p>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2 mb-3">
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-orange-500 mt-0.5" />
-                              <p className="text-sm font-medium">{order.restaurantAddress || 'عنوان المطعم غير متوفر'}</p>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                              <User className="h-4 w-4 text-gray-500 mt-0.5" />
-                              <div>
-                                <p className="text-sm font-medium">{order.customerName}</p>
-                                <p className="text-sm text-gray-600">{order.customerPhone}</p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
-                              <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
-                            </div>
-
-                            {order.notes && (
-                              <div className="flex items-start gap-2">
-                                <Package className="h-4 w-4 text-gray-500 mt-0.5" />
-                                <p className="text-sm text-gray-600">{order.notes}</p>
-                              </div>
-                            )}
-                          </div>
-
-                          <Button
-                            onClick={() => {
-                              setAcceptingOrderId(order.id);
-                              acceptOrderMutation.mutate(order.id);
-                            }}
-                            disabled={(acceptingOrderId !== null && acceptingOrderId !== order.id) || acceptOrderMutation.isPending}
-                            className="w-full gap-2 bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            {acceptingOrderId === order.id && acceptOrderMutation.isPending ? 'جاري...' : 'قبول الطلب'}
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Active Orders Tab */}
-            <TabsContent value="active" className={activeTab === 'active' ? 'block' : 'hidden'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    الطلبات النشطة ({activeOrders.length})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {activeOrders.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Package className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500">لا توجد طلبات نشطة</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {activeOrders.map((order) => (
-                        <div key={order.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <p className="font-bold text-lg">طلب #{order.orderNumber}</p>
-                              <p className="font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
-                              <p className="text-sm text-gray-600">العميل: {order.customerName}</p>
-                            </div>
-                            {getOrderStatusBadge(order.status)}
-                          </div>
-
-                          <div className="space-y-2 mb-3">
-                            <div className="flex items-center gap-2">
-                              <Phone className="h-4 w-4 text-gray-500" />
-                              <p className="text-sm">{order.customerPhone}</p>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-orange-500 mt-0.5" />
-                              <p className="text-sm font-medium">{order.restaurantAddress || 'عنوان المطعم غير متوفر'}</p>
-                            </div>
-
-                            <div className="flex items-start gap-2">
-                              <MapPin className="h-4 w-4 text-green-500 mt-0.5" />
-                              <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <DollarSign className="h-4 w-4 text-gray-500" />
-                              <p className="text-sm">المبلغ: {formatCurrency(order.totalAmount)} | عمولتك: {formatCurrency(order.driverEarnings)}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => window.open(`tel:${order.customerPhone}`)}
-                              className="gap-2"
-                            >
-                              <Phone className="h-4 w-4" />
-                              اتصال
-                            </Button>
-
-                            {order.customerLocationLat && order.customerLocationLng && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
-                                  window.open(url, '_blank');
-                                }}
-                                className="gap-2"
-                              >
-                                <Navigation className="h-4 w-4" />
-                                توجيه
-                              </Button>
-                            )}
-
-                            {order.status === 'preparing' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'picked_up'
-                                })}
-                                className="gap-2 bg-blue-600 hover:bg-blue-700 mr-auto"
-                              >
-                                تم الاستلام
-                              </Button>
-                            )}
-
-                            {order.status === 'picked_up' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'on_way'
-                                })}
-                                className="gap-2 bg-purple-600 hover:bg-purple-700 mr-auto"
-                              >
-                                في الطريق
-                              </Button>
-                            )}
-
-                            {order.status === 'on_way' && (
-                              <Button
-                                size="sm"
-                                onClick={() => updateOrderStatusMutation.mutate({
-                                  orderId: order.id,
-                                  status: 'delivered'
-                                })}
-                                className="gap-2 bg-green-600 hover:bg-green-700 mr-auto"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                                تم التسليم
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Map Tab */}
-            <TabsContent value="map" className={activeTab === 'map' ? 'block' : 'hidden'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPinned className="h-5 w-5" />
-                    خريطة التوصيل
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <DriverMapView
-                    orders={ordersForMap}
-                    driverLocation={currentLocation}
-                    height="600px"
-                    onNavigate={(order) => {
-                      if (order.customerLocationLat && order.customerLocationLng) {
-                        const url = `https://www.google.com/maps/dir/?api=1&destination=${order.customerLocationLat},${order.customerLocationLng}`;
-                        window.open(url, '_blank');
-                      }
-                    }}
-                    onCall={(phone) => window.open(`tel:${phone}`, '_self')}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* History Tab */}
-            <TabsContent value="history" className={activeTab === 'history' ? 'block' : 'hidden'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5" />
-                    سجل الطلبات المكتملة
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {completedOrders.length === 0 ? (
-                    <div className="text-center py-12">
-                      <History className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500">لا توجد طلبات مكتملة</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {completedOrders.map((order) => (
-                        <div key={order.id} className="flex justify-between items-center p-3 border rounded-lg">
-                          <div>
-                            <p className="font-medium">طلب #{order.orderNumber}</p>
-                            <p className="text-sm text-gray-600">{order.customerName}</p>
-                            <p className="text-xs text-gray-500">{formatDate(order.createdAt)}</p>
-                          </div>
-                          <div className="text-left">
-                            <Badge className="bg-green-600 text-white mb-1">مكتمل</Badge>
-                            <p className="text-sm font-medium">{formatCurrency(order.driverEarnings)}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Stats Tab */}
-            <TabsContent value="stats" className={activeTab === 'stats' ? 'block' : 'hidden'}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      إحصائيات اليوم
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <span>إجمالي الطلبات:</span>
-                      <span className="font-bold text-lg">{stats.todayOrders}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span>إجمالي الأرباح:</span>
-                      <span className="font-bold text-lg text-green-600">{formatCurrency(stats.todayEarnings)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                      <span>طلبات مكتملة:</span>
-                      <span className="font-bold text-lg">{stats.completedToday}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp className="h-5 w-5" />
-                      الإحصائيات الإجمالية
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                      <span>إجمالي الطلبات:</span>
-                      <span className="font-bold text-lg">{stats.totalOrders}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                      <span>إجمالي الأرباح:</span>
-                      <span className="font-bold text-lg text-green-600">{formatCurrency(stats.totalEarnings)}</span>
-                    </div>
-                    <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                      <span>متوسط التقييم:</span>
-                      <span className="font-bold text-lg">{stats.averageRating.toFixed(1)} ⭐</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-
-            {/* Profile Tab */}
-            <TabsContent value="profile" className={activeTab === 'profile' ? 'block' : 'hidden'}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <User className="h-5 w-5" />
-                    الملف الشخصي
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <span className="text-gray-600">معرف السائق:</span>
-                    <span className="font-medium">{driverId}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <span className="text-gray-600">الحالة:</span>
-                    <Badge className={getStatusColor(driverStatus)}>
-                      {getStatusText(driverStatus)}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <span className="text-gray-600">إجمالي الطلبات:</span>
-                    <span className="font-medium">{stats.totalOrders}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 border rounded-lg">
-                    <span className="text-gray-600">إجمالي الأرباح:</span>
-                    <span className="font-medium text-green-600">{formatCurrency(stats.totalEarnings)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Available Orders Preview */}
-              {availableOrders.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Bell className="h-5 w-5" />
-                      طلبات متاحة ({availableOrders.length})
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {availableOrders.slice(0, 3).map((order) => (
-                        <div
-                          key={order.id}
-                          className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                          onClick={() => setSelectedOrderId(order.id)}
-                        >
-                          <div className="flex-1">
-                            <p className="font-bold">طلب #{order.orderNumber}</p>
-                            <p className="text-sm font-bold text-primary">{order.restaurantName || 'مطعم غير معروف'}</p>
-                            <p className="text-sm text-gray-600">{order.deliveryAddress}</p>
-                            <p className="text-sm text-green-600 font-medium">عمولة: {formatCurrency(order.driverEarnings)}</p>
-                          </div>
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedOrderId(order.id);
-                            }}
-                            className="gap-2 bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            تفاصيل
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-
-                    {availableOrders.length > 3 && (
-                      <Button
-                        variant="outline"
-                        onClick={() => { setActiveTab('available'); setSelectedOrderId(null); }}
-                        className="w-full mt-3"
-                      >
-                        عرض جميع الطلبات المتاحة ({availableOrders.length})
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </main>
+        <div className="flex items-center gap-2">
+          <div className={`w-3 h-3 rounded-full ${driverStatus === 'available' ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+        </div>
       </div>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:block w-72 h-screen sticky top-0 overflow-y-auto">
+        <SidebarContent />
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        {/* Desktop Header */}
+        <header className="hidden lg:flex bg-white border-b h-16 items-center justify-between px-8 sticky top-0 z-40">
+          <div className="flex items-center gap-4">
+             <Badge className={getStatusColor(driverStatus)}>
+              {getStatusText(driverStatus)}
+            </Badge>
+            <div className="text-sm text-gray-500">
+              {currentLocation ? `إحداثياتك: ${currentLocation[0].toFixed(4)}, ${currentLocation[1].toFixed(4)}` : 'جاري جلب موقعك...'}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </Button>
+            <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 font-bold">
+              {stats.averageRating || '4.8'}
+            </div>
+          </div>
+        </header>
+
+        {/* Dynamic Content */}
+        <div className="flex-1 overflow-y-auto max-w-5xl mx-auto w-full">
+          {renderContent()}
+        </div>
+
+        {/* Mobile Bottom Nav */}
+        <div className="lg:hidden bg-white border-t flex justify-around p-2 sticky bottom-0 z-50">
+          <Button 
+            variant="ghost" 
+            className={`flex flex-col items-center gap-1 h-auto py-1 ${activeTab === 'dashboard' ? 'text-green-600' : 'text-gray-500'}`}
+            onClick={() => { setActiveTab('dashboard'); setSelectedOrderId(null); }}
+          >
+            <Activity className="h-5 w-5" />
+            <span className="text-[10px]">الرئيسية</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`flex flex-col items-center gap-1 h-auto py-1 ${activeTab === 'available' ? 'text-green-600' : 'text-gray-500'}`}
+            onClick={() => { setActiveTab('available'); setSelectedOrderId(null); }}
+          >
+            <Bell className="h-5 w-5" />
+            <span className="text-[10px]">المتاحة</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`flex flex-col items-center gap-1 h-auto py-1 ${activeTab === 'active' ? 'text-green-600' : 'text-gray-500'}`}
+            onClick={() => { setActiveTab('active'); setSelectedOrderId(null); }}
+          >
+            <Package className="h-5 w-5" />
+            <span className="text-[10px]">النشطة</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`flex flex-col items-center gap-1 h-auto py-1 ${activeTab === 'wallet' ? 'text-green-600' : 'text-gray-500'}`}
+            onClick={() => { setActiveTab('wallet'); setSelectedOrderId(null); }}
+          >
+            <DollarSign className="h-5 w-5" />
+            <span className="text-[10px]">المحفظة</span>
+          </Button>
+          <Button 
+            variant="ghost" 
+            className={`flex flex-col items-center gap-1 h-auto py-1 ${activeTab === 'profile' ? 'text-green-600' : 'text-gray-500'}`}
+            onClick={() => { setActiveTab('profile'); setSelectedOrderId(null); }}
+          >
+            <User className="h-5 w-5" />
+            <span className="text-[10px]">حسابي</span>
+          </Button>
+        </div>
+      </main>
     </div>
   );
 }

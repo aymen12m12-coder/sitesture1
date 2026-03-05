@@ -65,24 +65,30 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
   const queryClient = useQueryClient();
   const [isAccepting, setIsAccepting] = useState(false);
 
+  const driverToken = localStorage.getItem('driver_token');
+
   const { data: order, isLoading } = useQuery<Order>({
-    queryKey: [`/api/orders/${orderId}`],
+    queryKey: [`/api/driver/orders/${orderId}`],
     queryFn: async () => {
-      const response = await fetch(`/api/orders/${orderId}`);
+      const response = await fetch(`/api/driver/orders/${orderId}`, {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch order details');
       return response.json();
-    }
+    },
+    enabled: !!driverToken
   });
 
   const acceptOrderMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/orders/${orderId}/assign-driver`, {
-        method: 'PUT',
+      const response = await fetch(`/api/driver/orders/${orderId}/accept`, {
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
-        },
-        body: JSON.stringify({ driverId }),
+          'Authorization': `Bearer ${driverToken}`
+        }
       });
 
       if (!response.ok) {
@@ -93,8 +99,8 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/driver/orders/${orderId}`] });
       toast({
         title: "تم قبول الطلب بنجاح ✅",
         description: "تم تعيين الطلب لك"
@@ -112,25 +118,21 @@ export default function OrderDetailsPage({ orderId, driverId, onBack }: OrderDet
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async (status: string) => {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/driver/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${driverToken}`
         },
-        body: JSON.stringify({ 
-          status,
-          updatedBy: driverId,
-          updatedByType: 'driver'
-        }),
+        body: JSON.stringify({ status }),
       });
 
       if (!response.ok) throw new Error('Failed to update order');
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/orders/${orderId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/orders'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/driver/orders/${orderId}`] });
       toast({
         title: "تم التحديث بنجاح ✅",
         description: "تم تحديث حالة الطلب"

@@ -33,28 +33,32 @@ export default function AvailableOrdersPage({ driverId, onSelectOrder }: Availab
   const [refreshing, setRefreshing] = useState(false);
   const [acceptingOrderId, setAcceptingOrderId] = useState<string | null>(null);
 
+  const driverToken = localStorage.getItem('driver_token');
+
   const { data: availableOrders = [], isLoading, refetch } = useQuery<Order[]>({
-    queryKey: ['/api/orders/available'],
+    queryKey: ['/api/driver/orders/available'],
     queryFn: async () => {
-      const response = await fetch('/api/orders?status=confirmed');
+      const response = await fetch('/api/driver/orders/available', {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch orders');
       const data = await response.json();
-      return Array.isArray(data) 
-        ? data.filter((order: any) => !order.driverId || order.driverId === driverId)
-        : [];
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 10000,
+    enabled: !!driverToken
   });
 
   const acceptOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      const response = await fetch(`/api/orders/${orderId}/assign-driver`, {
-        method: 'PUT',
+      const response = await fetch(`/api/driver/orders/${orderId}/accept`, {
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
-        },
-        body: JSON.stringify({ driverId }),
+          'Authorization': `Bearer ${driverToken}`
+        }
       });
 
       if (!response.ok) {

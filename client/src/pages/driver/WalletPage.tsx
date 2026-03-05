@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,8 @@ import {
   Clock, 
   CheckCircle, 
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { apiRequest } from '@/lib/queryClient';
@@ -23,7 +24,7 @@ import { apiRequest } from '@/lib/queryClient';
 interface Transaction {
   id: string;
   type: 'commission' | 'withdrawal' | 'adjustment';
-  amount: number;
+  amount: number | string;
   description: string;
   createdAt: string;
   status: string;
@@ -36,61 +37,71 @@ interface WalletStats {
   pendingWithdrawals: number;
 }
 
-interface WalletPageProps {
-  driverId: string;
-}
-
-export default function WalletPage({ driverId }: WalletPageProps) {
+export default function WalletPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawNotes, setWithdrawNotes] = useState('');
 
-  // Fetch Wallet Data
-  const { data: dashboardData, isLoading } = useQuery({
-    queryKey: [`/api/driver/dashboard?driverId=${driverId}`],
+  const driverToken = localStorage.getItem('driver_token');
+
+  // التحقق من تسجيل الدخول
+  useEffect(() => {
+    if (!driverToken) {
+      window.location.href = '/driver-login';
+    }
+  }, [driverToken]);
+
+  // Fetch Wallet Data (Balance and Transactions)
+  const { data: walletData, isLoading } = useQuery({
+    queryKey: ['/api/driver/balance'],
     queryFn: async () => {
-      const response = await fetch(`/api/driver/dashboard?driverId=${driverId}`);
-      if (!response.ok) throw new Error('Failed to fetch wallet data');
+      const response = await fetch('/api/driver/balance', {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
+      if (!response.ok) throw new Error('فشل في جلب بيانات المحفظة');
       return response.json();
     },
+    enabled: !!driverToken,
   });
+
+  const { balance = {}, transactions = [], withdrawals = [] } = walletData || {};
 
   const stats: WalletStats = {
-    availableBalance: dashboardData?.stats?.availableBalance || 0,
-    totalEarned: dashboardData?.stats?.totalEarnings || 0,
-    withdrawnAmount: dashboardData?.stats?.withdrawnAmount || 0,
-    pendingWithdrawals: 0, // Should be fetched from withdrawals API
+    availableBalance: parseFloat(balance.availableBalance || "0"),
+    totalEarned: parseFloat(balance.totalBalance || "0"),
+    withdrawnAmount: parseFloat(balance.withdrawnAmount || "0"),
+    pendingWithdrawals: withdrawals
+      ?.filter((w: any) => w.status === 'pending')
+      .reduce((sum: number, w: any) => sum + parseFloat(w.amount || "0"), 0) || 0,
   };
-
-  const transactions: Transaction[] = dashboardData?.recentTransactions || [];
-
-  // Fetch Withdrawals to count pending
-  const { data: withdrawalsData } = useQuery({
-    queryKey: [`/api/driver/withdrawals?driverId=${driverId}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/driver/withdrawals?driverId=${driverId}`);
-      if (!response.ok) return { withdrawals: [] };
-      return response.json();
-    },
-  });
-
-  const pendingAmount = withdrawalsData?.withdrawals
-    ?.filter((w: any) => w.status === 'pending')
-    .reduce((sum: number, w: any) => sum + parseFloat(w.amount), 0) || 0;
 
   const requestWithdrawalMutation = useMutation({
     mutationFn: async (data: { amount: number; notes: string }) => {
-      const response = await apiRequest('POST', '/api/driver/withdraw', {
-        driverId,
-        amount: data.amount,
-        notes: data.notes
+      const response = await fetch('/api/driver/withdraw', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${driverToken}`
+        },
+        body: JSON.stringify({
+          amount: data.amount,
+          method: 'wallet',
+          details: data.notes
+        })
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'فشل في إرسال طلب السحب');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/driver/dashboard?driverId=${driverId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/driver/withdrawals?driverId=${driverId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/balance'] });
       setWithdrawAmount('');
       setWithdrawNotes('');
       toast({
@@ -124,7 +135,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <Clock className="h-8 w-8 animate-spin text-primary" />
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -134,7 +145,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
       {/* Balance Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white border-none shadow-lg">
-          <CardContent className="p-6">
+          <CardContent className="p-6 text-right">
             <div className="flex justify-between items-start mb-4">
               <div className="p-2 bg-white/20 rounded-lg">
                 <Wallet className="h-6 w-6 text-white" />
@@ -167,7 +178,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
               </div>
               <Badge variant="outline" className="text-orange-600 border-orange-200">قيد الانتظار</Badge>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-1">{formatCurrency(pendingAmount)}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">{formatCurrency(stats.pendingWithdrawals)}</h3>
             <p className="text-gray-500 text-xs">طلبات سحب معلقة</p>
           </CardContent>
         </Card>
@@ -193,7 +204,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
                     placeholder="0.00"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
-                    className="text-left font-bold pl-12 h-12 text-lg"
+                    className="text-right font-bold pl-12 h-12 text-lg"
                   />
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">ر.ي</div>
                 </div>
@@ -236,7 +247,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
               {transactions.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">لا توجد عمليات سابقة</div>
               ) : (
-                transactions.map((tx) => (
+                transactions.map((tx: Transaction) => (
                   <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-50 hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${
@@ -254,7 +265,7 @@ export default function WalletPage({ driverId }: WalletPageProps) {
                       <p className={`font-black text-sm ${
                         tx.type === 'commission' ? 'text-green-600' : 'text-orange-600'
                       }`}>
-                        {tx.type === 'commission' ? '+' : '-'}{formatCurrency(tx.amount)}
+                        {tx.type === 'commission' ? '+' : '-'}{formatCurrency(parseFloat(tx.amount.toString()))}
                       </p>
                       <Badge variant="outline" className="text-[8px] h-4 px-1.5 border-gray-200 text-gray-400">مكتمل</Badge>
                     </div>

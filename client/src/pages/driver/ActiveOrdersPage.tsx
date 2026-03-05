@@ -36,37 +36,40 @@ export default function ActiveOrdersPage({ driverId, onSelectOrder }: ActiveOrde
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const driverToken = localStorage.getItem('driver_token');
+
   const { data: myOrders = [], isLoading } = useQuery<Order[]>({
-    queryKey: ['/api/orders/my-orders', driverId],
+    queryKey: ['/api/driver/orders', 'active'],
     queryFn: async () => {
-      if (!driverId) return [];
-      const response = await fetch(`/api/orders?driverId=${driverId}`);
+      const response = await fetch(`/api/driver/orders?status=active`, {
+        headers: {
+          'Authorization': `Bearer ${driverToken}`
+        }
+      });
       if (!response.ok) throw new Error('Failed to fetch orders');
-      return Array.isArray(await response.json()) ? await response.json() : [];
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
     refetchInterval: 8000,
+    enabled: !!driverToken
   });
 
   const updateOrderStatusMutation = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: string }) => {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/driver/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('driverToken')}`
+          'Authorization': `Bearer ${driverToken}`
         },
-        body: JSON.stringify({ 
-          status,
-          updatedBy: driverId,
-          updatedByType: 'driver'
-        }),
+        body: JSON.stringify({ status }),
       });
 
       if (!response.ok) throw new Error('Failed to update order');
       return response.json();
     },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/orders/my-orders'] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/driver/orders'] });
       toast({
         title: "تم التحديث ✅",
         description: "تم تحديث حالة الطلب بنجاح"
