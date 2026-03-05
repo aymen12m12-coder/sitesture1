@@ -175,6 +175,12 @@ export interface IStorage {
   getDriverWithdrawalById(id: string): Promise<DriverWithdrawal | null>;
   updateWithdrawal(id: string, data: Partial<DriverWithdrawal>): Promise<DriverWithdrawal | null>;
   
+  // طلبات السحب (النظام المتقدم)
+  createWithdrawalRequest(data: InsertWithdrawalRequest): Promise<WithdrawalRequest>;
+  getWithdrawalRequests(entityId: string, entityType: string): Promise<WithdrawalRequest[]>;
+  getPendingWithdrawalRequests(): Promise<WithdrawalRequest[]>;
+  updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest>;
+  
   // تحديث حقل العمولة في الطلب
   updateOrderCommission(id: string, data: { commissionRate: number; commissionAmount: string; commissionProcessed: boolean }): Promise<Order | undefined>;
 
@@ -244,6 +250,7 @@ export class MemStorage implements IStorage {
   private geoZonesMap: Map<string, GeoZone>;
   private deliveryRulesMap: Map<string, DeliveryRule>;
   private deliveryDiscountsMap: Map<string, DeliveryDiscount>;
+  private withdrawalRequestsMap: Map<string, WithdrawalRequest>;
 
   // Add db property for compatibility with routes that access it directly
   get db() {
@@ -280,6 +287,7 @@ export class MemStorage implements IStorage {
     this.geoZonesMap = new Map();
     this.deliveryRulesMap = new Map();
     this.deliveryDiscountsMap = new Map();
+    this.withdrawalRequestsMap = new Map();
     
     this.initializeData();
   }
@@ -1996,6 +2004,44 @@ export class MemStorage implements IStorage {
 
   async deleteDeliveryDiscount(id: string): Promise<boolean> {
     return this.deliveryDiscountsMap.delete(id);
+  }
+
+  // طلبات السحب (النظام المتقدم)
+  async createWithdrawalRequest(data: InsertWithdrawalRequest): Promise<WithdrawalRequest> {
+    const id = randomUUID();
+    const newRequest: WithdrawalRequest = {
+      ...data,
+      id,
+      status: data.status || "pending",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      bankDetails: data.bankDetails || null,
+      adminNotes: data.adminNotes || null,
+      rejectionReason: data.rejectionReason || null,
+      approvedBy: data.approvedBy || null,
+    } as WithdrawalRequest;
+    this.withdrawalRequestsMap.set(id, newRequest);
+    return newRequest;
+  }
+
+  async getWithdrawalRequests(entityId: string, entityType: string): Promise<WithdrawalRequest[]> {
+    return Array.from(this.withdrawalRequestsMap.values())
+      .filter(r => r.entityId === entityId && r.entityType === entityType)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPendingWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+    return Array.from(this.withdrawalRequestsMap.values())
+      .filter(r => r.status === 'pending')
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest> {
+    const existing = this.withdrawalRequestsMap.get(id);
+    if (!existing) throw new Error("Withdrawal request not found");
+    const updated = { ...existing, ...updates, updatedAt: new Date() } as WithdrawalRequest;
+    this.withdrawalRequestsMap.set(id, updated);
+    return updated;
   }
 }
 

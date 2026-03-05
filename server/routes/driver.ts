@@ -28,6 +28,7 @@ router.get("/dashboard", async (req: AuthenticatedRequest, res) => {
     const driverBalance = await storage.getDriverBalance(driverId);
     const driverTransactions = await storage.getDriverTransactions(driverId);
     const driverCommissions = await storage.getDriverCommissions(driverId);
+    const driverWithdrawals = await storage.getWithdrawalRequests(driverId, 'driver');
     
     // حساب الإحصائيات
     const today = new Date().toDateString();
@@ -48,9 +49,9 @@ router.get("/dashboard", async (req: AuthenticatedRequest, res) => {
       sum + (parseFloat(commission.commissionAmount.toString()) || 0), 0
     );
 
-    // الطلبات المتاحة (المُعيَّنة لهذا السائق ولكن لم يقبلها بعد)
+    // الطلبات المتاحة (المُعيَّنة لهذا السائق تحديداً ولكن لم يقبلها بعد)
     const availableOrders = allOrders
-      .filter(order => order.status === "confirmed" && (order.driverId === driverId || !order.driverId))
+      .filter(order => (order.status === "confirmed" || order.status === "assigned") && order.driverId === driverId)
       .slice(0, 10);
 
     // الطلبات الحالية للسائق
@@ -278,6 +279,28 @@ router.get("/orders", async (req: AuthenticatedRequest, res) => {
   }
 });
 
+// جلب الطلبات المتاحة (المُعيَّنة لهذا السائق)
+router.get("/orders/available", async (req: AuthenticatedRequest, res) => {
+  try {
+    const driverId = req.driverId!;
+    
+    // جلب جميع الطلبات وفلترتها
+    const allOrders = await storage.getOrders();
+    const availableOrders = allOrders.filter(order => 
+      (order.status === "confirmed" || order.status === "assigned") && 
+      order.driverId === driverId
+    );
+    
+    // ترتيب حسب الأحدث
+    availableOrders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    res.json(availableOrders);
+  } catch (error) {
+    console.error("خطأ في جلب الطلبات المتاحة:", error);
+    res.status(500).json({ error: "خطأ في الخادم" });
+  }
+});
+
 // جلب إحصائيات السائق مع تفاصيل الرصيد
 router.get("/stats", async (req: AuthenticatedRequest, res) => {
   try {
@@ -384,7 +407,7 @@ router.get("/balance", async (req: AuthenticatedRequest, res) => {
     const driverBalance = await storage.getDriverBalance(driverId);
     const driverTransactions = await storage.getDriverTransactions(driverId);
     const driverCommissions = await storage.getDriverCommissions(driverId);
-    const driverWithdrawals = await storage.getDriverWithdrawals(driverId);
+    const driverWithdrawals = await storage.getWithdrawalRequests(driverId, 'driver');
 
     res.json({
       balance: driverBalance || {
@@ -421,12 +444,14 @@ router.post("/withdraw", async (req: AuthenticatedRequest, res) => {
       return res.status(400).json({ error: "الرصيد غير كافٍ" });
     }
 
-    const withdrawal = await storage.createDriverWithdrawal({
-      driverId,
+    // إنشاء طلب سحب (النظام المتقدم)
+    const withdrawal = await storage.createWithdrawalRequest({
+      entityType: 'driver',
+      entityId: driverId,
       amount: amount.toString(),
       status: 'pending',
-      paymentMethod: method || 'cash',
-      paymentDetails: details || ''
+      bankDetails: details || '',
+      adminNotes: `وسيلة السحب: ${method || 'كاش'}`
     });
 
     res.json({ success: true, withdrawal });

@@ -485,6 +485,19 @@ export class DatabaseStorage {
         console.error("خطأ في إنشاء سجل أرباح السائق:", earningsError);
       }
 
+      // 4. إنشاء سجل رصيد للسائق (للنظام المالي المتقدم)
+      try {
+        await this.db.insert(driverBalances).values({
+          driverId: newDriver.id,
+          totalBalance: "0",
+          availableBalance: "0",
+          withdrawnAmount: "0",
+          pendingAmount: "0"
+        });
+      } catch (balanceError) {
+        console.error("خطأ في إنشاء سجل رصيد السائق:", balanceError);
+      }
+
       return newDriver;
     } catch (error) {
       console.error("Error in createDriver:", error);
@@ -1800,6 +1813,35 @@ async getNotifications(recipientType?: string, recipientId?: string, unread?: bo
   async deleteDeliveryDiscount(id: string): Promise<boolean> {
     const result = await this.db.delete(deliveryDiscounts).where(eq(deliveryDiscounts.id, id));
     return result.rowCount > 0;
+  }
+
+  // طلبات السحب (النظام المتقدم)
+  async createWithdrawalRequest(data: InsertWithdrawalRequest): Promise<WithdrawalRequest> {
+    const [request] = await this.db.insert(withdrawalRequests).values(data).returning();
+    return request;
+  }
+
+  async getWithdrawalRequests(entityId: string, entityType: string): Promise<WithdrawalRequest[]> {
+    return await this.db.select().from(withdrawalRequests)
+      .where(and(
+        eq(withdrawalRequests.entityId, entityId),
+        eq(withdrawalRequests.entityType, entityType)
+      ))
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async getPendingWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+    return await this.db.select().from(withdrawalRequests)
+      .where(eq(withdrawalRequests.status, 'pending'))
+      .orderBy(desc(withdrawalRequests.createdAt));
+  }
+
+  async updateWithdrawalRequest(id: string, updates: Partial<InsertWithdrawalRequest>): Promise<WithdrawalRequest> {
+    const [request] = await this.db.update(withdrawalRequests)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(withdrawalRequests.id, id))
+      .returning();
+    return request;
   }
 }
 
