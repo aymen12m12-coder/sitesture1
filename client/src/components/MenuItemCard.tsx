@@ -11,7 +11,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
 
 interface MenuItemCardProps {
-  item: MenuItem;
+  item: any; // Using any to support both MenuItem and Mapped SpecialOffer
   disabled?: boolean;
   disabledMessage?: string;
   restaurantId?: string;
@@ -35,16 +35,17 @@ export default function MenuItemCard({
   const { data: favoriteStatus } = useQuery<{ isFavorite: boolean }>({
     queryKey: ['/api/favorites/check', user?.id, item.id],
     queryFn: async () => {
-      if (!user?.id) return { isFavorite: false };
+      if (!user?.id || item.isBannerOffer) return { isFavorite: false };
       const res = await fetch(`/api/favorites/check?userId=${user.id}&menuItemId=${item.id}`);
       if (!res.ok) return { isFavorite: false };
       return res.json();
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !item.isBannerOffer,
   });
 
   const toggleFavorite = useMutation({
     mutationFn: async () => {
+      if (item.isBannerOffer) return;
       if (!isAuthenticated) {
         setLocation('/auth');
         return;
@@ -60,6 +61,7 @@ export default function MenuItemCard({
       }
     },
     onSuccess: () => {
+      if (item.isBannerOffer) return;
       queryClient.invalidateQueries({ queryKey: ['/api/favorites/check', user?.id, item.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/favorites/products', user?.id] });
       
@@ -73,6 +75,13 @@ export default function MenuItemCard({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     
+    if (item.isBannerOffer) {
+      if (item.menuItemId) {
+        setLocation(`/product/${item.menuItemId}`);
+      }
+      return;
+    }
+
     if (disabled && disabledMessage) {
       toast({
         title: "لا يمكن الطلب",
@@ -91,7 +100,19 @@ export default function MenuItemCard({
 
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
-    toggleFavorite.mutate();
+    if (!item.isBannerOffer) {
+      toggleFavorite.mutate();
+    }
+  };
+
+  const handleClick = () => {
+    if (item.isBannerOffer) {
+      if (item.menuItemId) {
+        setLocation(`/product/${item.menuItemId}`);
+      }
+    } else {
+      setLocation(`/product/${item.id}`);
+    }
   };
 
   const discountPercent = item.originalPrice 
@@ -102,9 +123,9 @@ export default function MenuItemCard({
 
   return (
     <div 
-      id={`product-${item.id}`}
+      id={item.isBannerOffer ? `offer-${item.id}` : `product-${item.id}`}
       className="group relative bg-white cursor-pointer border border-gray-100 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300" 
-      onClick={() => setLocation(`/product/${item.id}`)}
+      onClick={handleClick}
     >
       {/* Product Image Container */}
       <div className="relative aspect-square overflow-hidden bg-gray-50">
@@ -116,6 +137,11 @@ export default function MenuItemCard({
         
         {/* Badges */}
         <div className="absolute top-1.5 right-1.5 flex flex-col gap-1">
+          {item.isBannerOffer && (
+            <Badge className="bg-primary text-white border-none rounded-sm text-[8px] px-1.5 py-0 font-black">
+              عرض خاص
+            </Badge>
+          )}
           {item.isFeatured && (
             <Badge className="bg-black/80 text-white border-none rounded-sm text-[8px] px-1.5 py-0 font-black">
               M-S
@@ -134,20 +160,22 @@ export default function MenuItemCard({
             size="icon"
             className="h-8 w-8 rounded-full bg-primary hover:bg-primary/90 text-white shadow-lg"
             onClick={handleAddToCart}
-            disabled={!item.isAvailable || disabled}
+            disabled={(!item.isAvailable && !item.isBannerOffer) || disabled}
           >
-            <Plus className="h-4 w-4" />
+            {item.isBannerOffer ? <ShoppingBag className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </Button>
         </div>
 
         {/* Favorite Icon */}
-        <button 
-          className="absolute top-1.5 left-1.5 p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors z-10 shadow-sm"
-          onClick={handleToggleFavorite}
-          disabled={toggleFavorite.isPending}
-        >
-          <Heart className={`h-3.5 w-3.5 ${favoriteStatus?.isFavorite ? 'text-red-600 fill-current' : 'text-gray-400'}`} />
-        </button>
+        {!item.isBannerOffer && (
+          <button 
+            className="absolute top-1.5 left-1.5 p-1.5 bg-white/80 hover:bg-white rounded-full transition-colors z-10 shadow-sm"
+            onClick={handleToggleFavorite}
+            disabled={toggleFavorite.isPending}
+          >
+            <Heart className={`h-3.5 w-3.5 ${favoriteStatus?.isFavorite ? 'text-red-600 fill-current' : 'text-gray-400'}`} />
+          </button>
+        )}
       </div>
 
       {/* Product Info */}
@@ -168,8 +196,10 @@ export default function MenuItemCard({
             <Star className="h-2.5 w-2.5 fill-current" />
             <span className="text-[9px] text-gray-500 font-bold">{item.rating || '4.8'}</span>
           </div>
-          {item.salesCount !== undefined && (
-            <span className="text-[8px] text-gray-400 font-bold">باع {item.salesCount}+</span>
+          {(item.salesCount !== undefined || item.isBannerOffer) && (
+            <span className="text-[8px] text-gray-400 font-bold">
+              {item.isBannerOffer ? 'متوفر الآن' : `باع ${item.salesCount}+`}
+            </span>
           )}
         </div>
       </div>
