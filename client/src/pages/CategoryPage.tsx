@@ -18,25 +18,28 @@ export default function CategoryPage() {
     queryKey: ['/api/restaurants'],
   });
 
-  const { data: allProducts, isLoading } = useQuery<MenuItem[]>({
+  const { data: allProducts, isLoading } = useQuery<any[]>({
     queryKey: ['/api/products', slug],
     queryFn: async () => {
-      const response = await fetch('/api/products');
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const products: MenuItem[] = await response.json();
-      
       const targetCategory = decodeURIComponent(slug || '').trim().toLowerCase();
+      const isOfferCategory = ['عروض', 'العروض', 'offers', 'offer', 'تخفيضات'].includes(targetCategory);
+
+      // Fetch products
+      const productsRes = await fetch('/api/products');
+      if (!productsRes.ok) throw new Error('Failed to fetch products');
+      const products: MenuItem[] = await productsRes.json();
+
+      let results: any[] = [];
 
       const categoryMap: Record<string, string[]> = {
         'fruits': ['فواكه', 'fruits', 'fruit'],
         'vegetables': ['خضروات', 'vegetables', 'veg', 'خضار'],
         'dates': ['تمور', 'dates', 'تمر'],
         'juices': ['عصائر', 'juices', 'juice'],
-        'offers': ['عروض', 'offers', 'offer', 'تخفيضات']
+        'offers': ['عروض', 'العروض', 'offers', 'offer', 'تخفيضات']
       };
 
-      return products.filter((item: MenuItem) => {
-        const isOfferCategory = ['عروض', 'offers', 'offer', 'تخفيضات'].includes(targetCategory);
+      const filteredProducts = products.filter((item: MenuItem) => {
         if (isOfferCategory && (item.isSpecialOffer || item.category?.toLowerCase().includes('عرض'))) return true;
 
         if (!item.category) return false;
@@ -55,6 +58,40 @@ export default function CategoryPage() {
 
         return false;
       });
+
+      results = [...filteredProducts];
+
+      // If it's offers category, also fetch special offers banners
+      if (isOfferCategory) {
+        try {
+          const offersRes = await fetch('/api/special-offers');
+          if (offersRes.ok) {
+            const specialOffers = await offersRes.json();
+            const activeSpecialOffers = specialOffers.filter((o: any) => o.isActive);
+            
+            // Map special offers to a format similar to MenuItem for display
+            const mappedOffers = activeSpecialOffers.map((offer: any) => ({
+              id: offer.id,
+              name: offer.title,
+              description: offer.description,
+              price: offer.discountAmount || "0",
+              image: offer.image,
+              category: "العروض",
+              isAvailable: true,
+              isSpecialOffer: true,
+              restaurantId: offer.restaurantId,
+              isBannerOffer: true, // Flag to identify this is a banner offer
+              menuItemId: offer.menuItemId
+            }));
+            
+            results = [...results, ...mappedOffers];
+          }
+        } catch (e) {
+          console.error("Failed to fetch special offers", e);
+        }
+      }
+
+      return results;
     }
   });
 
